@@ -85,6 +85,29 @@ The list is sorted by distance to the area's center point, closest first.
 {%- endif -%}
 ```
 
+## Automations
+
+### Notify when a new camera is reported
+
+Every camera is a `geo_location` entity that gets created the moment it's first reported ([see "Created entities"](#created-entities)), so Home Assistant's built-in [geolocation trigger](https://www.home-assistant.io/docs/automation/trigger/#zone-trigger) already fires whenever a new one shows up inside a zone — no extra code needed. Set the trigger's `source` to the area's `blitzer_<area>` source, `zone` to whatever area you want covered (e.g. `zone.home`, or a custom zone matching the section you configured), and `event` to `enter`:
+
+```yaml
+automation:
+  - alias: "Neuer Blitzer gemeldet"
+    trigger:
+      - platform: geolocation
+        source: blitzer_berlin
+        zone: zone.home
+        event: enter
+    action:
+      - service: notify.mobile_app_dein_handy
+        data:
+          message: >-
+            Neuer Blitzer: {{ state_attr(trigger.entity_id, 'street') }},
+            {{ state_attr(trigger.entity_id, 'city') }}
+            ({{ state_attr(trigger.entity_id, 'vmax') }} km/h)
+```
+
 ## Installation
 
 ### HACS (recommended)
