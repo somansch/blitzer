@@ -57,8 +57,8 @@ class BlitzerdeAPI:
 
     async def _resolveCluster(self, area, radius: float):
         """zoom in to resolve cluster"""
-        lat = area['lat']
-        lng = area['lng']
+        lat = float(area['lat'])
+        lng = float(area['lng'])
         _LOGGER.warn("resolving cluster: " + str([lat, lng, radius]))
         if radius < 1:
             raise Exception("unable to resolve cluster")
@@ -71,6 +71,8 @@ class BlitzerdeAPI:
             if isCluster(area):
                 areaList = areaList + await self._resolveCluster(area, radius)
                 continue
+            area['lat'] = float(area['lat'])
+            area['lng'] = float(area['lng'])
             if not areaExists(areaList, area):
                 areaList.append(area)
         return areaList
