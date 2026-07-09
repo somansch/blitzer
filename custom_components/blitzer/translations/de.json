@@ -1,0 +1,64 @@
+{
+    "title": "Blitzer.de",
+    "config": {
+        "step": {
+            "user": {
+                "title": "Blitzer.de Setup",
+                "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
+                "data": {
+                    "name": "Anzeigename",
+                    "location": "Bereich"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Blitzer",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Anhänger",
+                            "fixed": "Feste"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optionale Einstellungen",
+                        "data": {
+                            "count": "Anzahl der Sensoren",
+                            "selector": "Regex Filter der Städtenamen (Whitelist)",
+                            "condition": "Nur bestätigte Blitzer anzeigen"
+                        }
+                    }
+                }
+            }
+        },
+        "abort": {
+            "location_missing": "Bitte Position auswählen. (Karte verschieben)"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Blitzer.de Setup",
+                "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
+                "data": {
+                    "location": "Bereich"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Blitzer",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Anhänger",
+                            "fixed": "Feste"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optionale Einstellungen",
+                        "data": {
+                            "selector": "Regex Filter der Städtenamen (Whitelist)",
+                            "condition": "Nur bestätigte Blitzer anzeigen"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

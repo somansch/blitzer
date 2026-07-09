@@ -1,0 +1,64 @@
+{
+    "title": "Blitzer.de",
+    "config": {
+        "step": {
+            "user": {
+                "title": "Blitzer.de Setup",
+                "description": "Select the section from which the data should be displayed",
+                "data": {
+                    "name": "Display name",
+                    "location": "Section"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Types",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Trailer",
+                            "fixed": "Fixed"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optional settings",
+                        "data": {
+                            "count": "Number of sensors",
+                            "selector": "Regex filter of city names (whitelist)",
+                            "condition": "Only show confirmed"
+                        }
+                    }
+                }
+            }
+        },
+        "abort": {
+            "location_missing": "Please select a position. (move the map)"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Blitzer.de Setup",
+                "description": "Select the section from which the data should be displayed.",
+                "data": {
+                    "location": "Section"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Types",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Trailer",
+                            "fixed": "Fixed"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optional settings",
+                        "data": {
+                            "selector": "Regex filter of city names (whitelist)",
+                            "condition": "Only show confirmed"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
