@@ -10,13 +10,12 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import location as location_util
+from homeassistant.util import slugify
 
 from .const import DOMAIN
 from .coordinator import BlitzerdeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-
-SOURCE = DOMAIN
 
 
 async def async_setup_entry(
@@ -80,33 +79,51 @@ class BlitzerdeLocationEvent(GeolocationEvent):
     """Represents a single Blitzer.de speed camera as a geolocation event."""
 
     _attr_should_poll = False
-    _attr_source = SOURCE
 
     def __init__(self, coordinator: BlitzerdeCoordinator, poi_id: str, item: dict) -> None:
         self._coordinator = coordinator
         self._poi_id = poi_id
+        # Per-area source (e.g. "blitzer_berlin") instead of a single shared
+        # "blitzer" source, so each configured area can be selected on its
+        # own via the map card's geo_location_sources option.
+        self._attr_source = f"{DOMAIN}_{slugify(coordinator.displayname)}"
         self._attr_unique_id = f"{DOMAIN}-{coordinator.displayname}-{poi_id}"
         self._attr_unit_of_measurement = UnitOfLength.KILOMETERS
         self._extra_attrs: dict[str, Any] = {}
         self._apply(item)
 
     @staticmethod
-    def _picture_path(item: dict) -> str:
+    def _base_kind(item: dict) -> str:
+        """Physical installation kind, independent of the red-light variant."""
+        if "fixed" in item["info"]:
+            return "fixed"
+        if "partly_fixed" in item["info"]:
+            return "trailer"
+        return "mobile"
+
+    @classmethod
+    def _camera_type(cls, item: dict) -> str:
+        """User-facing category: mobile / trailer / fixed / redlight."""
+        if item["vmax"] == "/":
+            # The API sends this as the JSON-escaped "\/", which the JSON
+            # decoder already turns into a plain "/" by the time it gets
+            # here. It marks red light cameras, which are always physically
+            # "fixed" installations but get their own category since they
+            # don't have a speed limit or community confirmation count.
+            return "redlight"
+        return cls._base_kind(item)
+
+    @classmethod
+    def _picture_path(cls, item: dict) -> str:
         vmax = item["vmax"]
         if vmax == "?":
             vmax = "v"
         elif vmax == "/":
-            # The API sends this as the JSON-escaped "\/", which the JSON
-            # decoder already turns into a plain "/" by the time it gets
-            # here - comparing against the raw "\/" (the previous code)
-            # never matches, so red light cameras never got their icon.
             vmax = "redlight"
 
-        if "fixed" in item["info"]:
-            return "fixed_" + vmax
-        if "partly_fixed" in item["info"]:
-            return "ts_" + vmax
-        return "mobile_" + vmax
+        kind = cls._base_kind(item)
+        prefix = "ts_" if kind == "trailer" else f"{kind}_"
+        return prefix + vmax
 
     def _apply(self, item: dict) -> None:
         self._attr_name = f"Blitzer {self._coordinator.displayname} {item['address']['street']}"
@@ -117,9 +134,16 @@ class BlitzerdeLocationEvent(GeolocationEvent):
         )
         if self.hass is not None:
             self._attr_distance = self._distance_from_area_center(item["lat"], item["lng"])
+        camera_id = item["backend"].split("-")[-1]
         self._extra_attrs = {
             "area": self._coordinator.displayname,
-            "backend": item["backend"].split("-")[-1],
+            "type": self._camera_type(item),
+            # The id used in the Blitzer.de map URL
+            # (https://map.blitzer.de/v5/ID/<id>/) and for the blacklist
+            # config option. Kept as "backend" too for compatibility with
+            # dashboards/templates written against earlier versions.
+            "id": camera_id,
+            "backend": camera_id,
             "vmax": item["vmax"],
             "counter": item["counter"],
             "city": item["address"]["city"],

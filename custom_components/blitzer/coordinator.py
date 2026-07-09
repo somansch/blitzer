@@ -20,6 +20,7 @@ from .api import BlitzerdeAPI, APIConnectionError
 from .const import DOMAIN
 
 from .const import (
+    CONF_BLACKLIST,
     TYPE_TRAILER,
     TYPE_MOBILE,
     TYPE_FIXED
@@ -50,6 +51,12 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         self.sensorcount = config_entry.data[CONF_COUNT]
         self.types = config_entry.data[CONF_TYPE]
         self.only_confirmed = config_entry.data[CONF_CONDITION]
+        # .get() with a default: entries created before the blacklist option
+        # existed don't have this key at all.
+        blacklist_raw = config_entry.data.get(CONF_BLACKLIST, "")
+        self.blacklist = {
+            camera_id.strip() for camera_id in blacklist_raw.split(",") if camera_id.strip()
+        }
 
         # Initialise DataUpdateCoordinator
         super().__init__(
@@ -87,6 +94,13 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
                     mapdata
                 )
             )
+            if self.blacklist:
+                mapdata = list(
+                    filter(
+                        lambda mapitem: mapitem['backend'].split("-")[-1] not in self.blacklist,
+                        mapdata
+                    )
+                )
             if self.only_confirmed:
                 # Fixed cameras have no "confirmed" field at all (they're permanent
                 # installations, not community-reported), so treat them as always

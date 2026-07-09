@@ -23,7 +23,8 @@
                         "data": {
                             "count": "Anzahl der Sensoren",
                             "selector": "Regex Filter der Städtenamen (Whitelist)",
-                            "condition": "Nur bestätigte Blitzer anzeigen"
+                            "condition": "Nur bestätigte Blitzer anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
                         }
                     }
                 }
@@ -53,8 +54,10 @@
                     "optional": {
                         "name": "Optionale Einstellungen",
                         "data": {
+                            "count": "Anzahl der Sensoren",
                             "selector": "Regex Filter der Städtenamen (Whitelist)",
-                            "condition": "Nur bestätigte Blitzer anzeigen"
+                            "condition": "Nur bestätigte Blitzer anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
                         }
                     }
                 }

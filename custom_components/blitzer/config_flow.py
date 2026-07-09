@@ -11,7 +11,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import selector
 
-from .const import DOMAIN
+from .const import CONF_BLACKLIST, DOMAIN
 
 from homeassistant.const import (
     CONF_LOCATION,
@@ -41,7 +41,8 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_LOCATION: user_input[CONF_LOCATION],
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'][CONF_SELECTOR],
-                CONF_CONDITION: user_input['optional'][CONF_CONDITION]
+                CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_BLACKLIST: user_input['optional'][CONF_BLACKLIST]
             })
 
         data_schema = {
@@ -68,7 +69,8 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_COUNT, default=9): int,
                     vol.Required(CONF_SELECTOR, default=".*"): str,
-                    vol.Required(CONF_CONDITION, default=True): bool
+                    vol.Required(CONF_CONDITION, default=True): bool,
+                    vol.Optional(CONF_BLACKLIST, default=""): str
                 }
             ),
             # Whether or not the section is initially collapsed (default = False)
@@ -103,7 +105,8 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 CONF_TYPE: user_input[CONF_TYPE],
                 CONF_LOCATION: user_input[CONF_LOCATION],
                 CONF_SELECTOR: user_input['optional'][CONF_SELECTOR],
-                CONF_CONDITION: user_input['optional'][CONF_CONDITION]
+                CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_BLACKLIST: user_input['optional'][CONF_BLACKLIST]
             }
             self.hass.config_entries.async_update_entry(
                 self._config_entry, data=data
@@ -134,7 +137,8 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 {
                     vol.Required(CONF_COUNT, default=self.config_entry.data.get(CONF_COUNT)): int,
                     vol.Required(CONF_SELECTOR, default=self.config_entry.data.get(CONF_SELECTOR)): str,
-                    vol.Required(CONF_CONDITION, default=self.config_entry.data.get(CONF_CONDITION)): bool
+                    vol.Required(CONF_CONDITION, default=self.config_entry.data.get(CONF_CONDITION)): bool,
+                    vol.Optional(CONF_BLACKLIST, default=self.config_entry.data.get(CONF_BLACKLIST, "")): str
                 }
             ),
             # Whether or not the section is initially collapsed (default = False)

@@ -23,7 +23,8 @@
                         "data": {
                             "count": "Number of sensors",
                             "selector": "Regex filter of city names (whitelist)",
-                            "condition": "Only show confirmed"
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated camera IDs)"
                         }
                     }
                 }
@@ -53,8 +54,10 @@
                     "optional": {
                         "name": "Optional settings",
                         "data": {
+                            "count": "Number of sensors",
                             "selector": "Regex filter of city names (whitelist)",
-                            "condition": "Only show confirmed"
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated camera IDs)"
                         }
                     }
                 }

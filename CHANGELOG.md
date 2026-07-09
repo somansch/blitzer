@@ -2,6 +2,16 @@
 
 All notable changes to this integration are documented here.
 
+## v1.4.0
+
+### Added
+- Each configured area now gets its own `geo_location` `source` (`blitzer_<area>`, e.g. `blitzer_berlin`) instead of one shared `blitzer` source for every area, so a map card can select just one specific area via `geo_location_sources` instead of always showing them all combined.
+- Every camera now carries a `type` attribute (`mobile` / `trailer` / `fixed` / `redlight`), and an `id` attribute (the numeric id used in the camera's `https://map.blitzer.de/v5/ID/<id>/` URL — also still available as `backend` for compatibility). The example markdown card uses `type` to hide the (meaningless) speed limit for red light cameras and the (always-empty) star rating for fixed cameras, showing "(fest installiert)" instead.
+- New **Blacklist** config option: a comma-separated list of camera IDs to always exclude, on top of the existing whitelist (which filters by city name via regex). Useful for excluding specific false positives or cameras you're not interested in that a regex can't target.
+
+### Fixed
+- The example markdown card had inconsistent spacing around "bei ... km/h" / "Rotlichtblitzer" due to Jinja whitespace-trimming eating the literal space in the template text; it now uses explicit `&nbsp;` so the spacing is stable regardless of trimming.
+
 ## v1.3.0
 
 ### Fixed

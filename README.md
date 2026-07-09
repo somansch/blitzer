@@ -8,7 +8,21 @@ The Blitzer.de Home Assistant Custom Integration allows you to integrate the Bli
 
 ## Example Markdown Card
 
-Since v1.1.0 each detected camera is exposed as a `geo_location` entity (tagged with `source: blitzer` and an `area` attribute matching the display name you gave the area in the config flow), instead of a fixed pool of `binary_sensor` entities. This also means they show up natively on the [map card](https://www.home-assistant.io/dashboards/map/) via `geo_location_sources: [blitzer]`.
+Since v1.1.0 each detected camera is exposed as a `geo_location` entity (with an `area` attribute matching the display name you gave the area in the config flow), instead of a fixed pool of `binary_sensor` entities. This also means they show up natively on the [map card](https://www.home-assistant.io/dashboards/map/).
+
+Since v1.4.0, each configured area gets its **own** `source`, named `blitzer_<area>` (e.g. `blitzer_berlin`, `blitzer_munchen` — the area's display name, lowercased and slugified). This lets you show just one specific area on a map card instead of all of them combined:
+
+```yaml
+type: map
+geo_location_sources:
+  - blitzer_berlin
+entities:
+  - zone.home
+```
+
+Use `geo_location_sources: [all]` (or list every `blitzer_<area>` source) to show all configured areas on the same map.
+
+Since v1.4.0 every camera also carries a `type` attribute — one of `mobile`, `trailer`, `fixed`, or `redlight` — so the card can render each kind appropriately: fixed cameras always report a `counter` of 0 (there's no community confirmation concept for a permanent installation), so showing an empty star rating for them is meaningless; red light cameras don't have a `vmax` speed limit at all.
 
 ```jinja2
 <h1><img src="/local/Blitzer_app.svg" height="23"> Achtung!</h1>
@@ -17,7 +31,7 @@ Since v1.1.0 each detected camera is exposed as a `geo_location` entity (tagged 
 {%- for area in areas %}
   {%- set matches = namespace(items=[]) %}
   {%- for s in states.geo_location %}
-    {%- if state_attr(s.entity_id, 'source') == 'blitzer' and state_attr(s.entity_id, 'area') == area %}
+    {%- if (state_attr(s.entity_id, 'source') or '').startswith('blitzer_') and state_attr(s.entity_id, 'area') == area %}
       {%- set matches.items = matches.items + [s.entity_id] %}
     {%- endif %}
   {%- endfor %}
@@ -25,15 +39,26 @@ Since v1.1.0 each detected camera is exposed as a `geo_location` entity (tagged 
     {%- set ns.has_blitzer = true %}
     <b>{{ area }} ({{ matches.items | count }})</b><br>
     {%- for e in matches.items %}
+      {%- set etype = state_attr(e, 'type') %}
       {%- set blitzer_counter = state_attr(e, "counter") | int(0) %}
       <img src="{{ state_attr(e, 'entity_picture') }}" width="20">
-      <a href="https://map.blitzer.de/v5/ID/{{ state_attr(e, 'backend') }}/">{{ state_attr(e, 'street') }}</a> bei {{ state_attr(e, 'vmax') }} km/h ({{ states(e) }} km)&nbsp;&nbsp;
+      <a href="https://map.blitzer.de/v5/ID/{{ state_attr(e, 'backend') }}/">{{ state_attr(e, 'street') }}</a>
+      {%- if etype == 'redlight' -%}
+      &nbsp;Rotlichtblitzer ({{ states(e) }} km)
+      {%- else -%}
+      &nbsp;bei {{ state_attr(e, 'vmax') }} km/h ({{ states(e) }} km)
+      {%- endif -%}
+      {%- if etype == 'fixed' -%}
+      &nbsp;<i>(fest installiert)</i>
+      {%- elif etype != 'redlight' -%}
+      &nbsp;&nbsp;
       {%- for i in range(blitzer_counter) %}
         <img src="https://map.blitzer.de/v5/images/star_full.svg" width="12">
       {%- endfor %}
       {%- for i in range(3-blitzer_counter) %}
         <img src="https://map.blitzer.de/v5/images/star_contour.svg" width="12">
       {%- endfor %}
+      {%- endif %}
       <br>
     {%- endfor %}
   {%- endif %}
@@ -88,6 +113,7 @@ From the Home Assistant front page, go to **Settings** and then select **Devices
 | **Optionale Einstellungen / Optional settings** – Anzahl der Sensoren / Number of sensors | Upper limit on how many cameras are tracked at once (default 9). Extra hits beyond this number are ignored. |
 | **Optionale Einstellungen / Optional settings** – Regex Filter der Städtenamen / Regex filter of city names (whitelist) | Only cameras whose city matches this regex are kept (default `.*`, i.e. no filtering). |
 | **Optionale Einstellungen / Optional settings** – Nur bestätigte Blitzer anzeigen / Only show confirmed | When enabled, only cameras the Blitzer.de community has confirmed recently are reported. |
+| **Optionale Einstellungen / Optional settings** – Blacklist | Comma-separated list of camera IDs to always exclude, regardless of the whitelist regex (e.g. `120644,167589`). The ID is the number from the camera's `id`/`backend` attribute, which is also the same number used in its `https://map.blitzer.de/v5/ID/<id>/` URL. Use this for specific cameras you want to ignore (e.g. false positives or ones you're just not interested in), as opposed to the whitelist, which filters by city name via regex. |
 
 ### Changing settings later
 
