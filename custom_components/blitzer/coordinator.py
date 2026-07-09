@@ -88,9 +88,12 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
                 )
             )
             if self.only_confirmed:
+                # Fixed cameras have no "confirmed" field at all (they're permanent
+                # installations, not community-reported), so treat them as always
+                # confirmed instead of dropping them with a KeyError.
                 mapdata = list(
                     filter(
-                        lambda mapitem: mapitem['info']['confirmed'] == 1,
+                        lambda mapitem: mapitem['info'].get('confirmed', 1) == 1,
                         mapdata
                     )
                 )

@@ -49,21 +49,24 @@ async def async_setup_entry(
                 known_entities[poi_id] = entity
                 new_entities.append(entity)
 
-        for poi_id in set(known_entities) - current_ids:
-            entity = known_entities.pop(poi_id)
-            hass.async_create_task(entity.async_remove(force_remove=True))
-
-        # Also purge registry entries left over from a previous HA/integration
-        # restart: those were never re-created this session, so the diff above
-        # against `known_entities` can't see them.
-        for entry in er.async_entries_for_config_entry(
-            registry, config_entry.entry_id
+        # Purge every registry entry for this area that no longer matches a
+        # currently reported camera - both ones tracked in `known_entities`
+        # this session and leftovers from a previous session. Removing the
+        # registry entry directly (synchronously, right here) instead of
+        # scheduling entity.async_remove() as a separate task is what makes
+        # this immediate: it avoids the brief window where the entity's own
+        # (async, task-scheduled) teardown hasn't run yet and Home Assistant
+        # shows a "restored: true" / unavailable ghost for it in the
+        # meantime.
+        for entry in list(
+            er.async_entries_for_config_entry(registry, config_entry.entry_id)
         ):
             if (
                 entry.domain == "geo_location"
                 and entry.unique_id.startswith(unique_prefix)
                 and entry.unique_id[len(unique_prefix):] not in current_ids
             ):
+                known_entities.pop(entry.unique_id[len(unique_prefix):], None)
                 registry.async_remove(entry.entity_id)
 
         if new_entities:
@@ -92,7 +95,11 @@ class BlitzerdeLocationEvent(GeolocationEvent):
         vmax = item["vmax"]
         if vmax == "?":
             vmax = "v"
-        elif vmax == r"\/":
+        elif vmax == "/":
+            # The API sends this as the JSON-escaped "\/", which the JSON
+            # decoder already turns into a plain "/" by the time it gets
+            # here - comparing against the raw "\/" (the previous code)
+            # never matches, so red light cameras never got their icon.
             vmax = "redlight"
 
         if "fixed" in item["info"]:
