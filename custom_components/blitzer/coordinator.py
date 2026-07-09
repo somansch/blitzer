@@ -79,15 +79,31 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         so entities can quickly look up their data.
         """
         try:
+            want_fixed = self.types['fixed']
+            want_redlight = self.types.get('redlight', False)
+
             types = []
             if self.types['mobile']:
                 types = types + TYPE_MOBILE
             if self.types['trailer']:
                 types = types + TYPE_TRAILER
-            if self.types['fixed']:
+            if want_fixed or want_redlight:
+                # Red light cameras don't have their own API type code - they
+                # come back as regular "fixed" cameras (types 101-117) with
+                # vmax == "/". So we still have to request the fixed types
+                # whenever either option is on, and tell them apart
+                # afterwards using vmax.
                 types = types + TYPE_FIXED
 
             mapdata = await self.api.getArea(latitude=self.location['latitude'], longitude=self.location['longitude'], radius=self.location['radius'], types=types)
+
+            def _keep_fixed_variant(mapitem):
+                if 'fixed' not in mapitem['info']:
+                    return True
+                is_redlight = mapitem['vmax'] == '/'
+                return want_redlight if is_redlight else want_fixed
+
+            mapdata = list(filter(_keep_fixed_variant, mapdata))
             mapdata = list(
                 filter(
                     lambda mapitem: re.match(self.whitelist, mapitem['address']['city']),

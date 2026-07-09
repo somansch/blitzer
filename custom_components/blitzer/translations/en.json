@@ -15,7 +15,8 @@
                         "data": {
                             "mobile": "Mobile",
                             "trailer": "Trailer",
-                            "fixed": "Fixed"
+                            "fixed": "Fixed",
+                            "redlight": "Red light (traffic signal)"
                         }
                     },
                     "optional": {
@@ -48,7 +49,8 @@
                         "data": {
                             "mobile": "Mobile",
                             "trailer": "Trailer",
-                            "fixed": "Fixed"
+                            "fixed": "Fixed",
+                            "redlight": "Red light (traffic signal)"
                         }
                     },
                     "optional": {

@@ -58,7 +58,8 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required("mobile", default=True): bool,
                     vol.Required("trailer", default=True): bool,
-                    vol.Required("fixed", default=False): bool
+                    vol.Required("fixed", default=False): bool,
+                    vol.Required("redlight", default=False): bool
                 }
             ),
             # Whether or not the section is initially collapsed (default = False)
@@ -67,9 +68,9 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
         data_schema[vol.Required('optional')] = section(
             vol.Schema(
                 {
+                    vol.Required(CONF_CONDITION, default=True): bool,
                     vol.Required(CONF_COUNT, default=9): int,
                     vol.Required(CONF_SELECTOR, default=".*"): str,
-                    vol.Required(CONF_CONDITION, default=True): bool,
                     vol.Optional(CONF_BLACKLIST, default=""): str
                 }
             ),
@@ -126,7 +127,8 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 {
                     vol.Required("mobile", default=self.config_entry.data.get(CONF_TYPE)["mobile"]): bool,
                     vol.Required("trailer", default=self.config_entry.data.get(CONF_TYPE)["trailer"]): bool,
-                    vol.Required("fixed", default=self.config_entry.data.get(CONF_TYPE)["fixed"]): bool
+                    vol.Required("fixed", default=self.config_entry.data.get(CONF_TYPE)["fixed"]): bool,
+                    vol.Required("redlight", default=self.config_entry.data.get(CONF_TYPE).get("redlight", False)): bool
                 }
             ),
             # Whether or not the section is initially collapsed (default = False)
@@ -135,9 +137,9 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
         data_schema[vol.Required('optional')] = section(
             vol.Schema(
                 {
+                    vol.Required(CONF_CONDITION, default=self.config_entry.data.get(CONF_CONDITION)): bool,
                     vol.Required(CONF_COUNT, default=self.config_entry.data.get(CONF_COUNT)): int,
                     vol.Required(CONF_SELECTOR, default=self.config_entry.data.get(CONF_SELECTOR)): str,
-                    vol.Required(CONF_CONDITION, default=self.config_entry.data.get(CONF_CONDITION)): bool,
                     vol.Optional(CONF_BLACKLIST, default=self.config_entry.data.get(CONF_BLACKLIST, "")): str
                 }
             ),

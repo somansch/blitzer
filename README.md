@@ -24,6 +24,8 @@ Use `geo_location_sources: [all]` (or list every `blitzer_<area>` source) to sho
 
 Since v1.4.0 every camera also carries a `type` attribute — one of `mobile`, `trailer`, `fixed`, or `redlight` — so the card can render each kind appropriately: fixed cameras always report a `counter` of 0 (there's no community confirmation concept for a permanent installation), so showing an empty star rating for them is meaningless; red light cameras don't have a `vmax` speed limit at all.
 
+The list below is sorted by distance to the area's center point (closest first), using the entity's `state` (see the [Configuration](#configuration) section for how distance is calculated).
+
 ```jinja2
 <h1><img src="/local/Blitzer_app.svg" height="23"> Achtung!</h1>
 {%- set areas = ["YOUR_AREA_NAME"] %}
@@ -32,13 +34,15 @@ Since v1.4.0 every camera also carries a `type` attribute — one of `mobile`, `
   {%- set matches = namespace(items=[]) %}
   {%- for s in states.geo_location %}
     {%- if (state_attr(s.entity_id, 'source') or '').startswith('blitzer_') and state_attr(s.entity_id, 'area') == area %}
-      {%- set matches.items = matches.items + [s.entity_id] %}
+      {%- set matches.items = matches.items + [{'id': s.entity_id, 'dist': states(s.entity_id) | float(9999)}] %}
     {%- endif %}
   {%- endfor %}
-  {%- if matches.items | count > 0 %}
+  {%- set sorted_items = matches.items | sort(attribute='dist') %}
+  {%- if sorted_items | count > 0 %}
     {%- set ns.has_blitzer = true %}
-    <b>{{ area }} ({{ matches.items | count }})</b><br>
-    {%- for e in matches.items %}
+    <b>{{ area }} ({{ sorted_items | count }})</b><br>
+    {%- for m in sorted_items %}
+      {%- set e = m.id %}
       {%- set etype = state_attr(e, 'type') %}
       {%- set blitzer_counter = state_attr(e, "counter") | int(0) %}
       <img src="{{ state_attr(e, 'entity_picture') }}" width="20">
@@ -110,6 +114,7 @@ From the Home Assistant front page, go to **Settings** and then select **Devices
 | **Blitzer / Types** – Mobile | Include mobile/handheld speed traps. |
 | **Blitzer / Types** – Anhänger / Trailer | Include trailer-mounted (semi-stationary) speed traps. |
 | **Blitzer / Types** – Feste / Fixed | Include permanently installed fixed speed cameras. |
+| **Blitzer / Types** – Rotlicht / Red light | Include red light cameras (traffic signal enforcement). These don't have their own API category — they're a subset of "fixed" cameras identified by having no speed limit — so this can be toggled independently of "Feste": e.g. fixed on + red light off shows only regular speed cameras, or fixed off + red light on shows only red light cameras. |
 | **Optionale Einstellungen / Optional settings** – Anzahl der Sensoren / Number of sensors | Upper limit on how many cameras are tracked at once (default 9). Extra hits beyond this number are ignored. |
 | **Optionale Einstellungen / Optional settings** – Regex Filter der Städtenamen / Regex filter of city names (whitelist) | Only cameras whose city matches this regex are kept (default `.*`, i.e. no filtering). |
 | **Optionale Einstellungen / Optional settings** – Nur bestätigte Blitzer anzeigen / Only show confirmed | When enabled, only cameras the Blitzer.de community has confirmed recently are reported. |
@@ -126,3 +131,7 @@ If you find a problem, feel free to open an issue and I will do my best to help.
 ## Disclaimer
 
 This custom integration is not officially endorsed or supported by Blitzer.de. Use it at your own risk and ensure that you comply with all relevant terms of service and privacy policies.
+
+There is no official, documented Blitzer.de API. This integration queries `cdn2.atudo.net`, the backend used internally by the Blitzer.de map application, the same way a number of other long-standing community projects (for Home Assistant, ioBroker, FHEM, and others) do. It is not a sanctioned integration point.
+
+[Blitzer.de's terms of use](https://www.blitzer.de/en/terms-of-use/) grant only a non-exclusive, non-transferrable license for private use of their apps, and explicitly prohibit reverse-engineering their apps and using their traffic data "in any way without our written consent or license." Using this integration is likely a violation of those terms in the strict sense, even though there's no indication of Blitzer.de having taken action against the existing ecosystem of similar tools. Use it at your own legal risk.

@@ -2,6 +2,12 @@
 
 All notable changes to this integration are documented here.
 
+## v1.5.0
+
+### Added
+- New **Rotlicht / Red light** type option, independent of "Feste / Fixed". Red light cameras have no API category of their own — they're regular "fixed" cameras (type codes 101-117) with no speed limit — so this is filtered client-side after fetching, and can be toggled independently (e.g. fixed off + red light on shows only red light cameras).
+- The example markdown card now sorts cameras by distance to the area's center point, closest first.
+
 ## v1.4.0
 
 ### Added
