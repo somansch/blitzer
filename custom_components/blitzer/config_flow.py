@@ -99,7 +99,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
 
             data = {
                 CONF_NAME: self.config_entry.data.get(CONF_NAME),
-                CONF_COUNT: self.config_entry.data.get(CONF_COUNT),
+                CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_TYPE: user_input[CONF_TYPE],
                 CONF_LOCATION: user_input[CONF_LOCATION],
                 CONF_SELECTOR: user_input['optional'][CONF_SELECTOR],
@@ -113,7 +113,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
             )
 
         data_schema = {}
-        data_schema[CONF_LOCATION] = selector({
+        data_schema[vol.Required(CONF_LOCATION, default=self.config_entry.data.get(CONF_LOCATION))] = selector({
             "location": {
                 "radius": True
             }
@@ -132,6 +132,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
         data_schema[vol.Required('optional')] = section(
             vol.Schema(
                 {
+                    vol.Required(CONF_COUNT, default=self.config_entry.data.get(CONF_COUNT)): int,
                     vol.Required(CONF_SELECTOR, default=self.config_entry.data.get(CONF_SELECTOR)): str,
                     vol.Required(CONF_CONDITION, default=self.config_entry.data.get(CONF_CONDITION)): bool
                 }

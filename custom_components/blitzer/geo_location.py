@@ -9,6 +9,7 @@ from homeassistant.const import UnitOfLength
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import location as location_util
 
 from .const import DOMAIN
 from .coordinator import BlitzerdeCoordinator
@@ -108,7 +109,7 @@ class BlitzerdeLocationEvent(GeolocationEvent):
             "https://map.blitzer.de/v5/images/" + self._picture_path(item) + ".svg"
         )
         if self.hass is not None:
-            self._attr_distance = self.hass.config.distance(item["lat"], item["lng"])
+            self._attr_distance = self._distance_from_area_center(item["lat"], item["lng"])
         self._extra_attrs = {
             "area": self._coordinator.displayname,
             "backend": item["backend"].split("-")[-1],
@@ -119,9 +120,17 @@ class BlitzerdeLocationEvent(GeolocationEvent):
             "zip_code": item["address"]["zip_code"],
         }
 
+    def _distance_from_area_center(self, lat: float, lng: float) -> float | None:
+        """Return the distance from the configured area's center point, not hass.config.distance()'s home zone."""
+        area = self._coordinator.location
+        meters = location_util.distance(area["latitude"], area["longitude"], lat, lng)
+        if meters is None:
+            return None
+        return self.hass.config.units.length(meters, UnitOfLength.METERS)
+
     async def async_added_to_hass(self) -> None:
         """Calculate distance once the entity has access to hass.config."""
-        self._attr_distance = self.hass.config.distance(
+        self._attr_distance = self._distance_from_area_center(
             self._attr_latitude, self._attr_longitude
         )
         self.async_write_ha_state()

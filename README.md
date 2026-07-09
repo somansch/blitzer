@@ -74,9 +74,24 @@ rm blitzer.zip
 
 ## Configuration
 
-### Using the UI
+### Adding an area
 
-From the Home Assistant front page, go to **Settings** and then select **Devices & Services** from the list. Use the **Add Integration** button in the bottom right to add a new integration called "Blitzer.de".
+From the Home Assistant front page, go to **Settings** and then select **Devices & Services** from the list. Use the **Add Integration** button in the bottom right, search for "Blitzer.de" and add it. You can add the integration multiple times to track several areas (e.g. "München", "Berlin") — each one becomes its own config entry with its own entities.
+
+| Field | Description |
+|---|---|
+| **Anzeigename / Display name** | Freely chosen name for this area. Used as a suffix in entity names and IDs (e.g. `sensor.blitzer_blitzer_<name>_total`), and as the `area` attribute on every `geo_location` entity it creates. |
+| **Bereich / Section** | Drag the map to the center point you want to monitor and adjust the radius circle. All cameras within this radius are reported. |
+| **Blitzer / Types** – Mobile | Include mobile/handheld speed traps. |
+| **Blitzer / Types** – Anhänger / Trailer | Include trailer-mounted (semi-stationary) speed traps. |
+| **Blitzer / Types** – Feste / Fixed | Include permanently installed fixed speed cameras. |
+| **Optionale Einstellungen / Optional settings** – Anzahl der Sensoren / Number of sensors | Upper limit on how many cameras are tracked at once (default 9). Extra hits beyond this number are ignored. |
+| **Optionale Einstellungen / Optional settings** – Regex Filter der Städtenamen / Regex filter of city names (whitelist) | Only cameras whose city matches this regex are kept (default `.*`, i.e. no filtering). |
+| **Optionale Einstellungen / Optional settings** – Nur bestätigte Blitzer anzeigen / Only show confirmed | When enabled, only cameras the Blitzer.de community has confirmed recently are reported. |
+
+### Changing settings later
+
+Every field above (including the area's location/radius and the sensor count) can be changed afterwards: go to **Settings → Devices & Services**, find the "Blitzer.de" entry for the area you want to change, and click **Configure**. The form opens pre-filled with that area's current settings.
 
 ## Help and Contribution
 
