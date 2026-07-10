@@ -1,12 +1,27 @@
 {
     "title": "Blitzer.de",
+    "selector": {
+        "search_mode": {
+            "options": {
+                "area": "Bereich (Radius)",
+                "route": "Route (Wegpunkte)"
+            }
+        }
+    },
     "config": {
         "step": {
             "user": {
                 "title": "Blitzer.de Setup",
-                "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
+                "description": "Vergib einen Namen für diesen Bereich und wähle die Suchart.",
                 "data": {
                     "name": "Anzeigename",
+                    "search_mode": "Suchart"
+                }
+            },
+            "area": {
+                "title": "Blitzer.de Setup",
+                "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
+                "data": {
                     "location": "Bereich"
                 },
                 "sections": {
@@ -22,8 +37,43 @@
                     "optional": {
                         "name": "Optionale Einstellungen",
                         "data": {
-                            "count": "Anzahl der Sensoren",
-                            "selector": "Whitelist (Regex Filter der Städtenamen)",
+                            "count": "Maximale Anzahl der Blitzer",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Blitzer anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
+                        }
+                    }
+                }
+            },
+            "waypoint": {
+                "title": "Wegpunkt {count} hinzufügen",
+                "description": "Verschiebe die Karte, sodass der Marker auf Wegpunkt {count} deiner Route liegt. Du brauchst mindestens zwei Wegpunkte. Wichtig: Gesucht wird immer entlang der geraden Linie zwischen zwei Wegpunkten, nicht entlang der echten Straße – setze deshalb an jeder Kurve deiner Route einen eigenen Wegpunkt, damit dort kein Blitzer übersehen wird.",
+                "data": {
+                    "location": "Wegpunkt",
+                    "add_another": "Weiteren Wegpunkt hinzufügen"
+                }
+            },
+            "route_options": {
+                "title": "Routen-Sucheinstellungen",
+                "description": "Wähle, wie breit der Korridor um die Route durchsucht werden soll und welche Blitzer einbezogen werden.",
+                "data": {
+                    "corridor_width": "Korridorbreite (Meter)"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Blitzer",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Anhänger",
+                            "fixed": "Feste",
+                            "redlight": "Rotlichtampel"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optionale Einstellungen",
+                        "data": {
+                            "count": "Maximale Anzahl der Blitzer",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Blitzer anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
                         }
@@ -33,11 +83,21 @@
         },
         "abort": {
             "location_missing": "Bitte Position auswählen. (Karte verschieben)"
+        },
+        "error": {
+            "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte."
         }
     },
     "options": {
         "step": {
             "init": {
+                "title": "Was möchtest du bearbeiten?",
+                "menu_options": {
+                    "edit_waypoints": "Wegpunkte bearbeiten",
+                    "edit_settings": "Sucheinstellungen bearbeiten (Korridorbreite, Typen, Filter)"
+                }
+            },
+            "area": {
                 "title": "Blitzer.de Setup",
                 "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
                 "data": {
@@ -56,14 +116,60 @@
                     "optional": {
                         "name": "Optionale Einstellungen",
                         "data": {
-                            "count": "Anzahl der Sensoren",
-                            "selector": "Whitelist (Regex Filter der Städtenamen)",
+                            "count": "Maximale Anzahl der Blitzer",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Blitzer anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
+                        }
+                    }
+                }
+            },
+            "waypoint_review": {
+                "title": "Wegpunkt {index} von {total} überprüfen",
+                "description": "Dies ist ein vorhandener Wegpunkt deiner Route. Verschiebe die Karte, um seine Position zu ändern, oder aktiviere 'Diesen Wegpunkt entfernen', um ihn aus der Route zu löschen. Danach geht es automatisch mit dem nächsten Wegpunkt weiter.",
+                "data": {
+                    "location": "Wegpunkt",
+                    "remove": "Diesen Wegpunkt entfernen"
+                }
+            },
+            "waypoint": {
+                "title": "Neuen Wegpunkt {count} anhängen",
+                "description": "Alle vorhandenen Wegpunkte wurden überprüft. Verschiebe die Karte, um einen weiteren Wegpunkt ans Ende der Route anzuhängen, oder deaktiviere 'Weiteren Wegpunkt hinzufügen', um die Route so zu speichern. Wichtig: Gesucht wird immer entlang der geraden Linie zwischen zwei Wegpunkten, nicht entlang der echten Straße – setze deshalb an jeder Kurve deiner Route einen eigenen Wegpunkt, damit dort kein Blitzer übersehen wird.",
+                "data": {
+                    "location": "Wegpunkt",
+                    "add_another": "Weiteren Wegpunkt hinzufügen"
+                }
+            },
+            "route_options": {
+                "title": "Routen-Sucheinstellungen",
+                "description": "Wähle, wie breit der Korridor um die Route durchsucht werden soll und welche Blitzer einbezogen werden.",
+                "data": {
+                    "corridor_width": "Korridorbreite (Meter)"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Blitzer",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Anhänger",
+                            "fixed": "Feste",
+                            "redlight": "Rotlichtampel"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optionale Einstellungen",
+                        "data": {
+                            "count": "Maximale Anzahl der Blitzer",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Blitzer anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
                         }
                     }
                 }
             }
+        },
+        "error": {
+            "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte."
         }
     }
 }

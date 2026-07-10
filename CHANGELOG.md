@@ -2,6 +2,21 @@
 
 All notable changes to this integration are documented here.
 
+## v1.6.0
+
+### Added
+- New **Route (waypoints)** search mode, alongside the existing area/radius search. Choose "Suchart" when adding an entry: draw a route as a chain of map-based waypoints (one screen per point, same drag-the-map interaction as the radius picker) and set a corridor width; cameras are searched along straight-line segments between waypoints without any external routing engine, by sampling and querying points spaced one corridor-width apart and deduplicating the merged results by camera id. A route's `geo_location` entities report distance to the nearest waypoint rather than a single area center.
+- A route's waypoints have no upper limit, and editing a route via **Configure** now offers a choice up front: step through each already-saved waypoint to reposition or remove it (then append further new ones), or jump straight to the corridor width / camera types / optional settings without touching the waypoints at all — it no longer discards and redraws the whole route from scratch, and no longer forces you through every waypoint just to change an unrelated setting.
+- Multi-step forms (waypoint entry/review, the search-mode picker) now show a "Next" button instead of the generic submit label, since more steps always follow.
+
+### Changed
+- **Breaking**: The whitelist option is now a comma-separated list of city names (same syntax as the blacklist, e.g. `Berlin,Potsdam`), matched case-insensitively, instead of a regex pattern. Existing entries still using the old default (`.*`) keep working unchanged (treated as "no filter"); anyone who configured an actual regex needs to replace it with a plain city list via **Configure**.
+
+### Fixed
+- Adding a new area or route showed a completely blank form on the second step: the location/map selector field had no explicit default, which the frontend can only tolerate on a flow's very first step (`Selector location not supported in initial form data`). Every location field on a later step now gets an explicit default.
+- Adding waypoints to a route silently stopped being possible after the 3rd one for anyone who didn't notice the "Add another waypoint" checkbox had defaulted to unchecked once the 2-waypoint minimum was reached; it now always defaults to checked.
+- Clearing the whitelist or blacklist field back to empty didn't stick: the frontend strips an empty *optional* text field from the submitted data entirely, so the schema silently re-applied its default (the previously saved value) instead of actually saving empty. Both fields now use `description={"suggested_value": ...}` to pre-fill the current value instead of a hard schema `default=`, which is not re-applied on submit — and unlike making the fields `Required`, still allows submitting them empty in the first place. The whitelist field also no longer keeps displaying the legacy `.*` value on existing entries — it's now shown (and treated) as empty, matching what it actually means.
+
 ## v1.5.0
 
 ### Added

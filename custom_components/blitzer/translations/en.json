@@ -1,12 +1,27 @@
 {
     "title": "Blitzer.de",
+    "selector": {
+        "search_mode": {
+            "options": {
+                "area": "Area (radius)",
+                "route": "Route (waypoints)"
+            }
+        }
+    },
     "config": {
         "step": {
             "user": {
                 "title": "Blitzer.de Setup",
-                "description": "Select the section from which the data should be displayed",
+                "description": "Name this area and choose how it should be searched.",
                 "data": {
                     "name": "Display name",
+                    "search_mode": "Search mode"
+                }
+            },
+            "area": {
+                "title": "Blitzer.de Setup",
+                "description": "Select the section from which the data should be displayed",
+                "data": {
                     "location": "Section"
                 },
                 "sections": {
@@ -23,7 +38,42 @@
                         "name": "Optional settings",
                         "data": {
                             "count": "Number of sensors",
-                            "selector": "Regex filter of city names (whitelist)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated camera IDs)"
+                        }
+                    }
+                }
+            },
+            "waypoint": {
+                "title": "Add waypoint {count}",
+                "description": "Move the map to place waypoint {count} of the route. Add at least two waypoints; a corridor is searched along the straight lines between them, so place a waypoint on every sharp bend of the actual route.",
+                "data": {
+                    "location": "Waypoint",
+                    "add_another": "Add another waypoint"
+                }
+            },
+            "route_options": {
+                "title": "Route search options",
+                "description": "Choose how wide a corridor around the route to search, and which cameras to include.",
+                "data": {
+                    "corridor_width": "Corridor width (meters)"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Types",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Trailer",
+                            "fixed": "Fixed",
+                            "redlight": "Red light (traffic signal)"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optional settings",
+                        "data": {
+                            "count": "Number of sensors",
+                            "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated camera IDs)"
                         }
@@ -33,11 +83,21 @@
         },
         "abort": {
             "location_missing": "Please select a position. (move the map)"
+        },
+        "error": {
+            "route_needs_two_waypoints": "A route needs at least two waypoints."
         }
     },
     "options": {
         "step": {
             "init": {
+                "title": "What do you want to edit?",
+                "menu_options": {
+                    "edit_waypoints": "Edit waypoints",
+                    "edit_settings": "Edit search settings (corridor width, types, filters)"
+                }
+            },
+            "area": {
                 "title": "Blitzer.de Setup",
                 "description": "Select the section from which the data should be displayed.",
                 "data": {
@@ -57,13 +117,59 @@
                         "name": "Optional settings",
                         "data": {
                             "count": "Number of sensors",
-                            "selector": "Regex filter of city names (whitelist)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated camera IDs)"
+                        }
+                    }
+                }
+            },
+            "waypoint_review": {
+                "title": "Review waypoint {index} of {total}",
+                "description": "This is an existing waypoint of your route. Move the map to reposition it, or enable 'Remove this waypoint' to drop it from the route. This automatically continues to the next waypoint.",
+                "data": {
+                    "location": "Waypoint",
+                    "remove": "Remove this waypoint"
+                }
+            },
+            "waypoint": {
+                "title": "Append new waypoint {count}",
+                "description": "Every existing waypoint has been reviewed. Move the map to append another waypoint to the end of the route, or disable 'Add another waypoint' to save the route as-is. A corridor is searched along the straight lines between waypoints, not the actual road, so place a waypoint on every sharp bend of the actual route.",
+                "data": {
+                    "location": "Waypoint",
+                    "add_another": "Add another waypoint"
+                }
+            },
+            "route_options": {
+                "title": "Route search options",
+                "description": "Choose how wide a corridor around the route to search, and which cameras to include.",
+                "data": {
+                    "corridor_width": "Corridor width (meters)"
+                },
+                "sections": {
+                    "type": {
+                        "name": "Types",
+                        "data": {
+                            "mobile": "Mobile",
+                            "trailer": "Trailer",
+                            "fixed": "Fixed",
+                            "redlight": "Red light (traffic signal)"
+                        }
+                    },
+                    "optional": {
+                        "name": "Optional settings",
+                        "data": {
+                            "count": "Number of sensors",
+                            "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated camera IDs)"
                         }
                     }
                 }
             }
+        },
+        "error": {
+            "route_needs_two_waypoints": "A route needs at least two waypoints."
         }
     }
 }

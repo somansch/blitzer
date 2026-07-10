@@ -143,6 +143,13 @@ rm blitzer.zip
 
 From the Home Assistant front page, go to **Settings** and then select **Devices & Services** from the list. Use the **Add Integration** button in the bottom right, search for "Blitzer.de" and add your first area. The integration itself is only added once — to track additional areas (e.g. both "München" and "Berlin"), open the already-added "Blitzer.de" integration card and use its own **Add entry** option to create another entry, one per area, each with its own entities.
 
+After naming the entry, pick a **search mode / Suchart**:
+
+- **Area (radius) / Bereich (Radius)** — the classic mode: one center point plus a radius circle.
+- **Route (waypoints) / Route (Wegpunkte)** — search a corridor along a hand-drawn route instead (see below).
+
+#### Area (radius)
+
 | Field | Description |
 |---|---|
 | **Display name / Anzeigename** | Freely chosen name for this area. Used as a suffix in entity names and IDs (e.g. `sensor.blitzer_blitzer_<name>_total`), and as the `area` attribute on every `geo_location` entity it creates. |
@@ -152,26 +159,42 @@ From the Home Assistant front page, go to **Settings** and then select **Devices
 | **Types** – Fixed / Feste | Include permanently installed fixed speed cameras. |
 | **Types** – Red light / Rotlichtampel | Include red light cameras (traffic signal enforcement). |
 | **Optional settings / Optionale Einstellungen** – Only show confirmed / Nur bestätigte Blitzer anzeigen | When enabled, only cameras the Blitzer.de community has confirmed recently are reported. |
-| **Optional settings / Optionale Einstellungen** – Number of sensors / Anzahl der Sensoren | Upper limit on how many cameras are tracked at once (default 9). Extra hits beyond this number are ignored. |
-| **Optional settings / Optionale Einstellungen** – Whitelist (regex filter of city names) / Whitelist (Regex Filter der Städtenamen) | Only cameras whose city matches this regex are kept (default `.*`, i.e. no filtering). |
-| **Optional settings / Optionale Einstellungen** – Blacklist | Comma-separated list of camera IDs to always exclude, regardless of the whitelist regex (e.g. `120644,167589`). The ID is the number from the camera's `id`/`backend` attribute, which is also the same number used in its `https://map.blitzer.de/v5/ID/<id>/` URL. Use this for specific cameras you want to ignore (e.g. false positives or ones you're just not interested in), as opposed to the whitelist, which filters by city name via regex. |
+| **Optional settings / Optionale Einstellungen** – Number of sensors / Maximale Anzahl der Blitzer | Upper limit on how many cameras are tracked at once (default 9). Extra hits beyond this number are ignored. |
+| **Optional settings / Optionale Einstellungen** – Whitelist (comma-separated city names) / Whitelist (kommagetrennte Städtenamen) | Comma-separated list of city names to keep, case-insensitive exact match (e.g. `Berlin,Potsdam`). Empty (the default) means no filtering — every city is kept. |
+| **Optional settings / Optionale Einstellungen** – Blacklist | Comma-separated list of camera IDs to always exclude, regardless of the whitelist (e.g. `120644,167589`). The ID is the number from the camera's `id`/`backend` attribute, which is also the same number used in its `https://map.blitzer.de/v5/ID/<id>/` URL. Use this for specific cameras you want to ignore (e.g. false positives or ones you're just not interested in), as opposed to the whitelist, which filters by city name. |
+
+#### Route (waypoints)
+
+For a commute or a regular trip, "area" search would need an impractically large radius. Route mode instead lets you draw the route as a chain of waypoints, one map at a time — the same drag-the-map interaction as the area's radius picker, just repeated per point instead of one point plus a circle:
+
+1. Move the map to your route's starting point, then leave **Add another waypoint** checked and continue — one map screen per waypoint.
+2. Add a waypoint at every place the route bends noticeably. Cameras are searched in a corridor along the *straight* line between consecutive waypoints, not along actual roads (there's no routing engine involved), so a long straight line across a curve will miss cameras on the curve or search too widely off to the side.
+3. Uncheck **Add another waypoint** once you've placed the last one (at least 2 total).
+4. Set the **Corridor width (meters) / Korridorbreite (Meter)** — how far to each side of the route line to search (default 300 m) — plus the same camera-type and optional-settings fields as area mode.
+
+Internally, the integration interpolates extra sample points along each straight segment (spaced one corridor-width apart) and queries Blitzer.de around every one of them, then merges and deduplicates the results by camera id.
+
+Editing a route via **Configure** first asks **what to edit**:
+
+- **Edit waypoints** — steps you through every already-saved waypoint one at a time (move the map to reposition it, or check **Remove this waypoint** to drop it), then lets you append further new waypoints to the end. The route isn't discarded and redrawn from scratch.
+- **Edit search settings** — jumps straight to corridor width, camera types, and the optional settings, without touching the waypoints at all.
 
 Every field above can be changed afterwards: go to **Settings → Devices & Services**, find the entry for the area you want to change, and click **Configure**. The form opens pre-filled with that area's current settings.
 
 ### Created entities
 
-Each area produces the following entities:
+Each area or route produces the following entities:
 
 | Entity | Example ID | Description |
 |---|---|---|
-| Total count sensor | `sensor.blitzer_blitzer_<name>_total` | Number of currently reported cameras in this area (capped at "Number of sensors"). Its attributes break the count down per city. |
+| Total count sensor | `sensor.blitzer_blitzer_<name>_total` | Number of currently reported cameras (capped at "Number of sensors"). Its attributes break the count down per city. |
 | One `geo_location` entity per camera | `geo_location.blitzer_<name>_<street>` | Created and removed dynamically as cameras appear and disappear from the live data — there's no fixed pool of entities. |
 
 Attributes on each camera's `geo_location` entity:
 
 | Attribute | Description |
 |---|---|
-| `state` | Distance from the area's center point, in km (or miles, depending on your unit system). |
+| `state` | Distance in km (or miles) to the nearest reference point — the area's center point in area mode, or the nearest of the route's waypoints in route mode. |
 | `source` | `blitzer_<area>`, e.g. `blitzer_berlin`. Lets a map card select one specific area via `geo_location_sources`. |
 | `area` | The display name you gave this area. |
 | `type` | One of `mobile`, `trailer`, `fixed`, or `redlight`. |
