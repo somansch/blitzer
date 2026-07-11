@@ -17,6 +17,13 @@ from .coordinator import BlitzerdeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+_ICONS = {
+    "fixed": "mdi:cctv",
+    "mobile": "mdi:speedometer",
+    "trailer": "mdi:truck-trailer",
+    "redlight": "mdi:traffic-light",
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -129,6 +136,8 @@ class BlitzerdeLocationEvent(GeolocationEvent):
         self._attr_name = f"Blitzer {self._coordinator.displayname} {item['address']['street']}"
         self._attr_latitude = item["lat"]
         self._attr_longitude = item["lng"]
+        camera_type = self._camera_type(item)
+        self._attr_icon = _ICONS.get(camera_type, "mdi:map-marker-alert")
         self._attr_entity_picture = (
             "https://map.blitzer.de/v5/images/" + self._picture_path(item) + ".svg"
         )
@@ -137,7 +146,7 @@ class BlitzerdeLocationEvent(GeolocationEvent):
         camera_id = item["backend"].split("-")[-1]
         self._extra_attrs = {
             "area": self._coordinator.displayname,
-            "type": self._camera_type(item),
+            "type": camera_type,
             # The id used in the Blitzer.de map URL
             # (https://map.blitzer.de/v5/ID/<id>/) and for the blacklist
             # config option. Kept as "backend" too for compatibility with

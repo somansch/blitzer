@@ -2,6 +2,11 @@
 
 All notable changes to this integration are documented here.
 
+## v1.6.1
+
+### Added
+- Each camera's `geo_location` entity now sets a proper MDI icon per type (`mdi:cctv` fixed, `mdi:speedometer` mobile, `mdi:truck-trailer` trailer, `mdi:traffic-light` red light), matching the sibling `lufop_radar` integration. The map card still shows the existing Blitzer.de speed-sign picture, but the icon now shows correctly wherever `entity_picture` isn't used (entity list, history, more-info dialog).
+
 ## v1.6.0
 
 ### Added
