@@ -38,6 +38,7 @@
                         "name": "Optionale Einstellungen",
                         "data": {
                             "count": "Maximale Anzahl der Blitzer",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Blitzer anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
@@ -73,6 +74,7 @@
                         "name": "Optionale Einstellungen",
                         "data": {
                             "count": "Maximale Anzahl der Blitzer",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Blitzer anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
@@ -86,6 +88,18 @@
         },
         "error": {
             "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte."
+        }
+    },
+    "services": {
+        "refresh": {
+            "name": "Blitzer aktualisieren",
+            "description": "Ruft sofort die aktuellen Blitzer für eine Blitzer.de-Area oder -Route ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Blitzer zurück.",
+            "fields": {
+                "config_entry_id": {
+                    "name": "Bereich oder Route",
+                    "description": "Welche Blitzer.de-Area oder -Route aktualisiert werden soll."
+                }
+            }
         }
     },
     "options": {
@@ -117,6 +131,7 @@
                         "name": "Optionale Einstellungen",
                         "data": {
                             "count": "Maximale Anzahl der Blitzer",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Blitzer anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
@@ -160,6 +175,7 @@
                         "name": "Optionale Einstellungen",
                         "data": {
                             "count": "Maximale Anzahl der Blitzer",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Blitzer anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"

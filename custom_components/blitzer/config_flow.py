@@ -14,9 +14,11 @@ from homeassistant.helpers.selector import selector
 from .const import (
     CONF_BLACKLIST,
     CONF_SEARCH_MODE,
+    CONF_UPDATE_INTERVAL,
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
     DEFAULT_CORRIDOR_WIDTH,
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     SEARCH_MODE_AREA,
     SEARCH_MODE_ROUTE,
@@ -59,6 +61,13 @@ def _optional_section(defaults: dict | None = None):
             {
                 vol.Required(CONF_CONDITION, default=defaults.get(CONF_CONDITION, True)): bool,
                 vol.Required(CONF_COUNT, default=defaults.get(CONF_COUNT, 9)): int,
+                # 0 = no automatic polling at all - rely on the "refresh"
+                # service instead (e.g. from an automation). Any other value
+                # is minutes between polls.
+                vol.Required(
+                    CONF_UPDATE_INTERVAL,
+                    default=defaults.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
                 # vol.Optional with description={"suggested_value": ...} instead
                 # of default=...: default= reappears whenever the field is
                 # cleared back to empty, because the frontend omits an empty
@@ -169,6 +178,7 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
             })
 
@@ -221,6 +231,7 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
             })
 
@@ -314,6 +325,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
             }
             self.hass.config_entries.async_update_entry(
@@ -331,6 +343,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 vol.Required(CONF_TYPE): _type_section(self.config_entry.data.get(CONF_TYPE)),
                 vol.Required('optional'): _optional_section({
                     CONF_CONDITION: self.config_entry.data.get(CONF_CONDITION),
+                    CONF_UPDATE_INTERVAL: self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
                     CONF_COUNT: self.config_entry.data.get(CONF_COUNT),
                     CONF_SELECTOR: _display_whitelist(self.config_entry.data.get(CONF_SELECTOR)),
                     CONF_BLACKLIST: self.config_entry.data.get(CONF_BLACKLIST, ""),
@@ -375,6 +388,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
             }
             self.hass.config_entries.async_update_entry(
@@ -391,6 +405,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 type_defaults=self.config_entry.data.get(CONF_TYPE),
                 optional_defaults={
                     CONF_CONDITION: self.config_entry.data.get(CONF_CONDITION),
+                    CONF_UPDATE_INTERVAL: self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
                     CONF_COUNT: self.config_entry.data.get(CONF_COUNT),
                     CONF_SELECTOR: _display_whitelist(self.config_entry.data.get(CONF_SELECTOR)),
                     CONF_BLACKLIST: self.config_entry.data.get(CONF_BLACKLIST, ""),

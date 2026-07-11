@@ -38,6 +38,7 @@
                         "name": "Optional settings",
                         "data": {
                             "count": "Number of sensors",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated camera IDs)"
@@ -73,6 +74,7 @@
                         "name": "Optional settings",
                         "data": {
                             "count": "Number of sensors",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated camera IDs)"
@@ -86,6 +88,18 @@
         },
         "error": {
             "route_needs_two_waypoints": "A route needs at least two waypoints."
+        }
+    },
+    "services": {
+        "refresh": {
+            "name": "Blitzer Refresh",
+            "description": "Immediately fetch the latest cameras for one Blitzer.de area or route, instead of waiting for its next scheduled poll. Returns the cameras found.",
+            "fields": {
+                "config_entry_id": {
+                    "name": "Area or route",
+                    "description": "Which Blitzer.de area or route to refresh."
+                }
+            }
         }
     },
     "options": {
@@ -117,6 +131,7 @@
                         "name": "Optional settings",
                         "data": {
                             "count": "Number of sensors",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated camera IDs)"
@@ -160,6 +175,7 @@
                         "name": "Optional settings",
                         "data": {
                             "count": "Number of sensors",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated camera IDs)"

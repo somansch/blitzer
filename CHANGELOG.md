@@ -2,6 +2,15 @@
 
 All notable changes to this integration are documented here.
 
+## v2.0.0
+
+### Added
+- **Configurable polling interval** ("Update interval", in minutes) for every area/route, replacing the previous fixed 60-second interval. Defaults to 1 minute (unchanged behavior); setting it to **0** disables automatic polling entirely for that entry.
+- **`blitzer.refresh` action** ("Blitzer Refresh"), for on-demand polling - most useful for entries with a manual-only (`0`) update interval, e.g. triggered from an automation, but works for any entry. Immediately fetches the latest cameras, updates that entry's `geo_location` entities exactly like a normal poll, and returns the cameras found so an automation can use them directly (e.g. in a notification) without a separate template step. See the README's new "On-demand refresh for a commute" example.
+
+### Changed
+- When update interval is `0`, entities start empty instead of the integration making an API call on every Home Assistant startup/reload - the whole point of manual-only mode is avoiding automatic requests.
+
 ## v1.6.1
 
 ### Added

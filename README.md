@@ -108,6 +108,40 @@ automation:
             ({{ state_attr(trigger.entity_id, 'vmax') }} km/h)
 ```
 
+### On-demand refresh for a commute
+
+Every area/route has an **Update interval** (see the tables above); setting it to **0** turns off automatic polling entirely, so it only ever refreshes when *you* ask it to - via the **`blitzer.refresh`** action ("Blitzer Refresh" in the UI). Call it targeting the area/route you want, and it immediately fetches the latest cameras, creates/updates/removes that entry's `geo_location` entities exactly like a normal scheduled poll would, and (optionally) returns the cameras found so an automation can use them directly.
+
+A common use case: a route for your commute, set to manual-only, refreshed and sent to your phone the moment you actually leave home - instead of polling every minute all day for a route you only drive once or twice:
+
+```yaml
+automation:
+  - alias: "Send commute cameras when leaving home"
+    triggers:
+      - trigger: zone
+        entity_id: person.your_name
+        zone: zone.home
+        event: leave
+    actions:
+      - action: blitzer.refresh
+        data:
+          config_entry_id: YOUR_ROUTE_CONFIG_ENTRY_ID
+        response_variable: commute_cameras
+      - action: notify.whatsapp   # whichever WhatsApp notify service you have set up (e.g. a CallMeBot or Twilio integration) - not a built-in Home Assistant service
+        data:
+          message: >-
+            {% if commute_cameras.cameras %}
+            🚨 {{ commute_cameras.cameras | count }} camera(s) on your commute:
+            {% for c in commute_cameras.cameras %}
+            - {{ c.city }}, {{ c.street }}{% if c.vmax not in (None, '/', '?') %} ({{ c.vmax }} km/h){% endif %}
+            {% endfor %}
+            {% else %}
+            No cameras currently reported on your commute. Safe drive!
+            {% endif %}
+```
+
+Find `YOUR_ROUTE_CONFIG_ENTRY_ID` under **Settings → Devices & Services**, click the "Blitzer.de" integration, open the route's entry, and copy its ID from the browser's URL - or just build the action once in **Developer Tools → Actions**, picking the route from the "Area or route" dropdown, then switch to YAML mode there to copy the resolved `config_entry_id`.
+
 ## Installation
 
 ### HACS (recommended)
@@ -160,6 +194,7 @@ After naming the entry, pick a **search mode / Suchart**:
 | **Types** – Red light / Rotlichtampel | Include red light cameras (traffic signal enforcement). |
 | **Optional settings / Optionale Einstellungen** – Only show confirmed / Nur bestätigte Blitzer anzeigen | When enabled, only cameras the Blitzer.de community has confirmed recently are reported. |
 | **Optional settings / Optionale Einstellungen** – Number of sensors / Maximale Anzahl der Blitzer | Upper limit on how many cameras are tracked at once (default 9). Extra hits beyond this number are ignored. |
+| **Optional settings / Optionale Einstellungen** – Update interval (minutes, 0 = manual only) / Aktualisierungsintervall (Minuten, 0 = nur manuell) | How often this area polls Blitzer.de. Defaults to 1 minute, matching this integration's previous fixed behavior; **0** disables automatic polling entirely - use the [`blitzer.refresh` service](#on-demand-refresh-for-a-commute) instead. |
 | **Optional settings / Optionale Einstellungen** – Whitelist (comma-separated city names) / Whitelist (kommagetrennte Städtenamen) | Comma-separated list of city names to keep, case-insensitive exact match (e.g. `Berlin,Potsdam`). Empty (the default) means no filtering — every city is kept. |
 | **Optional settings / Optionale Einstellungen** – Blacklist | Comma-separated list of camera IDs to always exclude, regardless of the whitelist (e.g. `120644,167589`). The ID is the number from the camera's `id`/`backend` attribute, which is also the same number used in its `https://map.blitzer.de/v5/ID/<id>/` URL. Use this for specific cameras you want to ignore (e.g. false positives or ones you're just not interested in), as opposed to the whitelist, which filters by city name. |
 
@@ -170,7 +205,7 @@ For a commute or a regular trip, "area" search would need an impractically large
 1. Move the map to your route's starting point, then leave **Add another waypoint** checked and continue — one map screen per waypoint.
 2. Add a waypoint at every place the route bends noticeably. Cameras are searched in a corridor along the *straight* line between consecutive waypoints, not along actual roads (there's no routing engine involved), so a long straight line across a curve will miss cameras on the curve or search too widely off to the side.
 3. Uncheck **Add another waypoint** once you've placed the last one (at least 2 total).
-4. Set the **Corridor width (meters) / Korridorbreite (Meter)** — how far to each side of the route line to search (default 300 m) — plus the same camera-type and optional-settings fields as area mode.
+4. Set the **Corridor width (meters) / Korridorbreite (Meter)** — how far to each side of the route line to search (default 300 m) — plus the same camera-type and optional-settings fields as area mode (including **Update interval**, above).
 
 Internally, the integration interpolates extra sample points along each straight segment (spaced one corridor-width apart) and queries Blitzer.de around every one of them, then merges and deduplicates the results by camera id.
 

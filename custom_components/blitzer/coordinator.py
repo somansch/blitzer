@@ -21,13 +21,16 @@ from .const import DOMAIN
 from .const import (
     CONF_BLACKLIST,
     CONF_SEARCH_MODE,
+    CONF_UPDATE_INTERVAL,
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
+    DEFAULT_UPDATE_INTERVAL,
     SEARCH_MODE_AREA,
     SEARCH_MODE_ROUTE,
     TYPE_TRAILER,
     TYPE_MOBILE,
-    TYPE_FIXED
+    TYPE_FIXED,
+    UPDATE_INTERVAL_MANUAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,6 +82,12 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             camera_id.strip() for camera_id in blacklist_raw.split(",") if camera_id.strip()
         }
 
+        interval_minutes = config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+        update_interval = (
+            None if interval_minutes == UPDATE_INTERVAL_MANUAL
+            else timedelta(minutes=interval_minutes)
+        )
+
         # Initialise DataUpdateCoordinator
         super().__init__(
             hass,
@@ -87,7 +96,9 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             # Method to call on every update interval.
             update_method=self.async_update_data,
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=60),
+            # None (update_interval == 0, "manual only") disables automatic
+            # polling entirely - only the "refresh" service updates it then.
+            update_interval=update_interval,
         )
 
         # Initialise your api here
