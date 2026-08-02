@@ -1,14 +1,26 @@
 # Blitzer.de Integration for Home Assistant 🏠
 
 [![GitHub release](https://img.shields.io/github/v/release/somansch/blitzer)](https://github.com/somansch/blitzer/releases/latest)
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![License](https://img.shields.io/github/license/somansch/blitzer)](LICENSE)
 
 > **Note:** This is a continuation of the original [`hass-blitzerde`](https://github.com/timniklas/hass-blitzerde) integration by [@timniklas](https://github.com/timniklas), whose GitHub account and repository are no longer available. This repository preserves and continues the project so existing users are not left without updates.
 
 ## Overview
 
-The Blitzer.de Home Assistant Custom Integration allows you to integrate the Blitzer.de App with your Home Assistant setup.
+For any area or route you configure - a center point + radius, or a hand-drawn route for something like a daily commute - Blitzer.de reports nearby speed cameras as `geo_location` entities, so they show up natively on Home Assistant's built-in [map card](https://www.home-assistant.io/dashboards/map/), each with distance, street name, speed limit, and camera type.
+
+**Features:**
+- **Config flow** - add as many areas or routes as you like (e.g. "Munich", "Berlin", "Commute"), each with its own entities.
+- **Native `geo_location` entities**, fully compatible with the map card.
+- **Per-entry map sources** (`blitzer_<name>`) so you can show just one area, or all of them combined.
+- **Camera type attribute**: `mobile`, `trailer`, `fixed`, `redlight`.
+- **Fine-grained filtering**: camera types, city whitelist (comma-separated city names), "confirmed only", camera ID blacklist, and a configurable sensor limit.
+- **Route mode** - draw a corridor along a chain of map waypoints instead of a radius, no external routing engine needed; waypoints can be repositioned or removed later without redrawing the whole route.
+
+There's also a ready-to-use Markdown card template below for a compact "cameras near you" dashboard list.
+
+Questions, feedback, or just want to see what others are doing with it? Join the discussion on the [Home Assistant Community thread](https://community.home-assistant.io/t/blitzer-de-integration-speed-camera-for-germany/1016805).
 
 ## Dashboard Examples
 
@@ -20,6 +32,9 @@ Each detected camera is exposed as a `geo_location` entity, with an `area` attri
 
 Each configured area gets its **own** `source`, named `blitzer_<area>` (e.g. `blitzer_berlin`, `blitzer_munchen` — the area's display name, lowercased and slugified). This lets you show just one specific area on a map card instead of all of them combined:
 
+<details>
+<summary>YAML</summary>
+
 ```yaml
 type: map
 geo_location_sources:
@@ -28,6 +43,8 @@ entities:
   - zone.home
 ```
 
+</details>
+
 Use `geo_location_sources: [all]` (or list every `blitzer_<area>` source) to show all configured areas on the same map.
 
 ### Markdown card
@@ -35,6 +52,9 @@ Use `geo_location_sources: [all]` (or list every `blitzer_<area>` source) to sho
 <img src="docs/markdown-card-example.png" alt="Markdown card listing Berlin cameras sorted by distance" width="500">
 
 The list is sorted by distance to the area's center point, closest first.
+
+<details>
+<summary>YAML</summary>
 
 ```jinja2
 <h1></h1>
@@ -85,11 +105,16 @@ The list is sorted by distance to the area's center point, closest first.
 {%- endif -%}
 ```
 
+</details>
+
 ## Automations
 
 ### Notify when a new camera is reported
 
 Every camera is a `geo_location` entity that gets created the moment it's first reported ([see "Created entities"](#created-entities)), so Home Assistant's built-in [geolocation trigger](https://www.home-assistant.io/docs/automation/trigger/#zone-trigger) already fires whenever a new one shows up inside a zone — no extra code needed. Set the trigger's `source` to the area's `blitzer_<area>` source, `zone` to whatever area you want covered (e.g. `zone.home`, or a custom zone matching the section you configured), and `event` to `enter`:
+
+<details>
+<summary>YAML</summary>
 
 ```yaml
 automation:
@@ -108,11 +133,16 @@ automation:
             ({{ state_attr(trigger.entity_id, 'vmax') }} km/h)
 ```
 
+</details>
+
 ### On-demand refresh for a commute
 
 Every area/route has an **Update interval** (see the tables above); setting it to **0** turns off automatic polling entirely, so it only ever refreshes when *you* ask it to - via the **`blitzer.refresh`** action ("Blitzer Refresh" in the UI). Call it targeting the area/route you want, and it immediately fetches the latest cameras, creates/updates/removes that entry's `geo_location` entities exactly like a normal scheduled poll would, and (optionally) returns the cameras found so an automation can use them directly.
 
 A common use case: a route for your commute, set to manual-only, refreshed and sent to your phone the moment you actually leave home - instead of polling every minute all day for a route you only drive once or twice:
+
+<details>
+<summary>YAML</summary>
 
 ```yaml
 automation:
@@ -140,36 +170,9 @@ automation:
             {% endif %}
 ```
 
+</details>
+
 Find `YOUR_ROUTE_CONFIG_ENTRY_ID` under **Settings → Devices & Services**, click the "Blitzer.de" integration, open the route's entry, and copy its ID from the browser's URL - or just build the action once in **Developer Tools → Actions**, picking the route from the "Area or route" dropdown, then switch to YAML mode there to copy the resolved `config_entry_id`.
-
-## Installation
-
-### HACS (recommended)
-
-This integration is available in HACS (Home Assistant Community Store) as a custom repository.
-
-1. Install HACS if you don't have it already
-2. Open HACS in Home Assistant
-3. Go to any of the sections (integrations, frontend, automation)
-4. Click on the 3 dots in the top right corner
-5. Select "Custom repositories"
-6. Add the following URL to the repository: `https://github.com/somansch/blitzer`
-7. Select "Integration" as category
-8. Click the "ADD" button
-9. Search for "Blitzer.de"
-10. Click the "Download" button
-
-### Manual
-
-To install this integration manually, download `blitzer.zip` from the [latest release](https://github.com/somansch/blitzer/releases/latest) and extract its contents to the `config/custom_components/blitzer` directory:
-
-```bash
-mkdir -p custom_components/blitzer
-cd custom_components/blitzer
-wget https://github.com/somansch/blitzer/releases/latest/download/blitzer.zip
-unzip blitzer.zip
-rm blitzer.zip
-```
 
 ## Configuration
 
@@ -239,6 +242,29 @@ Attributes on each camera's `geo_location` entity:
 | `city`, `street`, `zip_code` | Address of the camera. |
 | `entity_picture` | Icon URL matching the camera's type and speed. |
 
+## Installation
+
+### HACS (recommended)
+
+Blitzer.de is part of the default HACS integration list:
+
+1. Open HACS in Home Assistant
+2. Search for "Blitzer.de"
+3. Click the "Download" button
+4. Restart HA
+
+### Manual
+
+To install this integration manually, download `blitzer.zip` from the [latest release](https://github.com/somansch/blitzer/releases/latest) and extract its contents to the `config/custom_components/blitzer` directory:
+
+```bash
+mkdir -p custom_components/blitzer
+cd custom_components/blitzer
+wget https://github.com/somansch/blitzer/releases/latest/download/blitzer.zip
+unzip blitzer.zip
+rm blitzer.zip
+```
+
 ## Help and Contribution
 
 If you find a problem, feel free to open an issue and I will do my best to help. If you have something to contribute, your help is greatly appreciated! If you want to add a new feature, please open a pull request first so we can discuss the details.
@@ -249,4 +275,4 @@ This custom integration is not officially endorsed or supported by Blitzer.de. U
 
 There is no official, documented Blitzer.de API. This integration queries `cdn2.atudo.net`, the backend used internally by the Blitzer.de map application, the same way a number of other long-standing community projects (for Home Assistant, ioBroker, FHEM, and others) do. It is not a sanctioned integration point.
 
-[Blitzer.de's terms of use](https://www.blitzer.de/en/terms-of-use/) grant only a non-exclusive, non-transferrable license for private use of their apps, and explicitly prohibit reverse-engineering their apps and using their traffic data "in any way without our written consent or license." Using this integration is likely a violation of those terms in the strict sense, even though there's no indication of Blitzer.de having taken action against the existing ecosystem of similar tools. Use it at your own legal risk.
+Blitzer.de's terms of use grant only a non-exclusive, non-transferrable license for private use of their apps, and explicitly prohibit reverse-engineering their apps and using their traffic data "in any way without our written consent or license." Using this integration is likely a violation of those terms in the strict sense, even though there's no indication of Blitzer.de having taken action against the existing ecosystem of similar tools. Use it at your own legal risk.
