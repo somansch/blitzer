@@ -28,7 +28,7 @@ Each detected camera is exposed as a `geo_location` entity, with an `area` attri
 
 ### Map card
 
-<img src="docs/map-card-example.png" alt="Map card showing Blitzer.de cameras around Berlin" width="500">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/map-card-example.png" alt="Map card showing Blitzer.de cameras around Berlin" width="500">
 
 Each configured area gets its **own** `source`, named `blitzer_<area>` (e.g. `blitzer_berlin`, `blitzer_munchen` — the area's display name, lowercased and slugified). This lets you show just one specific area on a map card instead of all of them combined:
 
@@ -49,7 +49,7 @@ Use `geo_location_sources: [all]` (or list every `blitzer_<area>` source) to sho
 
 ### Markdown card
 
-<img src="docs/markdown-card-example.png" alt="Markdown card listing Berlin cameras sorted by distance" width="500">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/markdown-card-example.png" alt="Markdown card listing Berlin cameras sorted by distance" width="500">
 
 The list is sorted by distance to the area's center point, closest first.
 
