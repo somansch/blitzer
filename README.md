@@ -2,7 +2,7 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/somansch/blitzer)](https://github.com/somansch/blitzer/releases/latest)
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
-[![License](https://img.shields.io/github/license/somansch/blitzer)](LICENSE)
+[![License](https://img.shields.io/github/license/somansch/blitzer)](https://github.com/somansch/blitzer/blob/main/LICENSE)
 
 > **Note:** This is a continuation of the original [`hass-blitzerde`](https://github.com/timniklas/hass-blitzerde) integration by [@timniklas](https://github.com/timniklas), whose GitHub account and repository are no longer available. This repository preserves and continues the project so existing users are not left without updates.
 
@@ -111,7 +111,9 @@ The list is sorted by distance to the area's center point, closest first.
 
 ### Notify when a new camera is reported
 
-Every camera is a `geo_location` entity that gets created the moment it's first reported ([see "Created entities"](#created-entities)), so Home Assistant's built-in [geolocation trigger](https://www.home-assistant.io/docs/automation/trigger/#zone-trigger) already fires whenever a new one shows up inside a zone — no extra code needed. Set the trigger's `source` to the area's `blitzer_<area>` source, `zone` to whatever area you want covered (e.g. `zone.home`, or a custom zone matching the section you configured), and `event` to `enter`:
+#### New cameras anywhere in the integration's configured area/route
+
+Every area/route fires a **`blitzer_new_camera`** event the moment a genuinely new camera is detected on one of its polls (or an on-demand `blitzer.refresh`) - never for a camera already known from an earlier poll, and never right after Home Assistant starts (that first fetch is just "here's what's already there", not a new detection). Trigger an automation directly off it, no zone setup required:
 
 <details>
 <summary>YAML</summary>
@@ -119,6 +121,34 @@ Every camera is a `geo_location` entity that gets created the moment it's first 
 ```yaml
 automation:
   - alias: "Neuer Blitzer gemeldet"
+    triggers:
+      - trigger: event
+        event_type: blitzer_new_camera
+        event_data:
+          area: Berlin
+    actions:
+      - action: notify.mobile_app_dein_handy
+        data:
+          message: >-
+            Neuer Blitzer: {{ trigger.event.data.street }},
+            {{ trigger.event.data.city }}
+            ({{ trigger.event.data.vmax }} km/h)
+```
+
+</details>
+
+The event's data includes `config_entry_id`, `area`, `id` (the ID used in the Blitzer.de map URL), `type` (`mobile`/`trailer`/`fixed`/`redlight`), `vmax`, `street`, `city`, `zip_code`, `latitude`, and `longitude`. Drop the `event_data: area: ...` filter to match every configured area/route instead of just one. Since it's a plain event (not tied to an entity), the data is read from `trigger.event.data.*`.
+
+#### New cameras entering a defined zone
+
+Want a proximity-based notification instead - e.g. only once a camera is inside your home zone, regardless of when it was first detected? Every camera is also a `geo_location` entity ([see "Created entities"](#created-entities)), so Home Assistant's built-in [geolocation trigger](https://www.home-assistant.io/docs/automation/trigger/#zone-trigger) works too:
+
+<details>
+<summary>YAML</summary>
+
+```yaml
+automation:
+  - alias: "Neuer Blitzer in Zone"
     trigger:
       - platform: geolocation
         source: blitzer_berlin
@@ -134,6 +164,8 @@ automation:
 ```
 
 </details>
+
+Since a stationary (`fixed`/`trailer`) camera's position never changes after creation, "entering the zone" effectively only happens once, right when that camera is first created - a similar end result to the event above for that case, but scoped to the zone's own radius rather than the whole configured area, and requiring a zone that overlaps the area you actually care about. It also naturally covers a `mobile` camera's occasional position updates, which the event does not (that only fires once, on first detection). Since it's tied to an entity, the data is read from `state_attr(trigger.entity_id, '...')`.
 
 ### On-demand refresh for a commute
 

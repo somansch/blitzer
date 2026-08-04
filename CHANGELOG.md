@@ -2,6 +2,14 @@
 
 All notable changes to this integration are documented here.
 
+## v2.1.0
+
+### Added
+- **`blitzer_new_camera` event**: fired once per camera that's genuinely new - never for one already known from an earlier poll, and never during the very first fetch right after Home Assistant starts (that's just "here's what's already there", not a new detection). Includes `config_entry_id`, `area`, `id`, `type`, `vmax`, `street`, `city`, `zip_code`, `latitude`, and `longitude`. Lets an automation react directly to a newly reported camera anywhere in the configured area/route, without needing a matching Home Assistant zone. See the README's updated "Notify when a new camera is reported" example.
+
+### Fixed
+- **README images and License link not rendering in HACS**: every `<img>` and the License badge's link both used a repo-relative path (e.g. `docs/map-card-example.png`, `LICENSE`), which GitHub's own viewer resolves but HACS's README renderer does not. Switched to absolute `raw.githubusercontent.com`/`github.com` URLs.
+
 ## v2.0.0
 
 ### Added

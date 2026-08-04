@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import location as location_util
 from homeassistant.util import slugify
 
-from .const import DOMAIN, SEARCH_MODE_ROUTE
+from .const import DOMAIN, EVENT_NEW_CAMERA, SEARCH_MODE_ROUTE
 from .coordinator import BlitzerdeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,13 +38,20 @@ async def async_setup_entry(
     registry = er.async_get(hass)
     unique_prefix = f"{DOMAIN}-{coordinator.displayname}-"
     known_entities: dict[str, BlitzerdeLocationEvent] = {}
+    # Set False after the first sync below - every camera reported there is
+    # simply "already there" from the entry's very first data fetch, not a
+    # new detection, so EVENT_NEW_CAMERA only starts firing from the next
+    # poll onwards.
+    first_sync = True
 
     @callback
     def _sync_entities() -> None:
         """Add newly reported blitzers and remove ones no longer in range."""
+        nonlocal first_sync
         items = coordinator.data.mapdata[: coordinator.sensorcount]
         current_ids = {item["backend"].split("-")[-1] for item in items}
         new_entities = []
+        new_cameras = []
 
         for item in items:
             poi_id = item["backend"].split("-")[-1]
@@ -54,6 +61,7 @@ async def async_setup_entry(
                 entity = BlitzerdeLocationEvent(coordinator, poi_id, item)
                 known_entities[poi_id] = entity
                 new_entities.append(entity)
+                new_cameras.append(item)
 
         # Purge every registry entry for this area that no longer matches a
         # currently reported camera - both ones tracked in `known_entities`
@@ -77,6 +85,25 @@ async def async_setup_entry(
 
         if new_entities:
             async_add_entities(new_entities)
+
+        if not first_sync:
+            for item in new_cameras:
+                hass.bus.async_fire(
+                    EVENT_NEW_CAMERA,
+                    {
+                        "config_entry_id": config_entry.entry_id,
+                        "area": coordinator.displayname,
+                        "id": item["backend"].split("-")[-1],
+                        "type": BlitzerdeLocationEvent._camera_type(item),
+                        "vmax": item["vmax"],
+                        "street": item["address"]["street"],
+                        "city": item["address"]["city"],
+                        "zip_code": item["address"]["zip_code"],
+                        "latitude": item["lat"],
+                        "longitude": item["lng"],
+                    },
+                )
+        first_sync = False
 
     coordinator.async_add_listener(_sync_entities)
     _sync_entities()
