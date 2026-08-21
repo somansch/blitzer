@@ -10,6 +10,7 @@ from aiohttp import ClientError, ClientResponseError, ClientSession
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import selector
+from homeassistant.util import slugify
 
 from .const import (
     CONF_BLACKLIST,
@@ -144,6 +145,17 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         if user_input is not None:
             self._name = user_input[CONF_NAME]
+            # Every entity this entry creates is identified by the entry's
+            # name - "blitzer-<name>-<camera id>" and "blitzer-<name>-total".
+            # A second entry under the same name therefore produces the same
+            # ids, and Home Assistant drops the entities it cannot tell
+            # apart: the new area would sit there with nothing in it and only
+            # a line in the log to say why. Claiming the name as the entry's
+            # unique id turns that into a plain "already configured" the
+            # moment it is typed. It also gives the entry an id at all, which
+            # the coordinator's log name reads.
+            await self.async_set_unique_id(slugify(self._name))
+            self._abort_if_unique_id_configured()
             if user_input[CONF_SEARCH_MODE] == SEARCH_MODE_ROUTE:
                 self._waypoints = []
                 return await self.async_step_waypoint()

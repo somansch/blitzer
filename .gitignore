@@ -6,3 +6,7 @@ __pycache__/
 *.zip
 .DS_Store
 .claude/
+
+# agent skills (npx skills)
+.agents/
+skills-lock.json

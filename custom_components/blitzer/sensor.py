@@ -7,7 +7,6 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -45,8 +44,12 @@ class SensorMapTotal(CoordinatorEntity):
     
     def __init__(self, coordinator: BlitzerdeCoordinator) -> None:
         super().__init__(coordinator)
-        self.name = f"Blitzer.de {self.coordinator.displayname} Anzahl"
-        self.unique_id = f"{DOMAIN}-{self.coordinator.displayname}-total"
+        # _attr_*, not self.name/self.unique_id: those are cached_property on
+        # Entity, so assigning to them happens to work today but is not the
+        # documented way and would break the day they go back to being plain
+        # properties.
+        self._attr_name = f"Blitzer.de {self.coordinator.displayname} Anzahl"
+        self._attr_unique_id = f"{DOMAIN}-{self.coordinator.displayname}-total"
 
     @callback
     def _handle_coordinator_update(self) -> None:

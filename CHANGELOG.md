@@ -2,6 +2,14 @@
 
 All notable changes to this integration are documented here.
 
+## v2.1.1
+
+### Fixed
+- **The searched area was not the circle you drew on the map.** A radius in meters was turned into a degree offset by dividing by 100000 and applying the result to latitude and longitude alike. A degree of latitude is 111320m, not 100000m, and a degree of longitude is shorter still - by the cosine of the latitude. The queried box therefore came out 11% too tall and, at German latitudes, 24-35% too narrow: with a 5km radius near Cologne the search reached only 3.5km east and west, while pulling in cameras almost 6.2km to the north. Nothing filters by distance afterwards, so both the misses and the strays went straight into the entity list. Measured against the live API for a 5km radius, this now finds cameras that were inside the radius all along - five more in Hamburg, one more in Cologne - and stops reporting the ones that were never in it. Route entries benefit the same way, since the corridor width is a radius around each sample point.
+- **Resolving a cluster asked for the wrong cameras.** When the API answers with a cluster rather than individual cameras, the integration zooms in and queries that spot again - but without passing on which camera types the entry actually wants, so it fell back to a default that was itself malformed: `[TYPE_TRAILER + TYPE_MOBILE]` nests a list inside a list, which reaches the URL as the literal text `[ts, 0, 1, ...]` instead of `ts,0,1,...`. The API answers that with 200 and a shorter list rather than an error, so the loss was silent - the same box returned 2 cameras instead of 5 in a Berlin test. The types are now threaded through, and the default is built inside the function.
+- **A second area with the same name came up empty.** Every entity an entry creates is identified by that entry’s name, so two entries called the same thing produced identical identifiers and Home Assistant dropped the ones it could not tell apart – the new area appeared with no cameras and no sensor, explained only by a line in the log. The name is now claimed when it is typed, so a duplicate is refused right there with “already configured” instead of failing quietly several screens later.
+- **Every area logged under the same name.** Entries carried no identifier of their own, so each one’s coordinator wrote its messages as `blitzer (None)` and there was no telling which area a message came from. New entries use the name they were set up under; existing ones fall back to it.
+
 ## v2.1.0
 
 ### Added

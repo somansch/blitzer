@@ -84,6 +84,7 @@
             }
         },
         "abort": {
+            "already_configured": "Blitzer.de ist für diesen Namen bereits eingerichtet. Bitte einen anderen wählen.",
             "location_missing": "Bitte Position auswählen. (Karte verschieben)"
         },
         "error": {

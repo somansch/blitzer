@@ -84,6 +84,7 @@
             }
         },
         "abort": {
+            "already_configured": "Blitzer.de is already configured for this name. Pick a different one.",
             "location_missing": "Please select a position. (move the map)"
         },
         "error": {

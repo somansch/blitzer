@@ -92,7 +92,11 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN} ({config_entry.unique_id})",
+            # Entries created before the flow claimed a unique id have none,
+            # which used to render every one of them as "blitzer (None)" -
+            # indistinguishable in the log. The display name is what a person
+            # recognises anyway.
+            name=f"{DOMAIN} ({config_entry.unique_id or self.displayname})",
             # Method to call on every update interval.
             update_method=self.async_update_data,
             # Polling interval. Will only be polled if there are subscribers.
