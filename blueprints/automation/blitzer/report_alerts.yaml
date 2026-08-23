@@ -1,0 +1,657 @@
+blueprint:
+  name: Blitzer - Report Alerts
+  description: |-
+    # Blitzer - Report Alerts
+
+    Two ways of being told what Blitzer.de reports in your areas, in one automation. Speed controls and traffic hazards alike, filtered down to what you care about.
+
+    Field names are given as **English / Deutsch**, matching whichever language your Home Assistant is set to.
+
+    **📡 Live alerts / Live-Meldungen - only what is new**
+    - Fires the moment a report appears that was not there on the previous poll
+    - Never for one already known, and never right after a restart
+    - A time window keeps it quiet at night
+
+    **📋 Digest / Sammelmeldung - everything currently reported**
+    - One message listing what is standing right now, nearest first
+    - Triggered at a time of day, when someone leaves a zone, by any entity you pick, or on demand via `automation.trigger`
+
+    **🎯 Filters / Filter - shared by both, so you set them once**
+    - Areas and routes; controls, hazards, or both
+    - What a control measures, and how it is installed
+    - Hazard type, and a minimum speed limit
+    - Within a radius of a zone or a person
+
+    **🔔 Notify / Benachrichtigen - each its own section below**
+    - **Notification Content**: your own title and message templates, shared by every channel
+    - **Mobile App Notify**: push to one or more phones. A live alert is tappable straight through to the report on blitzer.de's map
+    - **Notifications**: Home Assistant's own notification bell, and/or a dashboard status helper
+    - **Text-to-Speech**: speak it on one or more media players
+    - **Custom Actions**: anything else, via the normal action editor
+
+    <details>
+    <summary><b>Available template variables</b></summary>
+
+    Both kinds of message have `{{ is_live }}`: true for a live alert, false for a digest.
+
+    **A live alert** additionally has:
+
+    - `{{ summary }}` - the whole report in one line, e.g. `Mobiler Geschwindigkeitsblitzer · 30 km/h · Hohenstaufenstraße, Berlin`
+    - `{{ type_name }}` - Blitzer.de's own wording, e.g. "Blitzer im Tunnel"
+    - `{{ report_kind }}` - `control` or `hazard`
+    - `{{ area }}` - the area or route that reported it
+    - `{{ type }}` - a control's installation form (`mobile`/`trailer`/`fixed`/`archive`), or the hazard's type key
+    - `{{ kind }}` - what a control measures (`speed`, `redlight`, `section_control`, ...). Empty on a hazard
+    - `{{ vmax }}` - speed limit in km/h, where there is one
+    - `{{ reason }}` - a hazard's own written-out text. Empty on a control
+    - `{{ street }}`, `{{ city }}`, `{{ zip_code }}` - address
+    - `{{ latitude }}`, `{{ longitude }}` - position
+    - `{{ distance }}` - km from the reference point set under Proximity, or `unknown` if none is set
+    - `{{ map_url }}` - the report on blitzer.de's map. Empty for a police report, whose id that map cannot resolve
+
+    **A digest** additionally has:
+
+    - `{{ reports }}` - the matching reports, nearest first. Each is a dictionary carrying every field listed above
+    - `{{ count }}` - how many there are
+    - `{{ areas_found }}` - comma-separated names of the areas they came from
+
+    </details>
+  domain: automation
+  author: somansch
+  source_url: https://github.com/somansch/blitzer/blob/main/blueprints/automation/blitzer/report_alerts.yaml
+  input:
+    scope:
+      name: What to report / Was gemeldet wird
+      icon: mdi:radar
+      collapsed: true
+      input:
+        areas:
+          name: Areas and routes / Bereiche und Routen
+          description: >-
+            One or more Blitzer.de areas or routes. Each configured entry is a
+            device of its own. Leave empty to include all of them.
+          default: []
+          selector:
+            device:
+              multiple: true
+              filter:
+                integration: blitzer
+        halves:
+          name: Controls, hazards, or both / Kontrollen, Gefahren oder beides
+          description: >-
+            Which half to report. Each filter section below applies to its own
+            half only.
+          default:
+            - controls
+            - hazards
+          selector:
+            select:
+              multiple: true
+              options:
+                - label: Controls / Kontrollen
+                  value: controls
+                - label: Hazards / Gefahren
+                  value: hazards
+    live:
+      name: Live alerts / Live-Meldungen
+      icon: mdi:access-point
+      collapsed: true
+      input:
+        live_enabled:
+          name: Alert on new reports / Bei neuen Meldungen benachrichtigen
+          description: >-
+            One notification per newly reported control or hazard, the moment it
+            shows up. Switch this off to use the digest below only.
+          default: true
+          selector:
+            boolean: {}
+        live_from:
+          name: Not before / Nicht vor
+          description: >-
+            Live alerts are only sent between this time and the one below. Leave
+            both at 00:00:00 to allow them around the clock. A window that ends
+            before it starts, e.g. 22:00 to 06:00, spans midnight.
+          default: "00:00:00"
+          selector:
+            time: {}
+        live_to:
+          name: Not after / Nicht nach
+          default: "00:00:00"
+          selector:
+            time: {}
+    digest:
+      name: Digest of everything currently reported / Sammelmeldung
+      icon: mdi:format-list-bulleted
+      collapsed: true
+      input:
+        digest_by_time:
+          name: Send at a time of day / Zu einer Uhrzeit senden
+          default: false
+          selector:
+            boolean: {}
+        digest_time:
+          name: Time of day / Uhrzeit
+          description: Only used when the switch above is on.
+          default: "07:00:00"
+          selector:
+            time: {}
+        digest_leaving:
+          name: Send when someone leaves a zone / Beim Verlassen einer Zone senden
+          description: >-
+            One or more people or device trackers. Useful for "what is out there
+            before I set off". Leave empty to skip this trigger.
+          default: []
+          selector:
+            entity:
+              multiple: true
+              filter:
+                - domain: person
+                - domain: device_tracker
+        digest_zone:
+          name: Zone being left / Verlassene Zone
+          description: Only used when someone is picked above.
+          default: zone.home
+          selector:
+            entity:
+              domain: zone
+        digest_entities:
+          name: Send when another entity changes / Bei Zustandswechsel einer Entität senden
+          description: >-
+            Any entity whose state change should produce a digest. An
+            input_button you press, an input_boolean, a sensor, whatever fits.
+            The automation can also be started from elsewhere with
+            `automation.trigger`, with nothing picked here.
+          default: []
+          selector:
+            entity:
+              multiple: true
+        digest_max:
+          name: Most entries per digest / Maximale Anzahl pro Sammelmeldung
+          description: >-
+            A digest is one message, and every channel has a length limit. The
+            nearest reports are kept.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 100
+              mode: box
+    control_filters:
+      name: Control filters / Filter für Kontrollen
+      icon: mdi:cctv
+      collapsed: true
+      input:
+        kinds:
+          name: What it measures / Kontrollart
+          description: Leave empty for every kind.
+          default: []
+          selector:
+            select:
+              multiple: true
+              mode: dropdown
+              options:
+                - label: Speed / Geschwindigkeit
+                  value: speed
+                - label: Red light / Rotlicht
+                  value: redlight
+                - label: Red light & speed / Rotlicht & Geschwindigkeit
+                  value: redlight_speed
+                - label: Section control / Abschnittskontrolle
+                  value: section_control
+                - label: Speed camera in tunnel / Blitzer im Tunnel
+                  value: tunnel
+                - label: Distance / Abstand
+                  value: distance
+                - label: Weight / Gewicht
+                  value: weight
+                - label: Height / Höhe
+                  value: height
+                - label: Lane / Spur
+                  value: lane
+                - label: Entrance / Einfahrt
+                  value: entry
+                - label: Access / Auffahrt
+                  value: access
+                - label: Pedestrian crosswalk / Fußgängerüberweg
+                  value: crosswalk
+                - label: Overtaking ban / Überholverbot
+                  value: overtaking
+                - label: Police check / Polizeikontrolle
+                  value: police
+                - label: Alcohol check / Alkoholkontrolle
+                  value: alcohol
+                - label: Dummy / Attrappe
+                  value: dummy
+                - label: Unknown / Unbekannt
+                  value: unknown
+        forms:
+          name: How it is installed / Aufbauform
+          description: Leave empty for every form.
+          default: []
+          selector:
+            select:
+              multiple: true
+              options:
+                - label: Mobile / Mobil
+                  value: mobile
+                - label: Trailer / Anhänger
+                  value: trailer
+                - label: Fixed / Fest
+                  value: fixed
+                - label: Archive data / Archivdaten
+                  value: archive
+        min_vmax:
+          name: Minimum speed limit / Mindestgeschwindigkeit
+          description: >-
+            Skip controls whose limit is below this. A 30 km/h camera in a side
+            street then stays quiet, while the one on the motorway does not. `0`
+            reports every control, including those with no limit at all.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 130
+              step: 5
+              unit_of_measurement: km/h
+              mode: slider
+    hazard_filters:
+      name: Hazard filters / Filter für Gefahren
+      icon: mdi:alert-outline
+      collapsed: true
+      input:
+        hazard_types:
+          name: Hazard types / Gefahrentypen
+          description: >-
+            Leave empty for every type the integration is configured to fetch.
+          default: []
+          selector:
+            select:
+              multiple: true
+              mode: dropdown
+              options:
+                - label: End of tailback / Stauende
+                  value: tailback_end
+                - label: Accident / Unfall
+                  value: accident
+                - label: Temporary roadwork / Tagesbaustelle
+                  value: roadwork_temporary
+                - label: Permanent roadworks / Dauerbaustelle
+                  value: roadwork_permanent
+                - label: Obstacle / Hindernis
+                  value: obstacle
+                - label: Slipperiness / Rutschgefahr
+                  value: slippery
+                - label: Obstructed view / Sichtbehinderung
+                  value: obstructed_view
+                - label: Broken down vehicle / Defektes Fahrzeug
+                  value: broken_down_vehicle
+                - label: Road block / Sperrung
+                  value: closure
+                - label: Police reports / Polizeimeldung
+                  value: police_report
+    proximity:
+      name: Proximity / Umkreis
+      icon: mdi:map-marker-radius
+      collapsed: true
+      input:
+        reference:
+          name: Measure distance from / Entfernung messen ab
+          description: >-
+            A zone or a person to measure each report against. This is also what
+            `{{ distance }}` refers to, and what a digest is sorted by. Leave
+            empty to report the whole configured area, sorted by each entity's
+            own distance to its area centre.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: zone
+                - domain: person
+                - domain: device_tracker
+        radius:
+          name: Only within / Nur innerhalb von
+          description: >-
+            Skip anything further away than this. `0` means no limit, which is
+            useful when you only want the sorting.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 200
+              step: 1
+              unit_of_measurement: km
+              mode: box
+    content:
+      name: Notification Content / Text der Benachrichtigung
+      icon: mdi:pencil-outline
+      collapsed: true
+      input:
+        alert_title:
+          name: Live alert title / Titel der Live-Meldung
+          description: See the blueprint description above for the variables.
+          default: "Blitzer.de {{ area }}"
+          selector:
+            template: {}
+        alert_message:
+          name: Live alert message / Text der Live-Meldung
+          default: "{{ summary }}"
+          selector:
+            template: {}
+        digest_title:
+          name: Digest title / Titel der Sammelmeldung
+          default: "Blitzer.de ({{ count }})"
+          selector:
+            template: {}
+        digest_message:
+          name: Digest message / Text der Sammelmeldung
+          description: >-
+            One message for the whole digest. Loop over `reports` yourself and
+            lay the lines out however you like.
+          default: |-
+            {% for r in reports %}{{ r.distance }} km · {{ r.summary }}
+            {% endfor %}
+          selector:
+            template: {}
+        digest_empty:
+          name: Digest message when nothing matches / Text, wenn nichts gemeldet ist
+          description: Leave empty to send nothing at all in that case.
+          default: ""
+          selector:
+            template: {}
+    mobile_app_notify:
+      name: Mobile App Notify / Push aufs Handy
+      icon: mdi:cellphone-message
+      collapsed: true
+      input:
+        notify_devices:
+          name: Devices to push to / Geräte
+          description: >-
+            One or more devices running the Home Assistant Companion App. A live
+            alert is tappable straight through to the report on blitzer.de's
+            map. Leave empty to skip mobile push entirely.
+          default: []
+          selector:
+            device:
+              multiple: true
+              filter:
+                integration: mobile_app
+    ha_notifications:
+      name: Notifications / Benachrichtigungen
+      icon: mdi:bell-ring-outline
+      collapsed: true
+      input:
+        show_in_notifications:
+          name: Show in the notification bell / In der Benachrichtigungsglocke anzeigen
+          default: false
+          selector:
+            boolean: {}
+        dashboard_helper:
+          name: Dashboard status helper / Dashboard-Helfer (optional)
+          description: >-
+            An input_text helper to keep updated, so a Markdown or Entity card
+            can show the latest alert or digest. Trimmed to that helper's own
+            maximum length.
+          default: ""
+          selector:
+            entity:
+              domain: input_text
+    tts_announcement:
+      name: Text-to-Speech Announcement / Sprachansage
+      icon: mdi:account-voice
+      collapsed: true
+      input:
+        tts_engine:
+          name: TTS engine / TTS-Dienst
+          description: Required if media players are picked below.
+          default: ""
+          selector:
+            entity:
+              domain: tts
+        tts_media_players:
+          name: Media players to announce on / Mediaplayer (optional)
+          description: Leave empty to skip TTS entirely.
+          default: []
+          selector:
+            entity:
+              multiple: true
+              domain: media_player
+    custom_actions:
+      name: Custom Actions / Eigene Aktionen
+      icon: mdi:cog-play-outline
+      collapsed: true
+      input:
+        user_actions:
+          name: Additional actions / Weitere Aktionen (optional)
+          description: >-
+            Run anything else. Email, Telegram, ntfy, a light flash. Built with
+            the normal action editor; the same variables are in scope.
+          default: []
+          selector:
+            action: {}
+
+mode: queued
+max: 10
+
+triggers:
+  - trigger: event
+    event_type: blitzer_new_control
+    id: live
+  - trigger: event
+    event_type: blitzer_new_hazard
+    id: live
+  - trigger: time
+    at: !input digest_time
+    id: digest
+    enabled: !input digest_by_time
+  - trigger: zone
+    entity_id: !input digest_leaving
+    zone: !input digest_zone
+    event: leave
+    id: digest
+  - trigger: state
+    entity_id: !input digest_entities
+    id: digest
+
+variables:
+  in_areas: !input areas
+  in_halves: !input halves
+  in_kinds: !input kinds
+  in_forms: !input forms
+  in_min_vmax: !input min_vmax
+  in_hazard_types: !input hazard_types
+  in_reference: !input reference
+  in_radius: !input radius
+  in_live_enabled: !input live_enabled
+  in_live_from: !input live_from
+  in_live_to: !input live_to
+  in_digest_max: !input digest_max
+  in_show_notifications: !input show_in_notifications
+  in_dashboard_helper: !input dashboard_helper
+  in_tts_engine: !input tts_engine
+
+  is_live: "{{ trigger.id | default('digest', true) == 'live' }}"
+
+  # The picked areas by the name their device carries, which is the same name
+  # the entities and the events report as "area". A device the user renamed
+  # answers on name_by_user, so both are collected.
+  area_names: >-
+    {{ (in_areas | map('device_attr', 'name_by_user') | list
+        + in_areas | map('device_attr', 'name') | list)
+       | select('string') | list }}
+
+  ref_lat: "{{ state_attr(in_reference, 'latitude') if in_reference else none }}"
+  ref_lng: "{{ state_attr(in_reference, 'longitude') if in_reference else none }}"
+
+  # --- the live report -----------------------------------------------------
+  # All of these stay defined (empty) on a digest run, so that the two content
+  # templates below can both be rendered without either one erroring on the
+  # other one's run.
+  report_kind: >-
+    {{ 'hazard' if is_live and trigger.event.event_type == 'blitzer_new_hazard'
+       else ('control' if is_live else '') }}
+  area: "{{ trigger.event.data.area if is_live else '' }}"
+  report_id: "{{ trigger.event.data.id if is_live else '' }}"
+  type: "{{ trigger.event.data.type if is_live else '' }}"
+  type_name: "{{ trigger.event.data.type_name | default('', true) if is_live else '' }}"
+  summary: "{{ trigger.event.data.summary | default('', true) if is_live else '' }}"
+  kind: "{{ trigger.event.data.kind | default('', true) if is_live else '' }}"
+  vmax: "{{ trigger.event.data.vmax | default('', true) if is_live else '' }}"
+  reason: "{{ trigger.event.data.reason | default('', true) if is_live else '' }}"
+  street: "{{ trigger.event.data.street | default('', true) if is_live else '' }}"
+  city: "{{ trigger.event.data.city | default('', true) if is_live else '' }}"
+  zip_code: "{{ trigger.event.data.zip_code | default('', true) if is_live else '' }}"
+  latitude: "{{ trigger.event.data.latitude if is_live else '' }}"
+  longitude: "{{ trigger.event.data.longitude if is_live else '' }}"
+  map_url: >-
+    {{ ''
+       if not is_live or type == 'police_report'
+       else 'https://map.blitzer.de/v5/ID/' ~ report_id ~ '/' }}
+  distance: >-
+    {%- if is_live and ref_lat is not none -%}
+    {{ (distance(ref_lat | float, ref_lng | float,
+                 latitude | float, longitude | float) or 0) | round(1) }}
+    {%- elif is_live -%}unknown{%- else -%}{%- endif -%}
+
+  # --- the digest ----------------------------------------------------------
+  all_reports: >-
+    {%- set ns = namespace(rows=[]) -%}
+    {%- if not is_live -%}
+    {%- for s in states.geo_location -%}
+    {%- set src = s.attributes.source | default('', true) -%}
+    {%- if src.startswith('blitzer_') -%}
+    {%- set is_hazard = src.endswith('_hazards') -%}
+    {%- set a = s.attributes.area | default('', true) -%}
+    {%- set t = s.attributes.type | default('', true) -%}
+    {%- set k = s.attributes.kind | default('', true) -%}
+    {%- set d = ((distance(ref_lat | float, ref_lng | float,
+                           s.attributes.latitude | float,
+                           s.attributes.longitude | float) or 0) | round(1))
+                if ref_lat is not none else (s.state | float(9999)) -%}
+    {%- if (not area_names or a in area_names)
+           and ((not is_hazard and 'controls' in in_halves)
+                or (is_hazard and 'hazards' in in_halves))
+           and (is_hazard or not in_kinds or k in in_kinds)
+           and (is_hazard or not in_forms or t in in_forms)
+           and (is_hazard or in_min_vmax | int(0) == 0
+                or (s.attributes.vmax | int(0)) >= in_min_vmax | int(0))
+           and (not is_hazard or not in_hazard_types or t in in_hazard_types)
+           and (in_radius | float(0) == 0 or d <= in_radius | float(0)) -%}
+    {%- set ns.rows = ns.rows + [{
+          'report_kind': 'hazard' if is_hazard else 'control',
+          'area': a,
+          'report_id': s.attributes.id | default('', true),
+          'type': t,
+          'type_name': s.attributes.type_name | default('', true),
+          'summary': s.attributes.summary | default('', true),
+          'kind': k,
+          'vmax': s.attributes.vmax | default('', true),
+          'reason': s.attributes.reason | default('', true),
+          'street': s.attributes.street | default('', true),
+          'city': s.attributes.city | default('', true),
+          'zip_code': s.attributes.zip_code | default('', true),
+          'latitude': s.attributes.latitude,
+          'longitude': s.attributes.longitude,
+          'distance': d,
+          'entity_id': s.entity_id,
+          'map_url': '' if t == 'police_report'
+                     else 'https://map.blitzer.de/v5/ID/'
+                          ~ (s.attributes.id | default('', true)) ~ '/'
+        }] -%}
+    {%- endif -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {%- endif -%}
+    {{ ns.rows | sort(attribute='distance') | list }}
+  reports: "{{ all_reports[: in_digest_max | int(10)] }}"
+  count: "{{ reports | count }}"
+  areas_found: "{{ reports | map(attribute='area') | unique | join(', ') }}"
+
+  # --- whether this run has anything to say --------------------------------
+  in_window: >-
+    {%- set f = in_live_from -%}
+    {%- set t = in_live_to -%}
+    {%- if f == t -%}true
+    {%- else -%}
+    {%- set n = now().strftime('%H:%M:%S') -%}
+    {{ 'true' if ((f <= n < t) if f < t else (n >= f or n < t)) else 'false' }}
+    {%- endif -%}
+  live_passes: >-
+    {{ is_live and in_live_enabled and in_window == 'true'
+       and (not area_names or area in area_names)
+       and (('controls' in in_halves) if report_kind == 'control'
+            else ('hazards' in in_halves))
+       and (report_kind != 'control' or not in_kinds or kind in in_kinds)
+       and (report_kind != 'control' or not in_forms or type in in_forms)
+       and (report_kind != 'control' or in_min_vmax | int(0) == 0
+            or (vmax | int(0)) >= in_min_vmax | int(0))
+       and (report_kind != 'hazard' or not in_hazard_types
+            or type in in_hazard_types)
+       and (in_radius | float(0) == 0 or distance == 'unknown'
+            or distance | float(9999) <= in_radius | float(0)) }}
+
+  # --- the finished text ---------------------------------------------------
+  digest_empty_text: !input digest_empty
+  live_title: !input alert_title
+  live_message: !input alert_message
+  digest_title_text: !input digest_title
+  digest_body: !input digest_message
+  notify_title: "{{ live_title if is_live else digest_title_text }}"
+  notify_message: >-
+    {{ live_message if is_live
+       else (digest_body if count | int(0) > 0 else digest_empty_text) }}
+
+conditions:
+  - condition: template
+    value_template: >-
+      {{ live_passes if is_live
+         else (count | int(0) > 0 or digest_empty_text | trim != '') }}
+
+actions:
+  # Push, with a live alert tappable straight through to the map. A digest has
+  # no single report to open, so it carries no URL.
+  - repeat:
+      for_each: !input notify_devices
+      sequence:
+        - action: >-
+            notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
+          data:
+            title: "{{ notify_title }}"
+            message: "{{ notify_message }}"
+            data: >-
+              {{ {'url': map_url, 'clickAction': map_url} if map_url else {} }}
+  - choose:
+      - conditions: "{{ in_show_notifications }}"
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: "{{ notify_title }}"
+              message: "{{ notify_message }}"
+              notification_id: >-
+                blitzer_{{ report_id if is_live else 'digest' }}
+  - choose:
+      - conditions: "{{ in_dashboard_helper | trim != '' }}"
+        sequence:
+          - action: input_text.set_value
+            target:
+              entity_id: "{{ in_dashboard_helper }}"
+            data:
+              value: >-
+                {{ (notify_title ~ ' - ' ~ notify_message)
+                   | replace('\n', ' ')
+                   | truncate(state_attr(in_dashboard_helper, 'max') | int(255),
+                              true, '') }}
+  - repeat:
+      for_each: !input tts_media_players
+      sequence:
+        - action: tts.speak
+          target:
+            entity_id: "{{ in_tts_engine }}"
+          data:
+            media_player_entity_id: "{{ repeat.item }}"
+            message: "{{ notify_title }}. {{ notify_message }}"
+          continue_on_error: true
+        - wait_template: >-
+            {{ is_state(repeat.item, 'idle') or is_state(repeat.item, 'off') }}
+          timeout: "00:00:20"
+          continue_on_timeout: true
+  - sequence: !input user_actions

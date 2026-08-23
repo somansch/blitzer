@@ -10,11 +10,26 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import slugify
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import ATTR_CONFIG_ENTRY_ID, DOMAIN, SERVICE_REFRESH
-from .coordinator import BlitzerdeAPIData, BlitzerdeCoordinator
+from .const import (
+    ATTR_CONFIG_ENTRY_ID,
+    CONF_KINDS,
+    DOMAIN,
+    KIND_DEFAULTS,
+    SERVICE_REFRESH_CONTROLS,
+    SERVICE_REFRESH_HAZARDS,
+)
+from .coordinator import (
+    BlitzerdeAPIData,
+    BlitzerdeCoordinator,
+    hazard_key,
+    hazard_reason,
+    poi_id,
+)
 
 from homeassistant.const import (
     CONF_LOCATION,
@@ -50,11 +65,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = BlitzerdeCoordinator(hass, config_entry)
 
     if coordinator.update_interval is None:
-        # Manual-only (update_interval configured as 0): entities start
-        # empty rather than making an API call on every startup/reload -
-        # the whole point of manual mode is avoiding automatic requests.
-        # Use the "refresh" service to populate them.
-        coordinator.async_set_updated_data(BlitzerdeAPIData(mapdata=[]))
+        # Nothing polls on a schedule - both intervals are 0 ("manual
+        # only"), or nothing is selected to look for. Entities start empty
+        # rather than making an API call on every startup/reload; the whole
+        # point of manual mode is avoiding automatic requests. The "refresh"
+        # and "refresh_hazards" actions populate them.
+        coordinator.async_set_updated_data(BlitzerdeAPIData(controls=[]))
     else:
         # Perform an initial data load from api.
         # async_config_entry_first_refresh() is special in that it does not log errors if it fails
@@ -81,27 +97,25 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     # Registered once for the domain, not per entry - guarded since
     # async_setup_entry runs again for every additional area/route.
-    if not hass.services.has_service(DOMAIN, SERVICE_REFRESH):
-        hass.services.async_register(
-            DOMAIN,
-            SERVICE_REFRESH,
-            _async_handle_refresh,
-            schema=_REFRESH_SCHEMA,
-            supports_response=SupportsResponse.OPTIONAL,
-        )
+    for service, handler in (
+        (SERVICE_REFRESH_CONTROLS, _async_handle_refresh_controls),
+        (SERVICE_REFRESH_HAZARDS, _async_handle_refresh_hazards),
+    ):
+        if not hass.services.has_service(DOMAIN, service):
+            hass.services.async_register(
+                DOMAIN,
+                service,
+                handler,
+                schema=_REFRESH_SCHEMA,
+                supports_response=SupportsResponse.OPTIONAL,
+            )
 
     # Return true to denote a successful setup.
     return True
 
 
-async def _async_handle_refresh(call: ServiceCall) -> ServiceResponse:
-    """Immediately poll one area/route, e.g. from an automation, instead of
-    waiting for its next scheduled poll - the point of "update_interval: 0"
-    (fully manual polling), but works just as well as an on-demand refresh
-    for entries that do poll automatically. Returns the freshly fetched
-    cameras so an automation can use them directly (e.g. in a notification)
-    without a separate template step to read the resulting entity states.
-    """
+def _coordinator_for(call: ServiceCall) -> BlitzerdeCoordinator:
+    """The coordinator of the area/route the call names."""
     hass = call.hass
     entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
     entry = hass.config_entries.async_get_entry(entry_id)
@@ -109,11 +123,27 @@ async def _async_handle_refresh(call: ServiceCall) -> ServiceResponse:
         raise ServiceValidationError(f"'{entry_id}' is not a Blitzer.de config entry")
 
     runtime_data: RuntimeData = hass.data[DOMAIN][entry.entry_id]
-    await runtime_data.coordinator.async_refresh()
+    return runtime_data.coordinator
 
-    mapdata = runtime_data.coordinator.data.mapdata if runtime_data.coordinator.data else []
+
+async def _async_handle_refresh_controls(call: ServiceCall) -> ServiceResponse:
+    """Immediately poll one area/route's controls, e.g. from an automation,
+    instead of waiting for their next scheduled poll - the point of
+    "update_interval: 0" (fully manual polling), but works just as well as
+    an on-demand refresh for entries that do poll automatically. Returns
+    what it found so an automation can use it directly (e.g. in a
+    notification) without a separate template step to read the resulting
+    entity states.
+
+    Controls only. The hazards keep whatever they last fetched and cost no
+    request here - "blitzer.refresh_hazards" is their counterpart.
+    """
+    coordinator = _coordinator_for(call)
+    await coordinator.async_refresh_kind("controls")
+
+    controls = coordinator.data.controls if coordinator.data else []
     return {
-        "cameras": [
+        "controls": [
             {
                 "id": item["backend"].split("-")[-1],
                 "vmax": item.get("vmax"),
@@ -122,7 +152,34 @@ async def _async_handle_refresh(call: ServiceCall) -> ServiceResponse:
                 "latitude": item.get("lat"),
                 "longitude": item.get("lng"),
             }
-            for item in mapdata
+            for item in controls
+        ]
+    }
+
+
+async def _async_handle_refresh_hazards(call: ServiceCall) -> ServiceResponse:
+    """The same for one area/route's hazards, and only those.
+
+    ".get()" throughout rather than indexing: a traffic control centre
+    report has no postcode, sometimes no city, and carries its road at the
+    top level instead of under "address".
+    """
+    coordinator = _coordinator_for(call)
+    await coordinator.async_refresh_kind("hazards")
+
+    hazards = coordinator.data.hazards if coordinator.data else []
+    return {
+        "hazards": [
+            {
+                "id": poi_id(item),
+                "type": hazard_key(item),
+                "reason": hazard_reason(item),
+                "city": (item.get("address") or {}).get("city", ""),
+                "street": (item.get("address") or {}).get("street") or item.get("street", ""),
+                "latitude": item.get("lat"),
+                "longitude": item.get("lng"),
+            }
+            for item in hazards
         ]
     }
 
@@ -198,6 +255,87 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 CONF_SELECTOR: config_entry.data.get(CONF_SELECTOR),
                 CONF_CONDITION: True
         }, version=4)
+
+    if config_entry.version == 4:
+        # The camera switches were one axis mixing two questions: how a
+        # camera is installed, and what it measures. "redlight" sat among
+        # the installation forms while being neither, and sixteen different
+        # kinds of fixed control shared a single "fixed" switch. Version 5
+        # splits them into CONF_TYPE (the form) and CONF_KINDS (the kind).
+        old = config_entry.data.get(CONF_TYPE) or {}
+        old_fixed = old.get("fixed", False)
+        old_redlight = old.get("redlight", False)
+        forms = {
+            "mobile": old.get("mobile", True),
+            "trailer": old.get("trailer", True),
+            # A red light camera is a fixed installation; the old code asked
+            # for the fixed type codes whenever either switch was on, so
+            # either switch has to keep the form on now.
+            "fixed": old_fixed or old_redlight,
+            "archive": old.get("archive", False),
+        }
+        kinds = dict(KIND_DEFAULTS)
+        if old_fixed and not old_redlight:
+            # This combination used to drop everything with a vmax of "/",
+            # which is exactly the red light kind.
+            kinds["redlight"] = False
+        hass.config_entries.async_update_entry(
+            config_entry,
+            data={**config_entry.data, CONF_TYPE: forms, CONF_KINDS: kinds},
+            version=5,
+        )
+
+    if config_entry.version == 5:
+        # Version 6 changes what an entity is identified by, for two reasons.
+        #
+        # One: the two halves are now symmetric. The control half used to be
+        # the unmarked one - "blitzer-<name>-<id>" against the hazards'
+        # "blitzer-hazard-<name>-<id>" - because for years it was the only
+        # half there was.
+        #
+        # Two, and the real bug: the identifier contained the *display name*.
+        # Rename an entry and every unique id changed with it, so Home
+        # Assistant saw a completely new set of entities and left the old
+        # ones behind as orphans. The entry id never changes.
+        name = config_entry.data.get(CONF_NAME, "")
+        entry_id = config_entry.entry_id
+        sensors = {
+            f"{DOMAIN}-{name}-total": (f"{DOMAIN}-control-{entry_id}-total", "anzahl_kontrollen"),
+            f"{DOMAIN}-hazard-{name}-total": (f"{DOMAIN}-hazard-{entry_id}-total", "anzahl_gefahren"),
+            f"{DOMAIN}-all-{name}-total": (f"{DOMAIN}-combined-{entry_id}-total", "anzahl_gesamt"),
+        }
+        area = slugify(name)
+
+        registry = er.async_get(hass)
+        for entry in list(er.async_entries_for_config_entry(registry, config_entry.entry_id)):
+            if entry.unique_id in sensors:
+                # The three counts are worth carrying across: they hold
+                # history, and their entity ids are the ones people put in
+                # dashboards. The id is rewritten too, because
+                # "sensor.blitzer_blitzer_berlin_total" names the domain
+                # twice and says nothing about what it counts.
+                new_unique_id, suffix = sensors[entry.unique_id]
+                changes = {"new_unique_id": new_unique_id}
+                wanted = f"{entry.domain}.{area}_{suffix}"
+                # Only claim the id if nothing holds it; a collision raises,
+                # and losing the whole migration over a cosmetic rename
+                # would be a poor trade.
+                if entry.entity_id != wanted and not registry.async_get(wanted):
+                    changes["new_entity_id"] = wanted
+                registry.async_update_entity(entry.entity_id, **changes)
+                continue
+
+            # Every marker on the map is created and removed as the data
+            # changes anyway, so none is stable enough to reference. Dropping
+            # the registry entry lets the next poll recreate it with the new
+            # identifier, the new name and an entity id to match. That works
+            # only because the identifier really does change for both halves
+            # here: Home Assistant remembers a removed entry and restores its
+            # old entity id if the same unique id comes back.
+            if entry.domain == "geo_location":
+                registry.async_remove(entry.entity_id)
+
+        hass.config_entries.async_update_entry(config_entry, version=6)
 
     _LOGGER.debug("Migration to configuration version %s successful", config_entry.version)
 

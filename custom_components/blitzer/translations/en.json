@@ -6,6 +6,62 @@
                 "area": "Area (radius)",
                 "route": "Route (waypoints)"
             }
+        },
+        "control_form": {
+            "options": {
+                "mobile": "Mobile",
+                "trailer": "Trailer",
+                "fixed": "Fixed",
+                "archive": "Archive data (removed/historical)"
+            }
+        },
+        "control_kind": {
+            "options": {
+                "speed": "Speed",
+                "redlight": "Red light",
+                "redlight_speed": "Red light & speed",
+                "section_control": "Section control",
+                "tunnel": "Speed camera in tunnel",
+                "distance": "Distance",
+                "weight": "Weight",
+                "height": "Height",
+                "lane": "Lane",
+                "entry": "Entrance",
+                "access": "Access",
+                "crosswalk": "Pedestrian crosswalk",
+                "overtaking": "Overtaking ban",
+                "police": "Police check",
+                "alcohol": "Alcohol check",
+                "dummy": "Dummy",
+                "unknown": "Unknown"
+            }
+        },
+        "hazard_type": {
+            "options": {
+                "tailback_end": "End of tailback",
+                "accident": "Accident",
+                "roadwork_temporary": "Temporary roadwork",
+                "obstacle": "Obstacle",
+                "slippery": "Slipperiness",
+                "obstructed_view": "Obstructed view",
+                "roadwork_permanent": "Permanent roadworks",
+                "broken_down_vehicle": "Broken down vehicle",
+                "closure": "Road block",
+                "police_report": "Police reports"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "control_count": {
+                "name": "Control count"
+            },
+            "hazard_count": {
+                "name": "Hazard count"
+            },
+            "total_count": {
+                "name": "Total count"
+            }
         }
     },
     "config": {
@@ -22,26 +78,29 @@
                 "title": "Blitzer.de Setup",
                 "description": "Select the section from which the data should be displayed",
                 "data": {
-                    "location": "Section"
+                    "location": "Section",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Types",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Trailer",
-                            "fixed": "Fixed",
-                            "redlight": "Red light (traffic signal)"
-                        }
-                    },
                     "optional": {
-                        "name": "Optional settings",
+                        "name": "Optional settings for controls",
                         "data": {
-                            "count": "Number of sensors",
+                            "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
-                            "blacklist": "Blacklist (comma-separated camera IDs)"
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }
                     }
                 }
@@ -56,28 +115,31 @@
             },
             "route_options": {
                 "title": "Route search options",
-                "description": "Choose how wide a corridor around the route to search, and which cameras to include.",
+                "description": "Choose how wide a corridor around the route to search, and which reports to include.",
                 "data": {
-                    "corridor_width": "Corridor width (meters)"
+                    "corridor_width": "Corridor width (meters)",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Types",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Trailer",
-                            "fixed": "Fixed",
-                            "redlight": "Red light (traffic signal)"
-                        }
-                    },
                     "optional": {
-                        "name": "Optional settings",
+                        "name": "Optional settings for controls",
                         "data": {
-                            "count": "Number of sensors",
+                            "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
-                            "blacklist": "Blacklist (comma-separated camera IDs)"
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }
                     }
                 }
@@ -92,9 +154,19 @@
         }
     },
     "services": {
-        "refresh": {
-            "name": "Blitzer Refresh",
-            "description": "Immediately fetch the latest cameras for one Blitzer.de area or route, instead of waiting for its next scheduled poll. Returns the cameras found.",
+        "refresh_controls": {
+            "name": "Refresh controls",
+            "description": "Immediately fetch the latest controls for one Blitzer.de area or route, instead of waiting for its next scheduled poll. Returns the controls found. Controls only - \"Refresh hazards\" is the counterpart for hazards.",
+            "fields": {
+                "config_entry_id": {
+                    "name": "Area or route",
+                    "description": "Which Blitzer.de area or route to refresh."
+                }
+            }
+        },
+        "refresh_hazards": {
+            "name": "Refresh hazards",
+            "description": "Immediately fetch the latest hazards for one Blitzer.de area or route, instead of waiting for its next scheduled poll. Returns the hazards found. Hazards only - \"Refresh controls\" is the counterpart for controls.",
             "fields": {
                 "config_entry_id": {
                     "name": "Area or route",
@@ -116,26 +188,29 @@
                 "title": "Blitzer.de Setup",
                 "description": "Select the section from which the data should be displayed.",
                 "data": {
-                    "location": "Section"
+                    "location": "Section",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Types",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Trailer",
-                            "fixed": "Fixed",
-                            "redlight": "Red light (traffic signal)"
-                        }
-                    },
                     "optional": {
-                        "name": "Optional settings",
+                        "name": "Optional settings for controls",
                         "data": {
-                            "count": "Number of sensors",
+                            "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
-                            "blacklist": "Blacklist (comma-separated camera IDs)"
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }
                     }
                 }
@@ -158,28 +233,31 @@
             },
             "route_options": {
                 "title": "Route search options",
-                "description": "Choose how wide a corridor around the route to search, and which cameras to include.",
+                "description": "Choose how wide a corridor around the route to search, and which reports to include.",
                 "data": {
-                    "corridor_width": "Corridor width (meters)"
+                    "corridor_width": "Corridor width (meters)",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Types",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Trailer",
-                            "fixed": "Fixed",
-                            "redlight": "Red light (traffic signal)"
-                        }
-                    },
                     "optional": {
-                        "name": "Optional settings",
+                        "name": "Optional settings for controls",
                         "data": {
-                            "count": "Number of sensors",
+                            "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
-                            "blacklist": "Blacklist (comma-separated camera IDs)"
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }
                     }
                 }

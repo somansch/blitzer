@@ -6,6 +6,62 @@
                 "area": "Bereich (Radius)",
                 "route": "Route (Wegpunkte)"
             }
+        },
+        "control_form": {
+            "options": {
+                "mobile": "Mobile",
+                "trailer": "Anhänger",
+                "fixed": "Feste",
+                "archive": "Archivdaten (abgebaut/historisch)"
+            }
+        },
+        "control_kind": {
+            "options": {
+                "speed": "Geschwindigkeit",
+                "redlight": "Rotlicht",
+                "redlight_speed": "Rotlicht & Geschwindigkeit",
+                "section_control": "Abschnittskontrolle",
+                "tunnel": "Blitzer im Tunnel",
+                "distance": "Abstand",
+                "weight": "Gewicht",
+                "height": "Höhe",
+                "lane": "Spur",
+                "entry": "Einfahrt",
+                "access": "Auffahrt",
+                "crosswalk": "Fußgängerüberweg",
+                "overtaking": "Überholverbot",
+                "police": "Polizeikontrolle",
+                "alcohol": "Alkoholkontrolle",
+                "dummy": "Attrappe",
+                "unknown": "Unbekannt"
+            }
+        },
+        "hazard_type": {
+            "options": {
+                "tailback_end": "Stauende",
+                "accident": "Unfall",
+                "roadwork_temporary": "Tagesbaustelle",
+                "obstacle": "Hindernis",
+                "slippery": "Rutschgefahr",
+                "obstructed_view": "Sichtbehinderung",
+                "roadwork_permanent": "Dauerbaustelle",
+                "broken_down_vehicle": "Defektes Fahrzeug",
+                "closure": "Sperrung",
+                "police_report": "Polizeimeldung"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "control_count": {
+                "name": "Anzahl Kontrollen"
+            },
+            "hazard_count": {
+                "name": "Anzahl Gefahren"
+            },
+            "total_count": {
+                "name": "Anzahl Gesamt"
+            }
         }
     },
     "config": {
@@ -22,33 +78,36 @@
                 "title": "Blitzer.de Setup",
                 "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
                 "data": {
-                    "location": "Bereich"
+                    "location": "Bereich",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Blitzer",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Anhänger",
-                            "fixed": "Feste",
-                            "redlight": "Rotlichtampel"
-                        }
-                    },
                     "optional": {
-                        "name": "Optionale Einstellungen",
+                        "name": "Optionale Einstellungen Kontrollen",
                         "data": {
-                            "count": "Maximale Anzahl der Blitzer",
+                            "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
-                            "condition": "Nur bestätigte Blitzer anzeigen",
-                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }
                     }
                 }
             },
             "waypoint": {
                 "title": "Wegpunkt {count} hinzufügen",
-                "description": "Verschiebe die Karte, sodass der Marker auf Wegpunkt {count} deiner Route liegt. Du brauchst mindestens zwei Wegpunkte. Wichtig: Gesucht wird immer entlang der geraden Linie zwischen zwei Wegpunkten, nicht entlang der echten Straße – setze deshalb an jeder Kurve deiner Route einen eigenen Wegpunkt, damit dort kein Blitzer übersehen wird.",
+                "description": "Verschiebe die Karte, sodass der Marker auf Wegpunkt {count} deiner Route liegt. Du brauchst mindestens zwei Wegpunkte. Wichtig: Gesucht wird immer entlang der geraden Linie zwischen zwei Wegpunkten, nicht entlang der echten Straße – setze deshalb an jeder Kurve deiner Route einen eigenen Wegpunkt, damit dort keine Meldung übersehen wird.",
                 "data": {
                     "location": "Wegpunkt",
                     "add_another": "Weiteren Wegpunkt hinzufügen"
@@ -56,28 +115,31 @@
             },
             "route_options": {
                 "title": "Routen-Sucheinstellungen",
-                "description": "Wähle, wie breit der Korridor um die Route durchsucht werden soll und welche Blitzer einbezogen werden.",
+                "description": "Wähle, wie breit der Korridor um die Route durchsucht werden soll und welche Meldungen einbezogen werden.",
                 "data": {
-                    "corridor_width": "Korridorbreite (Meter)"
+                    "corridor_width": "Korridorbreite (Meter)",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Blitzer",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Anhänger",
-                            "fixed": "Feste",
-                            "redlight": "Rotlichtampel"
-                        }
-                    },
                     "optional": {
-                        "name": "Optionale Einstellungen",
+                        "name": "Optionale Einstellungen Kontrollen",
                         "data": {
-                            "count": "Maximale Anzahl der Blitzer",
+                            "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
-                            "condition": "Nur bestätigte Blitzer anzeigen",
-                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }
                     }
                 }
@@ -92,9 +154,19 @@
         }
     },
     "services": {
-        "refresh": {
-            "name": "Blitzer aktualisieren",
-            "description": "Ruft sofort die aktuellen Blitzer für eine Blitzer.de-Area oder -Route ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Blitzer zurück.",
+        "refresh_controls": {
+            "name": "Kontrollen aktualisieren",
+            "description": "Ruft sofort die aktuellen Kontrollen für eine Blitzer.de-Area oder -Route ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Kontrollen zurück. Nur Kontrollen - für Gefahren gibt es \"Gefahren aktualisieren\".",
+            "fields": {
+                "config_entry_id": {
+                    "name": "Bereich oder Route",
+                    "description": "Welche Blitzer.de-Area oder -Route aktualisiert werden soll."
+                }
+            }
+        },
+        "refresh_hazards": {
+            "name": "Gefahren aktualisieren",
+            "description": "Ruft sofort die aktuellen Gefahren für eine Blitzer.de-Area oder -Route ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Gefahren zurück. Nur Gefahren - für Kontrollen gibt es \"Kontrollen aktualisieren\".",
             "fields": {
                 "config_entry_id": {
                     "name": "Bereich oder Route",
@@ -116,26 +188,29 @@
                 "title": "Blitzer.de Setup",
                 "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
                 "data": {
-                    "location": "Bereich"
+                    "location": "Bereich",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Blitzer",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Anhänger",
-                            "fixed": "Feste",
-                            "redlight": "Rotlichtampel"
-                        }
-                    },
                     "optional": {
-                        "name": "Optionale Einstellungen",
+                        "name": "Optionale Einstellungen Kontrollen",
                         "data": {
-                            "count": "Maximale Anzahl der Blitzer",
+                            "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
-                            "condition": "Nur bestätigte Blitzer anzeigen",
-                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }
                     }
                 }
@@ -150,7 +225,7 @@
             },
             "waypoint": {
                 "title": "Neuen Wegpunkt {count} anhängen",
-                "description": "Alle vorhandenen Wegpunkte wurden überprüft. Verschiebe die Karte, um einen weiteren Wegpunkt ans Ende der Route anzuhängen, oder deaktiviere 'Weiteren Wegpunkt hinzufügen', um die Route so zu speichern. Wichtig: Gesucht wird immer entlang der geraden Linie zwischen zwei Wegpunkten, nicht entlang der echten Straße – setze deshalb an jeder Kurve deiner Route einen eigenen Wegpunkt, damit dort kein Blitzer übersehen wird.",
+                "description": "Alle vorhandenen Wegpunkte wurden überprüft. Verschiebe die Karte, um einen weiteren Wegpunkt ans Ende der Route anzuhängen, oder deaktiviere 'Weiteren Wegpunkt hinzufügen', um die Route so zu speichern. Wichtig: Gesucht wird immer entlang der geraden Linie zwischen zwei Wegpunkten, nicht entlang der echten Straße – setze deshalb an jeder Kurve deiner Route einen eigenen Wegpunkt, damit dort keine Meldung übersehen wird.",
                 "data": {
                     "location": "Wegpunkt",
                     "add_another": "Weiteren Wegpunkt hinzufügen"
@@ -158,28 +233,31 @@
             },
             "route_options": {
                 "title": "Routen-Sucheinstellungen",
-                "description": "Wähle, wie breit der Korridor um die Route durchsucht werden soll und welche Blitzer einbezogen werden.",
+                "description": "Wähle, wie breit der Korridor um die Route durchsucht werden soll und welche Meldungen einbezogen werden.",
                 "data": {
-                    "corridor_width": "Korridorbreite (Meter)"
+                    "corridor_width": "Korridorbreite (Meter)",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
                 },
                 "sections": {
-                    "type": {
-                        "name": "Blitzer",
-                        "data": {
-                            "mobile": "Mobile",
-                            "trailer": "Anhänger",
-                            "fixed": "Feste",
-                            "redlight": "Rotlichtampel"
-                        }
-                    },
                     "optional": {
-                        "name": "Optionale Einstellungen",
+                        "name": "Optionale Einstellungen Kontrollen",
                         "data": {
-                            "count": "Maximale Anzahl der Blitzer",
+                            "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
-                            "condition": "Nur bestätigte Blitzer anzeigen",
-                            "blacklist": "Blacklist (kommagetrennte Blitzer-IDs)"
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }
                     }
                 }

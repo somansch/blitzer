@@ -1,4 +1,11 @@
-refresh:
+refresh_controls:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: blitzer
+refresh_hazards:
   fields:
     config_entry_id:
       required: true

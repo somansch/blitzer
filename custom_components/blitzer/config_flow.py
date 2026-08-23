@@ -14,13 +14,23 @@ from homeassistant.util import slugify
 
 from .const import (
     CONF_BLACKLIST,
+    CONF_KINDS,
+    CONF_HAZARD_BLACKLIST,
+    CONF_HAZARD_COUNT,
+    CONF_HAZARD_SELECTOR,
+    CONF_HAZARD_UPDATE_INTERVAL,
+    CONF_HAZARDS,
     CONF_SEARCH_MODE,
     CONF_UPDATE_INTERVAL,
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
     DEFAULT_CORRIDOR_WIDTH,
+    DEFAULT_HAZARD_COUNT,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    FORM_DEFAULTS,
+    HAZARD_DEFAULTS,
+    KIND_DEFAULTS,
     SEARCH_MODE_AREA,
     SEARCH_MODE_ROUTE,
 )
@@ -37,16 +47,92 @@ from homeassistant.const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _type_section(defaults: dict | None = None):
-    """Camera-type checkboxes shared by the area and route branches."""
+def _selected(defaults: dict | None, fallbacks: dict) -> list[str]:
+    """The switched-on keys, as the list a multi-select wants."""
+    defaults = defaults or {}
+    return [key for key, fallback in fallbacks.items() if defaults.get(key, fallback)]
+
+
+def _as_flags(selected, fallbacks: dict) -> dict:
+    """The multi-select's list, back as the flag dict that gets stored.
+
+    The stored shape is deliberately unchanged: every key is present with a
+    true/false of its own, exactly as when each one was its own switch. Only
+    the form changed, so nothing downstream - coordinator, entities, existing
+    entries - has to know about it.
+    """
+    if not isinstance(selected, (list, tuple, set)):
+        return dict(fallbacks)
+    return {key: key in selected for key in fallbacks}
+
+
+def _flags_field(key: str, defaults: dict | None, fallbacks: dict, translation_key: str):
+    """One multi-select instead of one switch per option.
+
+    A form field per option cost about 75px of height each: seventeen control
+    kinds came to roughly 1300px of scrolling, on a form where the whole group
+    is usually left alone. As a single multi-select in list mode the same
+    seventeen take about 700px, and the four installation forms 179px instead
+    of 296px - measured in the frontend, not estimated.
+
+    "list" rather than "dropdown" because these are read as much as they are
+    changed. A dropdown is four times shorter still, but hides every option
+    behind a click and renders seventeen chips once they are all on, which is
+    the default here.
+
+    The option labels come from the shared selector translations rather than
+    being baked in, so they stay translated.
+    """
+    return {
+        vol.Required(key, default=_selected(defaults, fallbacks)): selector(
+            {
+                "select": {
+                    "multiple": True,
+                    "mode": "list",
+                    "options": list(fallbacks),
+                    "translation_key": translation_key,
+                    "sort": False,
+                }
+            }
+        )
+    }
+
+
+def _hazard_optional_section(defaults: dict | None = None):
+    """The hazards' own count/interval/whitelist/blacklist.
+
+    Separate from the cameras' rather than shared: an area showing 9 cameras
+    has no reason to also cap roadworks at 9, an id blacklisted as a camera
+    has nothing to do with a hazard id, and the two age at completely
+    different rates - a jam is stale within a minute, a permanent roadwork
+    is still there next week. Each interval also costs its own request.
+    """
     defaults = defaults or {}
     return section(
         vol.Schema(
             {
-                vol.Required("mobile", default=defaults.get("mobile", True)): bool,
-                vol.Required("trailer", default=defaults.get("trailer", True)): bool,
-                vol.Required("fixed", default=defaults.get("fixed", False)): bool,
-                vol.Required("redlight", default=defaults.get("redlight", False)): bool
+                vol.Required(
+                    CONF_HAZARD_COUNT,
+                    default=defaults.get(CONF_HAZARD_COUNT, DEFAULT_HAZARD_COUNT),
+                ): int,
+                # 0 = no automatic polling of hazards at all - rely on the
+                # "refresh_hazards" service instead. Any other value is
+                # minutes between polls, independent of the cameras'.
+                vol.Required(
+                    CONF_HAZARD_UPDATE_INTERVAL,
+                    default=defaults.get(CONF_HAZARD_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
+                # vol.Optional with description={"suggested_value": ...} for
+                # the same reason as in _optional_section above: a default=
+                # would keep coming back every time the field is cleared.
+                vol.Optional(
+                    CONF_HAZARD_SELECTOR,
+                    description={"suggested_value": defaults.get(CONF_HAZARD_SELECTOR, "")},
+                ): str,
+                vol.Optional(
+                    CONF_HAZARD_BLACKLIST,
+                    description={"suggested_value": defaults.get(CONF_HAZARD_BLACKLIST, "")},
+                ): str,
             }
         ),
         # Whether or not the section is initially collapsed (default = False)
@@ -122,20 +208,61 @@ def _display_whitelist(value: str | None) -> str:
     return "" if value in (None, ".*") else value
 
 
-def _route_options_schema(corridor_width_default, type_defaults=None, optional_defaults=None):
+def _hazard_data(user_input: dict) -> dict:
+    """The four hazard keys, lifted back out of their two form sections.
+
+    .get() throughout so that a form submitted without them - an entry saved
+    before hazards existed, replayed through an older cached frontend - ends
+    up with every hazard switched off rather than a KeyError.
+    """
+    optional = user_input.get('hazard_optional', {})
+    return {
+        CONF_HAZARDS: _as_flags(user_input.get(CONF_HAZARDS), HAZARD_DEFAULTS),
+        CONF_HAZARD_COUNT: optional.get(CONF_HAZARD_COUNT, DEFAULT_HAZARD_COUNT),
+        CONF_HAZARD_UPDATE_INTERVAL: optional.get(
+            CONF_HAZARD_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        ),
+        CONF_HAZARD_SELECTOR: optional.get(CONF_HAZARD_SELECTOR, ""),
+        CONF_HAZARD_BLACKLIST: optional.get(CONF_HAZARD_BLACKLIST, ""),
+    }
+
+
+def _hazard_optional_defaults(data) -> dict:
+    """What the hazard options section shows when an existing entry is edited."""
+    return {
+        CONF_HAZARD_COUNT: data.get(CONF_HAZARD_COUNT, DEFAULT_HAZARD_COUNT),
+        CONF_HAZARD_UPDATE_INTERVAL: data.get(
+            CONF_HAZARD_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        ),
+        CONF_HAZARD_SELECTOR: data.get(CONF_HAZARD_SELECTOR, ""),
+        CONF_HAZARD_BLACKLIST: data.get(CONF_HAZARD_BLACKLIST, ""),
+    }
+
+
+def _route_options_schema(
+    corridor_width_default,
+    type_defaults=None,
+    kind_defaults=None,
+    optional_defaults=None,
+    hazard_defaults=None,
+    hazard_optional_defaults=None,
+):
     return vol.Schema(
         {
             vol.Required(CONF_CORRIDOR_WIDTH, default=corridor_width_default): vol.All(
                 vol.Coerce(int), vol.Range(min=50, max=5000)
             ),
-            vol.Required(CONF_TYPE): _type_section(type_defaults),
+            **_flags_field(CONF_TYPE, type_defaults, FORM_DEFAULTS, "control_form"),
+            **_flags_field(CONF_KINDS, kind_defaults, KIND_DEFAULTS, "control_kind"),
+            **_flags_field(CONF_HAZARDS, hazard_defaults, HAZARD_DEFAULTS, "hazard_type"),
             vol.Required('optional'): _optional_section(optional_defaults),
+            vol.Required('hazard_optional'): _hazard_optional_section(hazard_optional_defaults),
         }
     )
 
 
 class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
-    VERSION = 4
+    VERSION = 6
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -156,6 +283,17 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
             # the coordinator's log name reads.
             await self.async_set_unique_id(slugify(self._name))
             self._abort_if_unique_id_configured()
+            # ...and the same check against entries that predate the unique
+            # id, which carry none and so collide with nothing. They are the
+            # ones already holding the entity ids a duplicate would claim, so
+            # leaving them out would let exactly the case this prevents slip
+            # through. Compared slugified, so both paths agree on what counts
+            # as the same name.
+            if any(
+                slugify(entry.data.get(CONF_NAME, "")) == slugify(self._name)
+                for entry in self._async_current_entries()
+            ):
+                return self.async_abort(reason="already_configured")
             if user_input[CONF_SEARCH_MODE] == SEARCH_MODE_ROUTE:
                 self._waypoints = []
                 return await self.async_step_waypoint()
@@ -186,12 +324,14 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_NAME: self._name,
                 CONF_SEARCH_MODE: SEARCH_MODE_AREA,
                 CONF_LOCATION: user_input[CONF_LOCATION],
-                CONF_TYPE: user_input[CONF_TYPE],
+                CONF_TYPE: _as_flags(user_input[CONF_TYPE], FORM_DEFAULTS),
+                CONF_KINDS: _as_flags(user_input[CONF_KINDS], KIND_DEFAULTS),
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
-                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
+                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
+                **_hazard_data(user_input),
             })
 
         data_schema = vol.Schema(
@@ -201,8 +341,11 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                     "longitude": self.hass.config.longitude,
                     "radius": 1000,
                 }): selector({"location": {"radius": True}}),
-                vol.Required(CONF_TYPE): _type_section(),
+                **_flags_field(CONF_TYPE, None, FORM_DEFAULTS, "control_form"),
+                **_flags_field(CONF_KINDS, None, KIND_DEFAULTS, "control_kind"),
+                **_flags_field(CONF_HAZARDS, None, HAZARD_DEFAULTS, "hazard_type"),
                 vol.Required('optional'): _optional_section(),
+                vol.Required('hazard_optional'): _hazard_optional_section(),
             }
         )
         return self.async_show_form(step_id="area", data_schema=data_schema, last_step=True)
@@ -239,12 +382,14 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SEARCH_MODE: SEARCH_MODE_ROUTE,
                 CONF_WAYPOINTS: self._waypoints,
                 CONF_CORRIDOR_WIDTH: user_input[CONF_CORRIDOR_WIDTH],
-                CONF_TYPE: user_input[CONF_TYPE],
+                CONF_TYPE: _as_flags(user_input[CONF_TYPE], FORM_DEFAULTS),
+                CONF_KINDS: _as_flags(user_input[CONF_KINDS], KIND_DEFAULTS),
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
-                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
+                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
+                **_hazard_data(user_input),
             })
 
         return self.async_show_form(
@@ -333,12 +478,14 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 CONF_NAME: self.config_entry.data.get(CONF_NAME),
                 CONF_SEARCH_MODE: SEARCH_MODE_AREA,
                 CONF_LOCATION: user_input[CONF_LOCATION],
-                CONF_TYPE: user_input[CONF_TYPE],
+                CONF_TYPE: _as_flags(user_input[CONF_TYPE], FORM_DEFAULTS),
+                CONF_KINDS: _as_flags(user_input[CONF_KINDS], KIND_DEFAULTS),
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
-                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
+                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
+                **_hazard_data(user_input),
             }
             self.hass.config_entries.async_update_entry(
                 self._config_entry, data=data
@@ -352,7 +499,9 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 vol.Required(
                     CONF_LOCATION, default=self.config_entry.data.get(CONF_LOCATION)
                 ): selector({"location": {"radius": True}}),
-                vol.Required(CONF_TYPE): _type_section(self.config_entry.data.get(CONF_TYPE)),
+                **_flags_field(CONF_TYPE, self.config_entry.data.get(CONF_TYPE), FORM_DEFAULTS, "control_form"),
+                **_flags_field(CONF_KINDS, self.config_entry.data.get(CONF_KINDS), KIND_DEFAULTS, "control_kind"),
+                **_flags_field(CONF_HAZARDS, self.config_entry.data.get(CONF_HAZARDS), HAZARD_DEFAULTS, "hazard_type"),
                 vol.Required('optional'): _optional_section({
                     CONF_CONDITION: self.config_entry.data.get(CONF_CONDITION),
                     CONF_UPDATE_INTERVAL: self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
@@ -360,6 +509,9 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                     CONF_SELECTOR: _display_whitelist(self.config_entry.data.get(CONF_SELECTOR)),
                     CONF_BLACKLIST: self.config_entry.data.get(CONF_BLACKLIST, ""),
                 }),
+                vol.Required('hazard_optional'): _hazard_optional_section(
+                    _hazard_optional_defaults(self.config_entry.data)
+                ),
             }
         )
         return self.async_show_form(step_id="area", data_schema=data_schema, last_step=True)
@@ -396,12 +548,14 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 CONF_SEARCH_MODE: SEARCH_MODE_ROUTE,
                 CONF_WAYPOINTS: self._waypoints,
                 CONF_CORRIDOR_WIDTH: user_input[CONF_CORRIDOR_WIDTH],
-                CONF_TYPE: user_input[CONF_TYPE],
+                CONF_TYPE: _as_flags(user_input[CONF_TYPE], FORM_DEFAULTS),
+                CONF_KINDS: _as_flags(user_input[CONF_KINDS], KIND_DEFAULTS),
                 CONF_COUNT: user_input['optional'][CONF_COUNT],
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
-                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, "")
+                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
+                **_hazard_data(user_input),
             }
             self.hass.config_entries.async_update_entry(
                 self._config_entry, data=data
@@ -415,6 +569,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
             data_schema=_route_options_schema(
                 self.config_entry.data.get(CONF_CORRIDOR_WIDTH, DEFAULT_CORRIDOR_WIDTH),
                 type_defaults=self.config_entry.data.get(CONF_TYPE),
+                kind_defaults=self.config_entry.data.get(CONF_KINDS),
                 optional_defaults={
                     CONF_CONDITION: self.config_entry.data.get(CONF_CONDITION),
                     CONF_UPDATE_INTERVAL: self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
@@ -422,6 +577,8 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                     CONF_SELECTOR: _display_whitelist(self.config_entry.data.get(CONF_SELECTOR)),
                     CONF_BLACKLIST: self.config_entry.data.get(CONF_BLACKLIST, ""),
                 },
+                hazard_defaults=self.config_entry.data.get(CONF_HAZARDS),
+                hazard_optional_defaults=_hazard_optional_defaults(self.config_entry.data),
             ),
             last_step=True,
         )
