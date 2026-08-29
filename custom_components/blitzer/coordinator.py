@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
@@ -28,15 +29,18 @@ from .const import (
     CONF_KINDS,
     CONF_HAZARD_BLACKLIST,
     CONF_HAZARD_COUNT,
+    CONF_HAZARD_NEW_MINUTES,
     CONF_HAZARD_SELECTOR,
     CONF_HAZARD_UPDATE_INTERVAL,
     CONF_HAZARDS,
+    CONF_NEW_MINUTES,
     CONF_SEARCH_MODE,
     CONF_UPDATE_INTERVAL,
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
     CONTROL_KINDS,
     DEFAULT_HAZARD_COUNT,
+    DEFAULT_NEW_MINUTES,
     DEFAULT_UPDATE_INTERVAL,
     FORM_DEFAULTS,
     FORM_KIND_LABELS,
@@ -218,6 +222,16 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         # with it, so Home Assistant saw the whole set as new entities and
         # left the old ones behind as orphans. The entry id never changes.
         self.entry_id = config_entry.entry_id
+        # The entry itself, for the two number entities: setting one of them
+        # writes the value back to where the options flow keeps it, so that
+        # the device page and the options form are one setting rather than
+        # two that drift apart.
+        self.entry = config_entry
+        # What that data looked like when this coordinator last read it -
+        # see absorb_windows() for what the comparison is for. Deep, because
+        # a shallow copy would share the type/kind/hazard dicts with the entry
+        # itself, and a comparison against them can only ever say "unchanged".
+        self._entry_data = deepcopy(dict(config_entry.data))
         # .get() with a default: entries created before route mode existed
         # only ever know the "area" (radius) search.
         self.search_mode = config_entry.data.get(CONF_SEARCH_MODE, SEARCH_MODE_AREA)
@@ -294,6 +308,12 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         # the shorter of the two and each half decides for itself whether
         # its own interval has elapsed.
         self.control_interval = config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+        # How long each half counts a report as new, in minutes. 0 = that
+        # half reports no "new" count at all.
+        self.new_minutes = config_entry.data.get(CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES)
+        self.hazard_new_minutes = config_entry.data.get(
+            CONF_HAZARD_NEW_MINUTES, DEFAULT_NEW_MINUTES
+        )
         self.hazard_interval = config_entry.data.get(
             CONF_HAZARD_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
         )
@@ -362,6 +382,38 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
 
         # Initialise your api here
         self.api = BlitzerdeAPI(hass)
+
+    def absorb_windows(self, config_entry: ConfigEntry) -> bool:
+        """Take on a changed "new" window without a reload, when that is all
+        that changed.
+
+        Both windows are settable from the device page, where a value is
+        nudged one step at a time. Every step goes through the config entry -
+        the one place the setting lives - and every write to a config entry
+        normally reloads the whole thing: entities torn down and rebuilt, the
+        card blank for a moment, and a fresh API request for a number that
+        changes nothing about what is fetched. Nothing else in the entry can
+        be edited without going through the options flow, so "only these two
+        moved" is a safe thing to recognise and answer cheaply.
+
+        Returns True when the reload was not needed and this has handled it.
+        """
+        old, new = self._entry_data, deepcopy(dict(config_entry.data))
+        windows = (CONF_NEW_MINUTES, CONF_HAZARD_NEW_MINUTES)
+
+        def rest(data):
+            return {k: v for k, v in data.items() if k not in windows}
+
+        if rest(old) != rest(new):
+            return False
+        self._entry_data = new
+        self.entry = config_entry
+        self.new_minutes = new.get(CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES)
+        self.hazard_new_minutes = new.get(CONF_HAZARD_NEW_MINUTES, DEFAULT_NEW_MINUTES)
+        # Both sensors compute their "new" count from these, and both
+        # numbers show one of them as their own state.
+        self.async_update_listeners()
+        return True
 
     @property
     def last_update_any(self) -> datetime | None:

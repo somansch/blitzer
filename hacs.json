@@ -2,5 +2,6 @@
   "name": "Blitzer.de",
   "render_readme": true,
   "zip_release": true,
-  "filename": "blitzer.zip"
+  "filename": "blitzer.zip",
+  "homeassistant": "2024.7.0"
 }

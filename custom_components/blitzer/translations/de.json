@@ -62,6 +62,14 @@
             "total_count": {
                 "name": "Anzahl Gesamt"
             }
+        },
+        "number": {
+            "new_minutes": {
+                "name": "Kontrollen neu für"
+            },
+            "hazard_new_minutes": {
+                "name": "Gefahren neu für"
+            }
         }
     },
     "config": {
@@ -89,6 +97,7 @@
                         "data": {
                             "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Kontrollen anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
@@ -99,6 +108,7 @@
                         "data": {
                             "hazard_count": "Maximale Anzahl der Gefahren",
                             "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
                             "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }
@@ -128,6 +138,7 @@
                         "data": {
                             "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Kontrollen anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
@@ -138,6 +149,7 @@
                         "data": {
                             "hazard_count": "Maximale Anzahl der Gefahren",
                             "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
                             "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }
@@ -199,6 +211,7 @@
                         "data": {
                             "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Kontrollen anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
@@ -209,6 +222,7 @@
                         "data": {
                             "hazard_count": "Maximale Anzahl der Gefahren",
                             "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
                             "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }
@@ -246,6 +260,7 @@
                         "data": {
                             "count": "Maximale Anzahl der Kontrollen",
                             "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "selector": "Whitelist (kommagetrennte Städtenamen)",
                             "condition": "Nur bestätigte Kontrollen anzeigen",
                             "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
@@ -256,6 +271,7 @@
                         "data": {
                             "hazard_count": "Maximale Anzahl der Gefahren",
                             "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
                             "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
                             "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
                         }

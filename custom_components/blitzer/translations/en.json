@@ -62,6 +62,14 @@
             "total_count": {
                 "name": "Total count"
             }
+        },
+        "number": {
+            "new_minutes": {
+                "name": "Controls new for"
+            },
+            "hazard_new_minutes": {
+                "name": "Hazards new for"
+            }
         }
     },
     "config": {
@@ -89,6 +97,7 @@
                         "data": {
                             "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated control IDs)"
@@ -99,6 +108,7 @@
                         "data": {
                             "hazard_count": "Number of hazards",
                             "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
                             "hazard_selector": "Whitelist (comma-separated city names)",
                             "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }
@@ -128,6 +138,7 @@
                         "data": {
                             "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated control IDs)"
@@ -138,6 +149,7 @@
                         "data": {
                             "hazard_count": "Number of hazards",
                             "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
                             "hazard_selector": "Whitelist (comma-separated city names)",
                             "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }
@@ -199,6 +211,7 @@
                         "data": {
                             "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated control IDs)"
@@ -209,6 +222,7 @@
                         "data": {
                             "hazard_count": "Number of hazards",
                             "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
                             "hazard_selector": "Whitelist (comma-separated city names)",
                             "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }
@@ -246,6 +260,7 @@
                         "data": {
                             "count": "Number of controls",
                             "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
                             "selector": "Whitelist (comma-separated city names)",
                             "condition": "Only show confirmed",
                             "blacklist": "Blacklist (comma-separated control IDs)"
@@ -256,6 +271,7 @@
                         "data": {
                             "hazard_count": "Number of hazards",
                             "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
                             "hazard_selector": "Whitelist (comma-separated city names)",
                             "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
                         }

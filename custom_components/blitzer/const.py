@@ -215,6 +215,22 @@ CONF_UPDATE_INTERVAL = "update_interval"
 DEFAULT_UPDATE_INTERVAL = 1
 UPDATE_INTERVAL_MANUAL = 0
 
+# How long a report counts as new, in minutes - one window per half, for
+# the same reason the counts and the polling intervals are split in two: a
+# mobile camera set up this morning is still news hours later, while a
+# tailback reported half an hour ago has usually cleared. 0 switches the
+# "new" count off for that half rather than reporting a permanent zero.
+#
+# Answered per entry rather than per card, and this is the only place it is
+# answered. Every card of an area reads it back off that area's sensors, so
+# a dashboard's visibility condition, an automation, a template and three
+# cards side by side cannot disagree about what "new" means. Settable in
+# the entry's options and, more directly, on the area's own device page -
+# see number.py.
+CONF_NEW_MINUTES = "new_minutes"
+CONF_HAZARD_NEW_MINUTES = "hazard_new_minutes"
+DEFAULT_NEW_MINUTES = 60
+
 # One action per half, named after its half. Two rather than one with a
 # parameter, so that each polls exactly what it says: an automation
 # refreshing controls for a commute should not spend a request on roadworks,

@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -9,11 +10,57 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import BlitzerdeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _minutes_since(stamp, now):
+    """How old a Blitzer.de timestamp is, in minutes, or None.
+
+    Blitzer.de dates a report the way its own map shows it: a bare "HH:MM"
+    while it is from today, and "DD.MM.YYYY" once it is not. Neither is a
+    machine format, so both are read here the same way the card reads them -
+    a time still ahead of the clock belongs to yesterday, because the poll
+    can be a minute behind the server that stamped it.
+    """
+    if not isinstance(stamp, str):
+        return None
+    text = stamp.strip()
+    try:
+        if ":" in text:
+            hour, minute = (int(part) for part in text.split(":", 1))
+            then = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if then > now:
+                then = then - timedelta(days=1)
+        else:
+            day, month, year = (int(part) for part in text.split(".", 2))
+            then = now.replace(
+                year=year, month=month, day=day,
+                hour=0, minute=0, second=0, microsecond=0,
+            )
+    except (TypeError, ValueError):
+        return None
+    return max(0, int((now - then).total_seconds() // 60))
+
+
+def _count_new(items, minutes, now) -> int:
+    """How many of these were reported inside the window.
+
+    Counted across everything in range, the way the per-city breakdown is -
+    not the capped slice the state reports. A report Blitzer.de dated in a
+    way neither format covers is not counted: "no date" is not the same
+    thing as "just now".
+    """
+    fresh = 0
+    for item in items:
+        age = _minutes_since(item.get("create_date"), now)
+        if age is not None and age < minutes:
+            fresh = fresh + 1
+    return fresh
 
 
 def _iso(stamp):
@@ -71,12 +118,17 @@ class SensorTotalBase(CoordinatorEntity):
         """Per-city counts, for the sensors that break their count down."""
         return {}
 
+    def _extra(self) -> dict:
+        """Anything a particular sensor reports beyond the shared block."""
+        return {}
+
     @property
     def extra_state_attributes(self):
         attrs = {}
         attrs["state_class"] = SensorStateClass.MEASUREMENT
         attrs.update(self._timestamps())
         attrs.update(self._breakdown())
+        attrs.update(self._extra())
 
         return attrs
 
@@ -105,6 +157,26 @@ class SensorKindTotal(SensorTotalBase):
         if item_count > self._cap:
             return self._cap
         return item_count
+
+    @property
+    def _window(self) -> int:
+        """This half's "counts as new for" window, in minutes."""
+        raise NotImplementedError
+
+    def _extra(self) -> dict:
+        """How many of this half are still new, and the window deciding it.
+
+        The window is reported whether or not it is switched on, because it
+        is a setting and always says something; the count is left out at 0,
+        where it could only ever be a zero pretending to be an answer. The
+        card reads both back rather than deciding for itself, so that every
+        card of an area marks the same reports as new.
+        """
+        minutes = self._window
+        attrs = {"new_minutes": minutes}
+        if minutes:
+            attrs["new"] = _count_new(self._items(), minutes, dt_util.now())
+        return attrs
 
     def _breakdown(self) -> dict:
         counts = {}
@@ -157,6 +229,10 @@ class SensorMapTotal(SensorKindTotal):
     def _cap(self) -> int:
         return self.coordinator.controlcount
 
+    @property
+    def _window(self) -> int:
+        return self.coordinator.new_minutes
+
     def _city(self, item) -> str:
         return item['address']['city']
 
@@ -183,6 +259,10 @@ class SensorHazardTotal(SensorKindTotal):
     @property
     def _cap(self) -> int:
         return self.coordinator.hazardcount
+
+    @property
+    def _window(self) -> int:
+        return self.coordinator.hazard_new_minutes
 
     def _city(self, item) -> str:
         # Unlike a camera, a hazard is not guaranteed to have an address at
@@ -218,6 +298,37 @@ class SensorGrandTotal(SensorTotalBase):
         controls = min(len(data.controls), self.coordinator.controlcount)
         hazards = min(len(data.hazards), self.coordinator.hazardcount)
         return controls + hazards
+
+    def _extra(self) -> dict:
+        """How many of this area's reports are still new, and the two windows
+        that decide it.
+
+        One number for the whole area, so that a dashboard's visibility
+        condition, an automation and a template all agree on what "new"
+        means - which a card computing it for itself cannot give them. Each
+        half is measured against its own window, so a card can still be
+        marking a camera from this morning once the tailback from half an
+        hour ago has stopped counting.
+
+        Both windows are reported even when a half is switched off: this is
+        the entity a card reads them from, and a missing attribute would be
+        indistinguishable from an older version of this integration that
+        never had one. The count is left out only when both halves are off,
+        where it could never be anything but zero.
+        """
+        controls = self.coordinator.new_minutes
+        hazards = self.coordinator.hazard_new_minutes
+        attrs = {
+            "new_minutes_controls": controls,
+            "new_minutes_hazards": hazards,
+        }
+        if controls or hazards:
+            now = dt_util.now()
+            data = self.coordinator.data
+            attrs["new"] = _count_new(data.controls, controls, now) + _count_new(
+                data.hazards, hazards, now
+            )
+        return attrs
 
     def _timestamps(self) -> dict:
         return {

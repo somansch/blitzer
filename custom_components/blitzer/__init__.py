@@ -13,7 +13,9 @@ from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+import homeassistant.helpers.config_validation as cv
 
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
@@ -23,6 +25,7 @@ from .const import (
     SERVICE_REFRESH_CONTROLS,
     SERVICE_REFRESH_HAZARDS,
 )
+from .bundle import async_install_blueprints, async_register_card
 from .coordinator import (
     BlitzerdeAPIData,
     BlitzerdeCoordinator,
@@ -42,9 +45,21 @@ from homeassistant.const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.GEO_LOCATION]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.GEO_LOCATION,
+    # The two "counts as new for" windows, so they can be set where the
+    # sensors they govern are listed rather than only inside the options
+    # dialog. See number.py.
+    Platform.NUMBER,
+]
 
 _REFRESH_SCHEMA = vol.Schema({vol.Required(ATTR_CONFIG_ENTRY_ID): str})
+
+# Areas and routes are set up in the interface, and there has never been a
+# way to write one in configuration.yaml. Saying so outright turns a
+# "blitzer:" block there into a clear message rather than silence.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 @dataclass
@@ -53,6 +68,18 @@ class RuntimeData:
 
     coordinator: DataUpdateCoordinator
     cancel_update_listener: Callable
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Put what the download brings with it in place, once for the domain.
+
+    The dashboard card and the blueprint are part of the integration rather
+    than two further things to install, so they are set up here - before the
+    first area is, and whether or not one is ever added. See bundle.py.
+    """
+    await async_register_card(hass)
+    await async_install_blueprints(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -186,7 +213,14 @@ async def _async_handle_refresh_hazards(call: ServiceCall) -> ServiceResponse:
 
 async def _async_update_listener(hass: HomeAssistant, config_entry):
     """Handle config options update."""
-    # Reload the integration when the options change.
+    # Almost everything here changes what is fetched or how it is filtered,
+    # and the only way to apply that is to build the entry again. The two
+    # "counts as new for" windows are the exception - settable from the
+    # device page, one step at a time, and changing nothing but a number two
+    # sensors report. The coordinator takes those on directly.
+    runtime = hass.data.get(DOMAIN, {}).get(config_entry.entry_id)
+    if runtime and runtime.coordinator.absorb_windows(config_entry):
+        return
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 

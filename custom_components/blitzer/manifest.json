@@ -3,8 +3,9 @@
   "name": "Blitzer.de",
   "codeowners": ["@somansch"],
   "config_flow": true,
+  "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/somansch/blitzer",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/somansch/blitzer/issues",
-  "version": "3.0.0"
+  "version": "3.1.0"
 }

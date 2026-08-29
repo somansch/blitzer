@@ -190,7 +190,11 @@ def _control_summary(item: dict, language: str) -> str:
         parts.append(ARCHIVE_LABEL.get((language or "en")[:2].lower(), ARCHIVE_LABEL["en"]))
     parts.append(control_label(item, language))
     vmax = item.get("vmax")
-    if vmax not in (None, "", "/", "?"):
+    # A distance check measures the gap between two cars, not their speed.
+    # Blitzer.de still fills in the road's own limit there, and printed after
+    # the name it reads as what the camera enforces - "Abstandskontrolle ·
+    # 100 km/h" says the wrong thing about what is being measured.
+    if vmax not in (None, "", "/", "?") and control_kind(item) != "distance":
         parts.append(f"{vmax} km/h")
     parts.append(_place(item))
     return _joined(parts, item_info(item).get("desc") or "")

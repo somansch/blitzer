@@ -58,7 +58,7 @@ blueprint:
     </details>
   domain: automation
   author: somansch
-  source_url: https://github.com/somansch/blitzer/blob/main/blueprints/automation/blitzer/report_alerts.yaml
+  source_url: https://github.com/somansch/blitzer/blob/main/custom_components/blitzer/blueprints/automation/blitzer/report_alerts.yaml
   input:
     scope:
       name: What to report / Was gemeldet wird

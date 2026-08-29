@@ -17,15 +17,18 @@ from .const import (
     CONF_KINDS,
     CONF_HAZARD_BLACKLIST,
     CONF_HAZARD_COUNT,
+    CONF_HAZARD_NEW_MINUTES,
     CONF_HAZARD_SELECTOR,
     CONF_HAZARD_UPDATE_INTERVAL,
     CONF_HAZARDS,
+    CONF_NEW_MINUTES,
     CONF_SEARCH_MODE,
     CONF_UPDATE_INTERVAL,
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
     DEFAULT_CORRIDOR_WIDTH,
     DEFAULT_HAZARD_COUNT,
+    DEFAULT_NEW_MINUTES,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     FORM_DEFAULTS,
@@ -122,6 +125,14 @@ def _hazard_optional_section(defaults: dict | None = None):
                     CONF_HAZARD_UPDATE_INTERVAL,
                     default=defaults.get(CONF_HAZARD_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
                 ): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
+                # The hazards' own "new" window, separate from the controls'
+                # for the same reason their interval is: half an hour is a
+                # long time for a tailback and no time at all for a camera.
+                # 0 leaves the "new" count off for this half.
+                vol.Required(
+                    CONF_HAZARD_NEW_MINUTES,
+                    default=defaults.get(CONF_HAZARD_NEW_MINUTES, DEFAULT_NEW_MINUTES),
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=10080)),
                 # vol.Optional with description={"suggested_value": ...} for
                 # the same reason as in _optional_section above: a default=
                 # would keep coming back every time the field is cleared.
@@ -155,6 +166,12 @@ def _optional_section(defaults: dict | None = None):
                     CONF_UPDATE_INTERVAL,
                     default=defaults.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
                 ): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
+                # How long a report counts as new for the total sensor's
+                # "new" attribute. 0 leaves the attribute off entirely.
+                vol.Required(
+                    CONF_NEW_MINUTES,
+                    default=defaults.get(CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES),
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=10080)),
                 # vol.Optional with description={"suggested_value": ...} instead
                 # of default=...: default= reappears whenever the field is
                 # cleared back to empty, because the frontend omits an empty
@@ -222,6 +239,9 @@ def _hazard_data(user_input: dict) -> dict:
         CONF_HAZARD_UPDATE_INTERVAL: optional.get(
             CONF_HAZARD_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
         ),
+        CONF_HAZARD_NEW_MINUTES: optional.get(
+            CONF_HAZARD_NEW_MINUTES, DEFAULT_NEW_MINUTES
+        ),
         CONF_HAZARD_SELECTOR: optional.get(CONF_HAZARD_SELECTOR, ""),
         CONF_HAZARD_BLACKLIST: optional.get(CONF_HAZARD_BLACKLIST, ""),
     }
@@ -233,6 +253,9 @@ def _hazard_optional_defaults(data) -> dict:
         CONF_HAZARD_COUNT: data.get(CONF_HAZARD_COUNT, DEFAULT_HAZARD_COUNT),
         CONF_HAZARD_UPDATE_INTERVAL: data.get(
             CONF_HAZARD_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        ),
+        CONF_HAZARD_NEW_MINUTES: data.get(
+            CONF_HAZARD_NEW_MINUTES, DEFAULT_NEW_MINUTES
         ),
         CONF_HAZARD_SELECTOR: data.get(CONF_HAZARD_SELECTOR, ""),
         CONF_HAZARD_BLACKLIST: data.get(CONF_HAZARD_BLACKLIST, ""),
@@ -330,6 +353,9 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
+                CONF_NEW_MINUTES: user_input['optional'].get(
+                    CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES
+                ),
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
                 **_hazard_data(user_input),
             })
@@ -388,6 +414,9 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
+                CONF_NEW_MINUTES: user_input['optional'].get(
+                    CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES
+                ),
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
                 **_hazard_data(user_input),
             })
@@ -484,6 +513,9 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
+                CONF_NEW_MINUTES: user_input['optional'].get(
+                    CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES
+                ),
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
                 **_hazard_data(user_input),
             }
@@ -505,6 +537,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 vol.Required('optional'): _optional_section({
                     CONF_CONDITION: self.config_entry.data.get(CONF_CONDITION),
                     CONF_UPDATE_INTERVAL: self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                    CONF_NEW_MINUTES: self.config_entry.data.get(CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES),
                     CONF_COUNT: self.config_entry.data.get(CONF_COUNT),
                     CONF_SELECTOR: _display_whitelist(self.config_entry.data.get(CONF_SELECTOR)),
                     CONF_BLACKLIST: self.config_entry.data.get(CONF_BLACKLIST, ""),
@@ -554,6 +587,9 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
                 CONF_CONDITION: user_input['optional'][CONF_CONDITION],
                 CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
+                CONF_NEW_MINUTES: user_input['optional'].get(
+                    CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES
+                ),
                 CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
                 **_hazard_data(user_input),
             }
@@ -573,6 +609,7 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 optional_defaults={
                     CONF_CONDITION: self.config_entry.data.get(CONF_CONDITION),
                     CONF_UPDATE_INTERVAL: self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                    CONF_NEW_MINUTES: self.config_entry.data.get(CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES),
                     CONF_COUNT: self.config_entry.data.get(CONF_COUNT),
                     CONF_SELECTOR: _display_whitelist(self.config_entry.data.get(CONF_SELECTOR)),
                     CONF_BLACKLIST: self.config_entry.data.get(CONF_BLACKLIST, ""),

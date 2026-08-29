@@ -6,7 +6,7 @@
 
 > **Note:** This is a continuation of the original [`hass-blitzerde`](https://github.com/timniklas/hass-blitzerde) integration by [@timniklas](https://github.com/timniklas). That GitHub account and repository are no longer available. This repository keeps the project going, so existing users are not left without updates.
 
-<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/map-card-example-1.png" alt="Map card showing speed controls around Berlin, each with Blitzer.de's own symbol" width="45%">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-default.png" alt="The Blitzer card in its three formats: portrait with the map above the list, landscape with them side by side, and the minimal line counting everything reported and what of it is new" width="100%">
 
 > **A note on language:** this README is written in English. The integration speaks both, so every button and field below is named **English / Deutsch**. Sample data stays as Blitzer.de sends it, which is German.
 
@@ -20,6 +20,7 @@ Typical reasons to use it:
 
 - **Be told the moment something new turns up.** A push notification, a spoken announcement, or whatever you already use. The bundled [blueprint](#blueprint-report-alerts) sets that up without any YAML.
 - **Ask what is out there before you set off.** One message listing everything currently reported - at a set time, when you leave home, or on demand.
+- **Put it on a dashboard.** The [Blitzer card](#blitzer-card) comes with the integration: the area's reports as a list, nearest first, with a map above them. Nothing to download and no resource to register.
 - **See it on a map**, with Blitzer.de's own symbols instead of generic markers. Controls and hazards sit on separate sources, so either can be shown alone.
 - **Get more than speed cameras.** Red light cameras, section controls, tunnel cameras, distance, weight, height and lane checks, entrance and access controls, overtaking bans, police checks and dummies. Seventeen kinds, each tickable on its own.
 - **Get traffic hazards too.** Tailbacks with the length of the queue and the delay it costs, plus accidents, roadworks, obstacles, broken-down vehicles, road blocks and official bulletins.
@@ -39,8 +40,8 @@ Two different things are reported. Each is switched on separately, and each gets
 1. **Install** via [HACS](#hacs-recommended) or [manually](#manual), then restart Home Assistant.
 2. Go to **Settings → Devices & Services → Add Integration** / **Einstellungen → Geräte & Dienste → Integration hinzufügen** and search for "Blitzer.de". Name your first entry and pick a search mode ([Adding an area or route](#adding-an-area-or-route)).
 3. Choose what to report: the four installation forms, the seventeen [control types](#control-types--kontrollarten), and the ten [hazard types](#hazard-types--gefahren). Hazards stay off until you switch them on.
-4. Put it on a dashboard. Drop the area's `blitzer_<area>_controls` and `blitzer_<area>_hazards` sources into the [map card](#map-card), or use the ready-made [Markdown card](#markdown-card).
-5. Want to be told rather than to look it up? Import the [Report Alerts blueprint](#blueprint-report-alerts) and create an automation from it. No YAML required.
+4. Put it on a dashboard. **Add card → Blitzer.de** gives you the [card that comes with the integration](#blitzer-card). Or drop the area's `blitzer_<area>_controls` and `blitzer_<area>_hazards` sources into the [map card](#map-card), or use the ready-made [Markdown card](#markdown-card).
+5. Want to be told rather than to look it up? Create an automation from the [Report Alerts blueprint](#blueprint-report-alerts), which is installed along with the integration. No YAML required.
 
 Add the integration itself only once. Every further area or route is added from the "Blitzer.de" tile's own **Add entry** / **Eintrag hinzufügen** - one per area, each with its own entities.
 
@@ -72,6 +73,10 @@ That is the whole setup. Everything below covers the individual options in more 
 
 **Showing reports on a dashboard**
 
+- [Blitzer card](#blitzer-card) - the card that comes with the integration
+  - [Formats](#formats) - portrait, landscape, and one line with a pop-up
+  - [YAML](#yaml) - the options that decide what the card is
+  - [CSS variables](#css-variables) - all 132, and the scheme behind their names
 - [Map card](#map-card)
 - [Markdown card](#markdown-card)
 
@@ -109,14 +114,16 @@ Every field can be changed later. Open **Settings → Devices & Services**, find
 | **Only show confirmed** / **Nur bestätigte Kontrollen anzeigen** | Report only controls the Blitzer.de community has confirmed recently. Fixed installations carry no confirmation at all and are always kept - otherwise this switch would hide every one of them. |
 | **Number of controls** / **Maximale Anzahl der Kontrollen** | Upper limit on how many controls are tracked at once. Default 9. Anything beyond that is ignored. |
 | **Update interval (minutes, 0 = manual only)** / **Aktualisierungsintervall (Minuten, 0 = nur manuell)** | How often this area polls **for controls**. Default 1 minute. **0** switches automatic polling off; use the [`blitzer.refresh_controls` action](#on-demand-refresh-for-a-commute) instead. |
+| **Counts as new for (minutes, 0 = off)** / **Als neu zählen für (Minuten, 0 = aus)** | How long a **control** counts as new after Blitzer.de first reported it. Default 60 minutes. Also settable from the area's device page, where it is the **Controls new for** / **Kontrollen neu für** field - the one setting that does not rebuild the entry when it is changed. `0` switches the marking off. |
 | **Whitelist (comma-separated city names)** / **Whitelist (kommagetrennte Städtenamen)** | City names to keep, case-insensitive exact match, e.g. `Berlin,Potsdam`. Empty means no filtering. |
 | **Blacklist (comma-separated control IDs)** / **Blacklist (kommagetrennte Kontroll-IDs)** | Control IDs to always exclude, regardless of the whitelist, e.g. `120644,167589`. The ID is the `id`/`backend` attribute - the same number used in `https://map.blitzer.de/v5/ID/<id>/`. Use it for specific reports; the whitelist filters by city instead. |
 | **Number of hazards** / **Maximale Anzahl der Gefahren** | Upper limit for hazards, default 9, independent of the control limit. A dashboard showing 9 controls has no reason to cap roadworks at 9 too. Raise it deliberately if you enable **Dauerbaustelle**. |
 | **Update interval** / **Aktualisierungsintervall** (hazards) | How often this area polls **for hazards**, independent of the control interval. **0** leaves [`blitzer.refresh_hazards`](#on-demand-refresh-for-a-commute) as the only way to update them. |
+| **Counts as new for** / **Als neu zählen für** (hazards) | The control window's counterpart, and a separate setting because the two halves age at different speeds: a tailback is stale within the hour, a permanent roadwork is news for a day. Default 60 minutes. On the device page it is **Hazards new for** / **Gefahren neu für**. |
 | **Whitelist** / **Whitelist** (hazards) | The control whitelist's counterpart. Note that a police report sometimes carries no city at all; those are dropped when a whitelist is set. |
 | **Blacklist (comma-separated hazard IDs)** / **Blacklist (kommagetrennte Gefahren-IDs)** | The control blacklist's counterpart. Hazard IDs are their own numbering - an ID blacklisted as a control means nothing here. |
 
-The last seven fields sit in two collapsible sections: **Optional settings for controls** / **Optionale Einstellungen Kontrollen** and **Optional settings for hazards** / **Optionale Einstellungen Gefahren**.
+The last nine fields sit in two collapsible sections: **Optional settings for controls** / **Optionale Einstellungen Kontrollen** and **Optional settings for hazards** / **Optionale Einstellungen Gefahren**.
 
 ### Control types / Kontrollarten
 
@@ -229,6 +236,8 @@ Each area or route produces the entities below. The three sensors are named in y
 | Count sensor: **Total count** / **Anzahl Gesamt** | `sensor.<area>_anzahl_gesamt` | Both counts added together. The one place both timestamps sit side by side: `last_update_controls`, `last_update_hazards`, and `last_update` for the later of the two. |
 | One `geo_location` entity per control | `geo_location.<area>_kontrolle_<street>` | Created and removed as controls appear and disappear. There is no fixed pool of entities. |
 | One `geo_location` entity per hazard | `geo_location.<area>_gefahr_<street>` | The same, on the area's `blitzer_<area>_hazards` source. |
+| Number: **Controls new for** / **Kontrollen neu für** | `number.<area>_kontrollen_neu_fur` | How many minutes a control counts as new. The same setting as in the options form, put where the sensors it governs are listed. A configuration entity, so it sits under the device's **Configuration** heading rather than among the readings. |
+| Number: **Hazards new for** / **Gefahren neu für** | `number.<area>_gefahren_neu_fur` | The same for hazards. Changing either of these is the one change that does **not** rebuild the entry: no refetch, no entity churn, nothing but a number two sensors report. |
 
 Every entry gets a **device** of its own, named after the area. Home Assistant renders the full name from the device name plus a short entity name: "Berlin Anzahl Kontrollen" on a German instance, "Berlin Control count" on an English one. The old "Blitzer.de" prefix is gone, since the integration is already called that.
 
@@ -237,6 +246,17 @@ The **entity id** does not follow the language. It is generated once, when the e
 The device's **model** field says how the entry searches: `Radius` or `Wegpunkte`. All of an area's entities, markers included, group under that one device card.
 
 Every `last_update` is the moment that half last *fetched*, not the moment its data last changed. It only advances on a fetch that actually succeeded.
+
+Each count sensor also carries what its half counts as **new**:
+
+| Attribute | On | Description |
+|---|---|---|
+| `new_minutes` | Control count, Hazard count | That half's window, in minutes. `0` when the marking is switched off. |
+| `new` | Control count, Hazard count | How many of the reported ones fall inside it. Absent while the window is `0`. |
+| `new_minutes_controls`, `new_minutes_hazards` | Total count | Both windows, always. The one place they can be read side by side. |
+| `new` | Total count | Both halves added together, whenever at least one window is on. |
+
+The window is deliberately a property of the *area* rather than of a card or an automation. A notification, a template and the [Blitzer card](#blitzer-card) reading the same number is what keeps them from disagreeing about what "new" means.
 
 Attributes on each control's `geo_location` entity:
 
@@ -283,9 +303,13 @@ Attributes on each hazard's `geo_location` entity:
 
 ### Blueprint: Report Alerts
 
-A ready-to-use automation [blueprint](blueprints/automation/blitzer/report_alerts.yaml) covers both of the things people actually want, without writing any YAML:
+A ready-to-use automation [blueprint](custom_components/blitzer/blueprints/automation/blitzer/report_alerts.yaml) covers both of the things people actually want, without writing any YAML.
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fsomansch%2Fblitzer%2Fmain%2Fblueprints%2Fautomation%2Fblitzer%2Freport_alerts.yaml)
+**It comes with the integration.** After a restart it is waiting under **Settings → Automations & Scenes → Blueprints** / **Einstellungen → Automatisierungen & Szenen → Blueprints**, and **Create automation** / **Automatisierung erstellen** is the whole of what is left to do. A release that changes the blueprint brings the new version with it.
+
+Want it on its own, in an instance without the integration? Import it straight from here:
+
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fsomansch%2Fblitzer%2Fmain%2Fcustom_components%2Fblitzer%2Fblueprints%2Fautomation%2Fblitzer%2Freport_alerts.yaml)
 
 - **Live alerts** / **Live-Meldungen** - only what is new. One notification per newly reported control or hazard, the moment it shows up. Never for one already known, and never right after a restart. A time window keeps it quiet at night; a window from `22:00` to `06:00` spans midnight.
 - **Digest** / **Sammelmeldung** - everything currently reported. One message listing what is standing right now, nearest first, capped at a length you choose. Trigger it at a time of day, when someone leaves a zone, from any entity changing state, or on demand via `automation.trigger`. Several of these can be armed at once.
@@ -436,6 +460,207 @@ The two are deliberately separate rather than one action with a switch. Refreshi
 To find `YOUR_ROUTE_CONFIG_ENTRY_ID`: open **Settings → Devices & Services**, click the "Blitzer.de" integration, open the route's entry and copy the ID from the browser URL.
 
 Or build the action once in **Developer Tools → Actions** / **Entwicklerwerkzeuge → Aktionen**. Pick the route from the **Area or route** / **Bereich oder Route** dropdown, then switch to YAML mode there and copy the resolved `config_entry_id`.
+
+## Blitzer card
+
+The integration's own card. One list answering "what is on my way right now", per area or route: controls and hazards together, nearest first, with a map above them that can either mirror the list or drive it.
+
+It comes with the integration. There is nothing to download, nothing to copy into `www` and nothing to register as a dashboard resource - restart Home Assistant after installing and the card is there, under **Blitzer.de** in the card picker.
+
+Everything it draws is already in the frontend's own state. The reports are `geo_location` entities, the area names and their search mode come from the device registry, the "last updated" moment from the area's **Total count** sensor, and what still counts as new from that area's own [**Counts as new for** / **Als neu zählen für**](#area-radius--bereich-radius) windows. Nothing has to be configured a second time here.
+
+### Adding it
+
+- **Add card → Blitzer.de.** With no area picked, the card offers every configured one in a dropdown of its own.
+- **The card picker's "By entity" tab.** Pick any report, count or window and the card is offered for it, already pinned to the area that entity belongs to and with the area dropdown switched off - whoever picked something of München was looking at München.
+
+### Formats
+
+`layout`, the first setting in the editor:
+
+| Value | What it is |
+|---|---|
+| `portrait` | The map above, the list below. The default. |
+| `landscape` | Map and list side by side. |
+| `minimal` | One line carrying two numbers - everything the area reports, and what of it is still new - with the reports themselves behind it in a pop-up. Built for a dense dashboard, or for a section where a card of full height would be one too many. |
+
+The picture at the top of this page shows all three side by side.
+
+### What it can do
+
+- **Pick the area on the card**, or pin it to one. Several areas on one card share a dropdown; a card pinned to a single area drops it.
+- **Show controls, hazards or both**, switchable on the card itself.
+- **A map that mirrors the list, or drives it.** Clicking an entry can centre the map on that report; the list can restrict itself to what the map currently shows, so panning the map is a way of asking a different question.
+- **Sort by distance, newest or oldest.** The order also decides which reports survive when the number shown is capped.
+- **Measure distance from the area's centre, from the map, or from a person or zone**, so "nearest first" means nearest to whoever is driving.
+- **Mark what is new.** The threshold is the area's own, set on its device page, so the card and every automation agree on what "new" means. A badge next to the title counts them; each entry carries a tag.
+- **Fold a long list** after a number of entries you choose, with a chevron to open the rest.
+- **Refresh on demand**, with a button at the end of the subtitle line. Worth having above all on an area set to poll manually - an update interval of `0`.
+- **A tap action in the minimal format.** Home Assistant's own set: more-info, navigate, URL, an action, toggle, or nothing. Left on **Default** the tap opens the pop-up, which is what the format is for.
+
+### Settings
+
+Two panels, each with three groups:
+
+- **Settings** - *General, Content, List*: what the card shows.
+- **Layout** - *General, Map, List*: how it is drawn. One collapsible block per element - the title, the badges, each line of an entry, the dropdowns, the rule between entries - with colour, typeface, size and, where the element has one, its symbol.
+
+Every field carries an **i** describing it, so the reference for its roughly 190 settings is the editor itself. The editor writes only what differs from the default, so a card configured entirely in the interface stays short in YAML.
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-custom.png" alt="The same three formats restyled: coloured badges, a renamed title, a background image, other symbols, underlined addresses, confirmation stars and recoloured counters" width="100%">
+
+The same card, the same area, the same data - and not a line of CSS. Everything above was set in the **Layout** panel.
+
+### YAML
+
+The whole of a working card:
+
+<details>
+<summary>YAML</summary>
+
+```yaml
+type: custom:blitzer-card
+```
+
+</details>
+
+One pinned to an area, minimal, tapping through to the map dashboard:
+
+<details>
+<summary>YAML</summary>
+
+```yaml
+type: custom:blitzer-card
+layout: minimal
+areas:
+  - 4f2c1b9d8e7a6c5b4a39281706f5e4d3   # the area's device id
+show_area_picker: false
+mini_tap_action:
+  action: navigate
+  navigation_path: /lovelace/map
+```
+
+</details>
+
+The options that decide what the card *is*, rather than how it is drawn:
+
+| Option | Default | What it does |
+|---|---|---|
+| `layout` | `portrait` | `portrait`, `landscape` or `minimal`. |
+| `areas` | *(all)* | Device ids of the areas to show. Empty means every configured one. |
+| `title` | *(the translated default)* | The card's own title. |
+| `filter` | `all` | What the card starts on: `all`, `controls` or `hazards`. |
+| `sort` | `distance` | `distance`, `newest` or `oldest`. |
+| `reference_mode` | `area` | Where distances are measured from: `area`, `map` or `entity`. |
+| `reference` | - | The person, device tracker or zone, with `reference_mode: entity`. |
+| `only_new` | `false` | Show nothing but what is still new. |
+| `show_max` / `max` | `false` / `5` | Cap how many reports are listed. |
+| `collapse_list` / `collapse_after` | `false` / `3` | Fold the list after this many entries. Portrait only. |
+| `show_map` / `show_list` | `true` / `true` | The two halves of the card, and of the pop-up in the minimal format. |
+| `map_aspect_ratio` | `16:9` | The map's shape. |
+| `follow_map` | `true` | Restrict the list to what the map shows. |
+| `center_on_click` | `true` | A click on an entry centres the map on it. |
+| `show_area_picker` / `show_filter_picker` | `true` / `true` | The two dropdowns. |
+| `show_title` / `show_count` / `show_new` / `show_sub` | `true` | The parts of the head. |
+| `show_refresh` | `true` | The refresh button at the end of the subtitle line. |
+| `mini_tap_action` | *(opens the pop-up)* | Minimal format: what a tap on either number does. |
+| `mini_show_total` | `true` | Minimal format: show the total next to the new count. |
+
+The rest of the keys say how a given element is drawn. Those are what the **Layout** panel writes, and the same ground is covered by the custom properties below.
+
+### CSS variables
+
+Every setting the **Layout** panel makes is also a custom property, so a theme can dress the card without anyone opening the editor - and so a dashboard full of these cards is styled in one place rather than card by card.
+
+The names follow one scheme throughout:
+
+```
+--blitzer-<element>-<css-property>
+```
+
+`<element>` is the block the editor draws it in, and `<css-property>` is spelled the way CSS spells it, never abbreviated. `--blitzer-row-line2-font-size` is the font size of an entry's second line, and nothing else has to be looked up to know that.
+
+**What wins.** A setting made in the card's editor beats the variable, and the variable beats the card's own default. So a theme sets the house style and a single card can still depart from it - and a card that was never touched follows the theme.
+
+Set them in a theme, where Home Assistant adds the leading `--` for you:
+
+<details>
+<summary>YAML</summary>
+
+```yaml
+# themes.yaml
+my_theme:
+  blitzer-title-font-size: 22px
+  blitzer-title-font-weight: "600"
+  blitzer-row-line1-color: "#e8eaed"
+  blitzer-row-line2-color: "#9aa0a6"
+  blitzer-row-chip-background: "rgba(255, 255, 255, 0.08)"
+  blitzer-new-background: "#ff5722"
+  blitzer-divider-color: "rgba(255, 255, 255, 0.12)"
+```
+
+</details>
+
+#### The elements
+
+Which suffixes an element takes depends on what it is made of:
+
+| Variable prefix | The element | Colour | Text | Background | Symbol | Size |
+|---|---|:-:|:-:|:-:|:-:|:-:|
+| `--blitzer-title-` | Card title | ✓ | ✓ | | | |
+| `--blitzer-sub-` | Subtitle line | ✓ | ✓ | | ✓ | |
+| `--blitzer-count-` | Number of reports shown | ✓ | ✓ | ✓ | | |
+| `--blitzer-new-` | New marker - the badge, and the tag in the card's own list | ✓ | ✓ | ✓ | | |
+| `--blitzer-no-reports-` | Text without reports | ✓ | ✓ | | | |
+| `--blitzer-area-select-` | Area dropdown | ✓ | ✓ | ✓ | | |
+| `--blitzer-filter-select-` | Filter dropdown | ✓ | ✓ | ✓ | | |
+| `--blitzer-refresh-` | Refresh button | | | | ✓ | |
+| `--blitzer-row-picture-` | An entry's symbol | | | | | ✓ |
+| `--blitzer-row-line1-` | Distance and kind | ✓ | ✓ | | | |
+| `--blitzer-row-line2-` | Place | ✓ | ✓ | | ✓ | |
+| `--blitzer-row-extra-` | Description | ✓ | ✓ | | ✓ | |
+| `--blitzer-row-chip-` | Chips | ✓ | ✓ | ✓ | | |
+| `--blitzer-row-stars-` | Stars | ✓ | | | | ✓ |
+| `--blitzer-mini-total-` | Minimal format: the total | ✓ | ✓ | | ✓ | |
+| `--blitzer-mini-new-` | Minimal format: what is new | ✓ | ✓ | | ✓ | |
+| `--blitzer-pop-new-` | New marker on an entry of the pop-up's list | ✓ | ✓ | ✓ | | |
+
+| Column | Suffixes |
+|---|---|
+| Colour | `-color` |
+| Text | `-font-size`, `-font-weight`, `-font-style`, `-text-transform`, `-text-decoration`, `-letter-spacing` |
+| Background | `-background` |
+| Symbol | `-icon-color`, `-icon-size` |
+| Size | `-size` |
+
+So `--blitzer-sub-icon-size` exists and `--blitzer-title-icon-size` does not, because the title has no symbol.
+
+#### On their own
+
+Nine more, where one property is the whole of what the element is:
+
+| Variable | What it does |
+|---|---|
+| `--blitzer-card-background-color` | A colour behind the whole card - in the minimal format, behind its pop-up. |
+| `--blitzer-card-background-image` | An image behind it, as a `url(...)`. |
+| `--blitzer-card-background-size` | `cover`, `contain`, or a length. |
+| `--blitzer-card-background-repeat` | `no-repeat`, `repeat`, ... |
+| `--blitzer-card-background-opacity` | `0` to `1`, on the background alone rather than on the card. |
+| `--blitzer-divider-color` | The rule between two entries. |
+| `--blitzer-divider-width` | Its thickness. |
+| `--blitzer-divider-style` | `solid`, `dashed`, `dotted`. |
+| `--blitzer-highlight-background` | What backs the entry whose report was clicked on the map. |
+
+And four for the two halves of the minimal line, which are filled rather than drawn on:
+
+| Variable | What it does |
+|---|---|
+| `--blitzer-mini-total-fill-color` | The colour behind the total. |
+| `--blitzer-mini-total-fill-opacity` | Its opacity, `0` to `1`. |
+| `--blitzer-mini-new-fill-color` | The colour behind the new count. Preset to the accent colour. |
+| `--blitzer-mini-new-fill-opacity` | Its opacity. Preset to `0.14`. |
+
+132 in all, and none of them changes anything until it is set: an unset property falls back to the card's own stylesheet rather than to nothing.
 
 ## Map card
 
@@ -653,6 +878,18 @@ Nothing reported right now 🚗💨
 
 ## Installation
 
+Needs Home Assistant **2024.7** or newer.
+
+### What you get
+
+Three things, in one download:
+
+- The **integration** itself.
+- The **[Blitzer card](#blitzer-card)**. Served by the integration and handed to every dashboard, so there is no file to copy into `www` and no resource to register.
+- The **[Report Alerts blueprint](#blueprint-report-alerts)**, put into `config/blueprints/automation/blitzer/` on start.
+
+That blueprint folder is the integration's own: a copy that has fallen behind is replaced when a release changes the blueprint, which is how a fix reaches you at all. A blueprint of your own belongs under a name of your own.
+
 ### HACS (recommended)
 
 Blitzer.de is part of the default HACS integration list:
@@ -673,6 +910,12 @@ wget https://github.com/somansch/blitzer/releases/latest/download/blitzer.zip
 unzip blitzer.zip
 rm blitzer.zip
 ```
+
+### Upgrading from before v3.1.0
+
+If you were running the card by hand - a copy of `blitzer-card.js` in `www` and a dashboard resource pointing at `/local/blitzer-card.js` - remove that resource under **Settings → Dashboards → ⋮ → Resources** / **Einstellungen → Dashboards → ⋮ → Ressourcen**, and delete the file. The integration serves its own copy now. Left in place, the two race to register the same card and the older one can win.
+
+Nothing else changes. Areas, entities and automations carry on as they were.
 
 ## Help and Contribution
 
