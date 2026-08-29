@@ -911,12 +911,6 @@ unzip blitzer.zip
 rm blitzer.zip
 ```
 
-### Upgrading from before v3.1.0
-
-If you were running the card by hand - a copy of `blitzer-card.js` in `www` and a dashboard resource pointing at `/local/blitzer-card.js` - remove that resource under **Settings → Dashboards → ⋮ → Resources** / **Einstellungen → Dashboards → ⋮ → Ressourcen**, and delete the file. The integration serves its own copy now. Left in place, the two race to register the same card and the older one can win.
-
-Nothing else changes. Areas, entities and automations carry on as they were.
-
 ## Help and Contribution
 
 If you find a problem, feel free to open an issue and I will do my best to help. If you have something to contribute, your help is greatly appreciated! If you want to add a new feature, please open a pull request first so we can discuss the details.
