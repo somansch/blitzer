@@ -1,3 +1,5 @@
+from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
+
 DOMAIN = "blitzer"
 
 # The two halves this integration reports, used wherever something needs to
@@ -205,6 +207,45 @@ SEARCH_MODE_ROUTE = "route"
 CONF_WAYPOINTS = "waypoints"
 CONF_CORRIDOR_WIDTH = "corridor_width"
 DEFAULT_CORRIDOR_WIDTH = 300
+
+# The third search mode: a radius like the area's, but around wherever a
+# device tracker currently is rather than around a fixed point. Same fields
+# and same behaviour as the area otherwise - only the centre moves.
+#
+# Device trackers only, and only those actually reporting coordinates - see
+# tracker_position() below, which is the test both the config flow's picker
+# and the search apply.
+SEARCH_MODE_TRACKER = "tracker"
+CONF_TRACKER = "tracker"
+CONF_TRACKER_RADIUS = "tracker_radius"
+# The same 1000m the area's map hands out for a fresh entry, so the two modes
+# start from the same circle.
+DEFAULT_TRACKER_RADIUS = 1000
+
+def tracker_position(state) -> tuple[float, float] | None:
+    """What a device tracker is reporting as its position, or None.
+
+    The single place that decides whether a tracker can centre a radius, so
+    that the two questions asking it cannot end up disagreeing: which
+    trackers the config flow offers, and whether a poll has somewhere to
+    search. A tracker offered in the form and then refused at the first
+    fetch would be the worst of both.
+
+    None covers every way of having no position: the attributes missing
+    (a tracker between fixes, or one that only ever says home and away), and
+    a tracker writing something that is not a number into them - rare, but an
+    unhandled exception there would take down more than this one entry.
+    """
+    if state is None:
+        return None
+    try:
+        return (
+            float(state.attributes[ATTR_LATITUDE]),
+            float(state.attributes[ATTR_LONGITUDE]),
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
 
 # How often this entry polls Blitzer.de, in minutes. User-configurable per
 # entry - 0 means "never automatically", relying entirely on the "refresh"

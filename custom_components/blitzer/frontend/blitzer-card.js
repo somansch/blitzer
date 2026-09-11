@@ -40,6 +40,7 @@
       filterControls: "Controls only",
       filterHazards: "Hazards only",
       radius: "Radius",
+      tracker: "Tracker",
       waypoints: "Route",
       updatedNever: "not updated yet",
       updatedNow: "updated just now",
@@ -225,7 +226,7 @@
       edSubColorHelp: "Text color for the subtitle line.",
       edSubFontHelp: "Font size for the subtitle line.",
       edSubArea: "Name of the area",
-      edSubAreaHelp: "The area or route the card is showing.",
+      edSubAreaHelp: "The area, route or tracker the card is showing.",
       edSubMode: "How it searches",
       edSubModeHelp: "Whether the area is a radius or a route.",
       edSubUpdated: "Last update",
@@ -362,6 +363,7 @@
       filterControls: "Nur Kontrollen",
       filterHazards: "Nur Gefahren",
       radius: "Radius",
+      tracker: "Tracker",
       waypoints: "Route",
       updatedNever: "noch nicht aktualisiert",
       updatedNow: "gerade aktualisiert",
@@ -547,7 +549,7 @@
       edSubColorHelp: "Textfarbe für die Unterzeile.",
       edSubFontHelp: "Schriftgröße für die Unterzeile.",
       edSubArea: "Name des Bereichs",
-      edSubAreaHelp: "Der Bereich oder die Route, die die Karte zeigt.",
+      edSubAreaHelp: "Der Bereich, die Route oder der Tracker, den die Karte zeigt.",
       edSubMode: "Art der Suche",
       edSubModeHelp: "Ob der Bereich ein Radius oder eine Route ist.",
       edSubUpdated: "Letzte Aktualisierung",
@@ -2182,7 +2184,15 @@
     _renderHead(str, areas, area, areaId) {
       const sensor = totalSensor(this._hass, areaId);
       const updated = updatedText(str, sensor && sensor.attributes.last_update);
-      const mode = area.model === "Wegpunkte" ? str.waypoints : str.radius;
+      // The device's model field is what the integration puts the search
+      // mode in; "Radius" is also what every entry made before the other two
+      // existed carries, which is why it is the fallback rather than a case.
+      const mode =
+        area.model === "Wegpunkte"
+          ? str.waypoints
+          : area.model === "Tracker"
+          ? str.tracker
+          : str.radius;
       // Each part on its own switch; with all three off the line goes too,
       // rather than leaving an empty row under the title.
       const subText = this._config.show_sub === false ? "" : [
@@ -5521,7 +5531,7 @@
     window.customCards.push({
       type: CARD_TAG,
       name: "Blitzer.de",
-      description: "Speed controls and traffic hazards for one configured area or route.",
+      description: "Speed controls and traffic hazards for one configured area, route or tracker.",
       preview: true,
       documentationURL: "https://github.com/somansch/blitzer",
       // Offers this card where Home Assistant asks what to build for a

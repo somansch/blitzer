@@ -4,6 +4,7 @@
         "search_mode": {
             "options": {
                 "area": "Area (radius)",
+                "tracker": "Device tracker (radius)",
                 "route": "Route (waypoints)"
             }
         },
@@ -115,6 +116,40 @@
                     }
                 }
             },
+            "tracker": {
+                "title": "Blitzer.de Setup",
+                "description": "Pick the device tracker to follow and how wide a circle to search around it. Only trackers currently reporting coordinates are listed - one that knows nothing but home and away has no position to put a circle around.",
+                "data": {
+                    "tracker": "Device tracker",
+                    "tracker_radius": "Radius (meters)",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optional settings for controls",
+                        "data": {
+                            "count": "Number of controls",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
+                        }
+                    }
+                }
+            },
             "waypoint": {
                 "title": "Add waypoint {count}",
                 "description": "Move the map to place waypoint {count} of the route. Add at least two waypoints; a corridor is searched along the straight lines between them, so place a waypoint on every sharp bend of the actual route.",
@@ -159,7 +194,8 @@
         },
         "abort": {
             "already_configured": "Blitzer.de is already configured for this name. Pick a different one.",
-            "location_missing": "Please select a position. (move the map)"
+            "location_missing": "Please select a position. (move the map)",
+            "no_tracker_with_position": "No device tracker is reporting a position right now. This mode needs one that sends coordinates - a tracker that knows nothing but home and away cannot centre a radius."
         },
         "error": {
             "route_needs_two_waypoints": "A route needs at least two waypoints."
@@ -168,21 +204,21 @@
     "services": {
         "refresh_controls": {
             "name": "Refresh controls",
-            "description": "Immediately fetch the latest controls for one Blitzer.de area or route, instead of waiting for its next scheduled poll. Returns the controls found. Controls only - \"Refresh hazards\" is the counterpart for hazards.",
+            "description": "Immediately fetch the latest controls for one Blitzer.de area, route or tracker, instead of waiting for its next scheduled poll. Returns the controls found. Controls only - \"Refresh hazards\" is the counterpart for hazards.",
             "fields": {
                 "config_entry_id": {
-                    "name": "Area or route",
-                    "description": "Which Blitzer.de area or route to refresh."
+                    "name": "Area, route or tracker",
+                    "description": "Which Blitzer.de area, route or tracker to refresh."
                 }
             }
         },
         "refresh_hazards": {
             "name": "Refresh hazards",
-            "description": "Immediately fetch the latest hazards for one Blitzer.de area or route, instead of waiting for its next scheduled poll. Returns the hazards found. Hazards only - \"Refresh controls\" is the counterpart for controls.",
+            "description": "Immediately fetch the latest hazards for one Blitzer.de area, route or tracker, instead of waiting for its next scheduled poll. Returns the hazards found. Hazards only - \"Refresh controls\" is the counterpart for controls.",
             "fields": {
                 "config_entry_id": {
-                    "name": "Area or route",
-                    "description": "Which Blitzer.de area or route to refresh."
+                    "name": "Area, route or tracker",
+                    "description": "Which Blitzer.de area, route or tracker to refresh."
                 }
             }
         }
@@ -201,6 +237,40 @@
                 "description": "Select the section from which the data should be displayed.",
                 "data": {
                     "location": "Section",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optional settings for controls",
+                        "data": {
+                            "count": "Number of controls",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
+                        }
+                    }
+                }
+            },
+            "tracker": {
+                "title": "Blitzer.de Setup",
+                "description": "Pick the device tracker to follow and how wide a circle to search around it. Only trackers currently reporting coordinates are listed - one that knows nothing but home and away has no position to put a circle around.",
+                "data": {
+                    "tracker": "Device tracker",
+                    "tracker_radius": "Radius (meters)",
                     "type": "Controls",
                     "kinds": "Control types",
                     "hazards": "Hazards"
@@ -281,6 +351,9 @@
         },
         "error": {
             "route_needs_two_waypoints": "A route needs at least two waypoints."
+        },
+        "abort": {
+            "no_tracker_with_position": "No device tracker is reporting a position right now. This mode needs one that sends coordinates - a tracker that knows nothing but home and away cannot centre a radius."
         }
     }
 }

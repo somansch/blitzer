@@ -385,17 +385,23 @@ class BlitzerdeGeoEvent(GeolocationEvent):
     def _distance_from_area_center(self, lat: float, lng: float) -> float | None:
         """Return the distance to the nearest configured reference point,
         instead of hass.config.distance()'s home zone: the area's center
-        point in area mode, or the closest route waypoint in route mode.
+        point in area mode, the closest route waypoint in route mode, and in
+        tracker mode wherever the tracker was when this search was made -
+        which is the point these reports were actually found around.
         """
         if self._coordinator.search_mode == SEARCH_MODE_ROUTE:
             reference_points = self._coordinator.waypoints
         else:
+            # None until a tracker-mode entry has resolved its first
+            # position; nothing is drawn before that either, but a marker
+            # rebuilt in that window would otherwise be a TypeError.
             reference_points = [self._coordinator.location]
 
         distances = [
             meters
             for point in reference_points
-            if (meters := location_util.distance(point["latitude"], point["longitude"], lat, lng)) is not None
+            if point
+            and (meters := location_util.distance(point["latitude"], point["longitude"], lat, lng)) is not None
         ]
         if not distances:
             return None

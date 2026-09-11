@@ -38,12 +38,12 @@ Two different things are reported. Each is switched on separately, and each gets
 ## Quick start
 
 1. **Install** via [HACS](#hacs-recommended) or [manually](#manual), then restart Home Assistant.
-2. Go to **Settings → Devices & Services → Add Integration** / **Einstellungen → Geräte & Dienste → Integration hinzufügen** and search for "Blitzer.de". Name your first entry and pick a search mode ([Adding an area or route](#adding-an-area-or-route)).
+2. Go to **Settings → Devices & Services → Add Integration** / **Einstellungen → Geräte & Dienste → Integration hinzufügen** and search for "Blitzer.de". Name your first entry and pick a search mode ([Adding an area, tracker or route](#adding-an-area-tracker-or-route)).
 3. Choose what to report: the four installation forms, the seventeen [control types](#control-types--kontrollarten), and the ten [hazard types](#hazard-types--gefahren). Hazards stay off until you switch them on.
 4. Put it on a dashboard. **Add card → Blitzer.de** gives you the [card that comes with the integration](#blitzer-card). Or drop the area's `blitzer_<area>_controls` and `blitzer_<area>_hazards` sources into the [map card](#map-card), or use the ready-made [Markdown card](#markdown-card).
 5. Want to be told rather than to look it up? Create an automation from the [Report Alerts blueprint](#blueprint-report-alerts), which is installed along with the integration. No YAML required.
 
-Add the integration itself only once. Every further area or route is added from the "Blitzer.de" tile's own **Add entry** / **Eintrag hinzufügen** - one per area, each with its own entities.
+Add the integration itself only once. Every further entry is added from the "Blitzer.de" tile's own **Add entry** / **Eintrag hinzufügen** - one per area, each with its own entities.
 
 That is the whole setup. Everything below covers the individual options in more depth.
 
@@ -51,11 +51,12 @@ That is the whole setup. Everything below covers the individual options in more 
 
 **Setting up**
 
-- [Adding an area or route](#adding-an-area-or-route)
+- [Adding an area, tracker or route](#adding-an-area-tracker-or-route)
   - [Area (radius) / Bereich (Radius)](#area-radius--bereich-radius) - every field in the form
   - [Control types / Kontrollarten](#control-types--kontrollarten) - the seventeen switches, and why there are two axes
   - [Archive data / Archivdaten](#archive-data--archivdaten) - what it is, and what it is not
   - [Hazard types / Gefahren](#hazard-types--gefahren) - the ten switches, and the two worth knowing about
+  - [Device tracker (radius) / Gerätetracker (Radius)](#device-tracker-radius--gerätetracker-radius) - a circle that follows a phone or a car
   - [Route (waypoints) / Route (Wegpunkte)](#route-waypoints--route-wegpunkte)
 
 **How reports behave**
@@ -86,7 +87,7 @@ That is the whole setup. Everything below covers the individual options in more 
 - [Help and Contribution](#help-and-contribution)
 - [Disclaimer](#disclaimer)
 
-## Adding an area or route
+## Adding an area, tracker or route
 
 Go to **Settings → Devices & Services** / **Einstellungen → Geräte & Dienste**. Use **Add Integration** / **Integration hinzufügen** at the bottom right, search for "Blitzer.de" and add your first area.
 
@@ -95,7 +96,10 @@ The integration is added only once. To track further areas - say both "München"
 After naming the entry, pick a search mode / **Suchart**:
 
 - **Area (radius)** / **Bereich (Radius)** - the classic mode: one centre point plus a radius circle.
+- **Device tracker (radius)** / **Gerätetracker (Radius)** - the same circle, around a tracker instead of a fixed point ([below](#device-tracker-radius--gerätetracker-radius)).
 - **Route (waypoints)** / **Route (Wegpunkte)** - search a corridor along a route you draw ([below](#route-waypoints--route-wegpunkte)).
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-wizard.png" alt="The first setup screen: the entry's name, and the choice between Area (radius), Device tracker (radius) and Route (waypoints)" width="55%">
 
 Every field can be changed later. Open **Settings → Devices & Services**, find the entry and click **Configure** / **Konfigurieren**. The form opens pre-filled.
 
@@ -207,6 +211,34 @@ Two types are worth knowing about before you switch them on:
 - **Permanent roadworks** / **Dauerbaustelle** is by far the most numerous. A 20 km radius around Berlin returns the full ~500 on its own. Enable it with **Maximale Anzahl der Gefahren** raised and a long update interval. Or leave it off and use the short-lived types instead.
 - **Slipperiness** / **Rutschgefahr**, **Obstructed view** / **Sichtbehinderung** and **Road block** / **Sperrung** are declared by Blitzer.de, but returned nothing in any region sampled while writing this. They are offered for completeness; do not be surprised by an empty result.
 
+### Device tracker (radius) / Gerätetracker (Radius)
+
+Area mode asks what is reported around a point. This one asks what is reported around *you*: before every poll it reads the position off a tracker and searches the same circle there.
+
+Two fields, and below them the area form unchanged:
+
+| Field | Description |
+|---|---|
+| **Device tracker** / **Gerätetracker** | The tracker to follow. The list is a short one: only `device_tracker` entities **reporting coordinates at that moment** are offered - the Home Assistant companion app, a GPS logger, a car integration. One that knows nothing but home and away has no position to put a circle around, so offering it would only buy an entry that fails at its first fetch, long after the form was filled in. If nothing on your instance qualifies, the form says so instead of showing an empty dropdown. `person` entities are deliberately not offered: a person is a layer over whichever tracker is reporting for them, and this entry wants the tracker itself. |
+| **Radius (meters)** / **Radius (Meter)** | How far around it to search. 50 to 20 000 m, default 1 000. |
+
+Everything under those two is the area form field for field - the four installation forms, the seventeen [control types](#control-types--kontrollarten), the ten [hazard types](#hazard-types--gefahren), both optional sections and both update intervals. They mean exactly what they mean [there](#area-radius--bereich-radius).
+
+What is different is only where the circle sits:
+
+- **The position is read once per poll**, not once per request, so the controls, the archive and the hazards of one poll are always searched around the same point.
+- **Distance is measured from the tracker**, not from the home zone. Each marker's state is how far it was from the tracker when that search was made - which is the point those reports were actually found around.
+- **The entry's device model is `Tracker`**, so the card's subtitle line says so, the way it says `Radius` or `Route` for the other two.
+- **Both refresh actions work unchanged.** `blitzer.refresh_controls` and `blitzer.refresh_hazards` re-read the position along with everything else.
+
+**Pick the radius against the update interval, not against what looks like a sensible distance.** The circle is only ever as current as the last poll, and a car covers ground between two of them: at 100 km/h it crosses a 1 km radius in 36 seconds, at 130 km/h in 28. On a motorway with the default one-minute interval, a radius under about 3 km is a circle the car has already left. In town, where 50 km/h needs 72 seconds for that same kilometre, 1-2 km is plenty.
+
+**If the tracker has no position**, the entry says so rather than reporting an empty area. Found at startup, it waits in **Retrying setup** with the reason on the integration page - "reports no usable position (home)" - and starts by itself once the tracker reports one. Home Assistant retries a waiting entry on a backoff that doubles from 10 seconds to at most 10 minutes, so a tracker that reports a few seconds late costs seconds; one that was missing all morning can cost up to those ten minutes. **Reload** / **Neu laden** on the entry's own menu skips the wait. Lost while running - a phone in a tunnel, a tracker briefly unavailable - the entry stays up and its entities go `unavailable` until the next poll that finds a position. Neither case reports zero controls, because "we do not know where to look" is not the same answer as "nothing is reported there".
+
+Editing a tracker entry via **Configure** / **Konfigurieren** opens that same form, filled in with what is saved. The tracker you already picked stays on the list even while it is briefly without a fix, so opening the form to change something else cannot quietly drop it.
+
+> **Tip:** the interval polls on a clock, not on movement. To also refresh the moment the tracker moves, trigger an automation on its `latitude` attribute and call `blitzer.refresh_controls` for the entry - the same action the [commute example](#on-demand-refresh-for-a-commute) uses. Setting the entry's own interval to `0` then makes that automation the only thing that polls it.
+
 ### Route (waypoints) / Route (Wegpunkte)
 
 For a commute, an area search would need an impractically large radius. Route mode lets you draw the route as a chain of waypoints instead, one map at a time. It is the same drag-the-map interaction as the radius picker, just repeated per point:
@@ -227,7 +259,7 @@ Editing a route via **Configure** / **Konfigurieren** first asks what to edit:
 
 ## Created entities
 
-Each area or route produces the entities below. The three sensors are named in your Home Assistant's language:
+Each entry produces the entities below. The three sensors are named in your Home Assistant's language:
 
 | Entity | Example ID | Description |
 |---|---|---|
@@ -243,7 +275,7 @@ Every entry gets a **device** of its own, named after the area. Home Assistant r
 
 The **entity id** does not follow the language. It is generated once, when the entity is first registered, from the name in force at that moment - and never changes afterwards. An instance set up in German keeps `sensor.berlin_anzahl_kontrollen` even after switching to English. Only entries added *after* the switch get English ids.
 
-The device's **model** field says how the entry searches: `Radius` or `Wegpunkte`. All of an area's entities, markers included, group under that one device card.
+The device's **model** field says how the entry searches: `Radius`, `Tracker` or `Wegpunkte`. All of an area's entities, markers included, group under that one device card.
 
 Every `last_update` is the moment that half last *fetched*, not the moment its data last changed. It only advances on a fetch that actually succeeded.
 
@@ -459,7 +491,7 @@ The two are deliberately separate rather than one action with a switch. Refreshi
 
 To find `YOUR_ROUTE_CONFIG_ENTRY_ID`: open **Settings → Devices & Services**, click the "Blitzer.de" integration, open the route's entry and copy the ID from the browser URL.
 
-Or build the action once in **Developer Tools → Actions** / **Entwicklerwerkzeuge → Aktionen**. Pick the route from the **Area or route** / **Bereich oder Route** dropdown, then switch to YAML mode there and copy the resolved `config_entry_id`.
+Or build the action once in **Developer Tools → Actions** / **Entwicklerwerkzeuge → Aktionen**. Pick the route from the **Area, route or tracker** / **Bereich, Route oder Tracker** dropdown, then switch to YAML mode there and copy the resolved `config_entry_id`.
 
 ## Blitzer card
 

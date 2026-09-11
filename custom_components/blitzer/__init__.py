@@ -149,7 +149,18 @@ def _coordinator_for(call: ServiceCall) -> BlitzerdeCoordinator:
     if entry is None or entry.domain != DOMAIN:
         raise ServiceValidationError(f"'{entry_id}' is not a Blitzer.de config entry")
 
-    runtime_data: RuntimeData = hass.data[DOMAIN][entry.entry_id]
+    # An entry that exists but is not running has no coordinator to drive.
+    # It is a normal enough state to answer properly rather than with a
+    # KeyError and a traceback: a tracker entry whose device has not reported
+    # a position yet sits in "retrying setup" until it does, and an
+    # automation refreshing on a schedule would otherwise fill the log while
+    # it waits.
+    runtime_data: RuntimeData | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if runtime_data is None:
+        raise ServiceValidationError(
+            f"'{entry.title}' is not running right now"
+            + (f" ({entry.reason})" if entry.reason else "")
+        )
     return runtime_data.coordinator
 
 

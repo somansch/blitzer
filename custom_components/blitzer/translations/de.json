@@ -4,6 +4,7 @@
         "search_mode": {
             "options": {
                 "area": "Bereich (Radius)",
+                "tracker": "Gerätetracker (Radius)",
                 "route": "Route (Wegpunkte)"
             }
         },
@@ -115,6 +116,40 @@
                     }
                 }
             },
+            "tracker": {
+                "title": "Blitzer.de Setup",
+                "description": "Wähle den Gerätetracker, dem gefolgt werden soll, und wie weit um ihn herum gesucht wird. Aufgeführt werden nur Tracker, die gerade Koordinaten melden – einer, der nur „zuhause“ und „abwesend“ kennt, hat keine Position, um die ein Kreis gelegt werden könnte.",
+                "data": {
+                    "tracker": "Gerätetracker",
+                    "tracker_radius": "Radius (Meter)",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optionale Einstellungen Kontrollen",
+                        "data": {
+                            "count": "Maximale Anzahl der Kontrollen",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
+                        }
+                    }
+                }
+            },
             "waypoint": {
                 "title": "Wegpunkt {count} hinzufügen",
                 "description": "Verschiebe die Karte, sodass der Marker auf Wegpunkt {count} deiner Route liegt. Du brauchst mindestens zwei Wegpunkte. Wichtig: Gesucht wird immer entlang der geraden Linie zwischen zwei Wegpunkten, nicht entlang der echten Straße – setze deshalb an jeder Kurve deiner Route einen eigenen Wegpunkt, damit dort keine Meldung übersehen wird.",
@@ -159,7 +194,8 @@
         },
         "abort": {
             "already_configured": "Blitzer.de ist für diesen Namen bereits eingerichtet. Bitte einen anderen wählen.",
-            "location_missing": "Bitte Position auswählen. (Karte verschieben)"
+            "location_missing": "Bitte Position auswählen. (Karte verschieben)",
+            "no_tracker_with_position": "Kein Gerätetracker meldet gerade eine Position. Dieser Modus braucht einen, der Koordinaten sendet – ein Tracker, der nur „zuhause“ und „abwesend“ kennt, kann keinen Radius zentrieren."
         },
         "error": {
             "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte."
@@ -168,21 +204,21 @@
     "services": {
         "refresh_controls": {
             "name": "Kontrollen aktualisieren",
-            "description": "Ruft sofort die aktuellen Kontrollen für eine Blitzer.de-Area oder -Route ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Kontrollen zurück. Nur Kontrollen - für Gefahren gibt es \"Gefahren aktualisieren\".",
+            "description": "Ruft sofort die aktuellen Kontrollen für eine Blitzer.de-Area, -Route oder -Tracker ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Kontrollen zurück. Nur Kontrollen - für Gefahren gibt es \"Gefahren aktualisieren\".",
             "fields": {
                 "config_entry_id": {
-                    "name": "Bereich oder Route",
-                    "description": "Welche Blitzer.de-Area oder -Route aktualisiert werden soll."
+                    "name": "Bereich, Route oder Tracker",
+                    "description": "Welche Blitzer.de-Area, -Route oder -Tracker aktualisiert werden soll."
                 }
             }
         },
         "refresh_hazards": {
             "name": "Gefahren aktualisieren",
-            "description": "Ruft sofort die aktuellen Gefahren für eine Blitzer.de-Area oder -Route ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Gefahren zurück. Nur Gefahren - für Kontrollen gibt es \"Kontrollen aktualisieren\".",
+            "description": "Ruft sofort die aktuellen Gefahren für eine Blitzer.de-Area, -Route oder -Tracker ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Gefahren zurück. Nur Gefahren - für Kontrollen gibt es \"Kontrollen aktualisieren\".",
             "fields": {
                 "config_entry_id": {
-                    "name": "Bereich oder Route",
-                    "description": "Welche Blitzer.de-Area oder -Route aktualisiert werden soll."
+                    "name": "Bereich, Route oder Tracker",
+                    "description": "Welche Blitzer.de-Area, -Route oder -Tracker aktualisiert werden soll."
                 }
             }
         }
@@ -201,6 +237,40 @@
                 "description": "Wähle den Bereich aus dem die Daten anzeigt werden sollen.",
                 "data": {
                     "location": "Bereich",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optionale Einstellungen Kontrollen",
+                        "data": {
+                            "count": "Maximale Anzahl der Kontrollen",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
+                        }
+                    }
+                }
+            },
+            "tracker": {
+                "title": "Blitzer.de Setup",
+                "description": "Wähle den Gerätetracker, dem gefolgt werden soll, und wie weit um ihn herum gesucht wird. Aufgeführt werden nur Tracker, die gerade Koordinaten melden – einer, der nur „zuhause“ und „abwesend“ kennt, hat keine Position, um die ein Kreis gelegt werden könnte.",
+                "data": {
+                    "tracker": "Gerätetracker",
+                    "tracker_radius": "Radius (Meter)",
                     "type": "Kontrollen",
                     "kinds": "Kontrollarten",
                     "hazards": "Gefahren"
@@ -281,6 +351,9 @@
         },
         "error": {
             "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte."
+        },
+        "abort": {
+            "no_tracker_with_position": "Kein Gerätetracker meldet gerade eine Position. Dieser Modus braucht einen, der Koordinaten sendet – ein Tracker, der nur „zuhause“ und „abwesend“ kennt, kann keinen Radius zentrieren."
         }
     }
 }

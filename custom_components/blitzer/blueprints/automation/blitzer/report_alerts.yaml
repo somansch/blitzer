@@ -39,7 +39,7 @@ blueprint:
     - `{{ summary }}` - the whole report in one line, e.g. `Mobiler Geschwindigkeitsblitzer · 30 km/h · Hohenstaufenstraße, Berlin`
     - `{{ type_name }}` - Blitzer.de's own wording, e.g. "Blitzer im Tunnel"
     - `{{ report_kind }}` - `control` or `hazard`
-    - `{{ area }}` - the area or route that reported it
+    - `{{ area }}` - the area, route or tracker that reported it
     - `{{ type }}` - a control's installation form (`mobile`/`trailer`/`fixed`/`archive`), or the hazard's type key
     - `{{ kind }}` - what a control measures (`speed`, `redlight`, `section_control`, ...). Empty on a hazard
     - `{{ vmax }}` - speed limit in km/h, where there is one

@@ -23,12 +23,15 @@ from .const import (
     CONF_HAZARDS,
     CONF_NEW_MINUTES,
     CONF_SEARCH_MODE,
+    CONF_TRACKER,
+    CONF_TRACKER_RADIUS,
     CONF_UPDATE_INTERVAL,
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
     DEFAULT_CORRIDOR_WIDTH,
     DEFAULT_HAZARD_COUNT,
     DEFAULT_NEW_MINUTES,
+    DEFAULT_TRACKER_RADIUS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     FORM_DEFAULTS,
@@ -36,6 +39,8 @@ from .const import (
     KIND_DEFAULTS,
     SEARCH_MODE_AREA,
     SEARCH_MODE_ROUTE,
+    SEARCH_MODE_TRACKER,
+    tracker_position,
 )
 
 from homeassistant.const import (
@@ -44,7 +49,8 @@ from homeassistant.const import (
     CONF_COUNT,
     CONF_TYPE,
     CONF_SELECTOR,
-    CONF_CONDITION
+    CONF_CONDITION,
+    Platform,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -262,6 +268,84 @@ def _hazard_optional_defaults(data) -> dict:
     }
 
 
+def _tracker_choices(hass, current=None) -> list[str]:
+    """The device trackers worth offering: those reporting a position now.
+
+    A tracker that cannot say where it is cannot centre a radius, so putting
+    it on the list would only buy an entry that fails at its first fetch,
+    with the reason arriving well after the form was filled in. The test is
+    tracker_position(), the same one the coordinator applies at poll time,
+    so the list and the search cannot end up disagreeing.
+
+    Device trackers only. A person carries coordinates the same way and was
+    accepted at first, but a person is a layer over whichever tracker is
+    reporting for them, and this entry wants the tracker itself.
+
+    The one already saved stays on the list even while it is briefly without
+    a fix, so that opening the options to change something else does not
+    quietly drop it - unless it is not a device tracker at all, which is
+    exactly the case that should no longer be offered.
+    """
+    choices = [
+        state.entity_id
+        for state in hass.states.async_all(Platform.DEVICE_TRACKER)
+        if tracker_position(state) is not None
+    ]
+    if (
+        current
+        and current.startswith(f"{Platform.DEVICE_TRACKER}.")
+        and current not in choices
+    ):
+        choices.append(current)
+    return sorted(choices)
+
+
+def _tracker_schema(
+    choices: list[str],
+    current=None,
+    radius_default=DEFAULT_TRACKER_RADIUS,
+    type_defaults=None,
+    kind_defaults=None,
+    optional_defaults=None,
+    hazard_defaults=None,
+    hazard_optional_defaults=None,
+):
+    """One form: which tracker, how wide a circle, and the area form below.
+
+    No map, and nothing showing where the tracker is. A form map is always
+    editable - Home Assistant has no read-only one, and a location selector
+    takes nothing but "radius" and "icon" - so a marker here would be a
+    control that looks like a setting and does nothing, since the centre of
+    this search is read from the tracker again at every poll rather than
+    saved once. A plain number says the same thing without the trap.
+
+    Everything under those two is the area form field for field: an entry
+    that follows a car reports the same things an entry around a fixed point
+    does.
+    """
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_TRACKER,
+                description={"suggested_value": current},
+            ): selector({"entity": {"include_entities": choices}}),
+            # Bounded, unlike the area mode's radius, because that one is
+            # dragged on a map and this one is typed: 20km is already a
+            # bounding box wide enough to spend a response on roads the
+            # device is nowhere near, and a mistyped zero should not get
+            # that far.
+            vol.Required(CONF_TRACKER_RADIUS, default=radius_default): vol.All(
+                vol.Coerce(int), vol.Range(min=50, max=20000)
+            ),
+            **_flags_field(CONF_TYPE, type_defaults, FORM_DEFAULTS, "control_form"),
+            **_flags_field(CONF_KINDS, kind_defaults, KIND_DEFAULTS, "control_kind"),
+            **_flags_field(CONF_HAZARDS, hazard_defaults, HAZARD_DEFAULTS, "hazard_type"),
+            vol.Required('optional'): _optional_section(optional_defaults),
+            vol.Required('hazard_optional'): _hazard_optional_section(hazard_optional_defaults),
+        }
+    )
+
+
 def _route_options_schema(
     corridor_width_default,
     type_defaults=None,
@@ -320,6 +404,8 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
             if user_input[CONF_SEARCH_MODE] == SEARCH_MODE_ROUTE:
                 self._waypoints = []
                 return await self.async_step_waypoint()
+            if user_input[CONF_SEARCH_MODE] == SEARCH_MODE_TRACKER:
+                return await self.async_step_tracker()
             return await self.async_step_area()
 
         data_schema = vol.Schema(
@@ -328,7 +414,11 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_SEARCH_MODE, default=SEARCH_MODE_AREA): selector(
                     {
                         "select": {
-                            "options": [SEARCH_MODE_AREA, SEARCH_MODE_ROUTE],
+                            "options": [
+                                SEARCH_MODE_AREA,
+                                SEARCH_MODE_TRACKER,
+                                SEARCH_MODE_ROUTE,
+                            ],
                             "translation_key": "search_mode",
                             "mode": "list",
                         }
@@ -375,6 +465,38 @@ class BlitzerdeConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(step_id="area", data_schema=data_schema, last_step=True)
+
+    async def async_step_tracker(self, user_input=None):
+        choices = _tracker_choices(self.hass)
+        if not choices:
+            # Nothing on this instance can centre a radius. Said here rather
+            # than as an empty dropdown, which reads like a broken form.
+            return self.async_abort(reason="no_tracker_with_position")
+
+        if user_input is not None:
+            return self.async_create_entry(title=f"Blitzer.de {self._name}", data={
+                CONF_NAME: self._name,
+                CONF_SEARCH_MODE: SEARCH_MODE_TRACKER,
+                CONF_TRACKER: user_input[CONF_TRACKER],
+                CONF_TRACKER_RADIUS: user_input[CONF_TRACKER_RADIUS],
+                CONF_TYPE: _as_flags(user_input[CONF_TYPE], FORM_DEFAULTS),
+                CONF_KINDS: _as_flags(user_input[CONF_KINDS], KIND_DEFAULTS),
+                CONF_COUNT: user_input['optional'][CONF_COUNT],
+                CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
+                CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
+                CONF_NEW_MINUTES: user_input['optional'].get(
+                    CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES
+                ),
+                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
+                **_hazard_data(user_input),
+            })
+
+        return self.async_show_form(
+            step_id="tracker",
+            data_schema=_tracker_schema(choices),
+            last_step=True,
+        )
 
     async def async_step_waypoint(self, user_input=None):
         errors = {}
@@ -455,6 +577,8 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
                 step_id="init",
                 menu_options=["edit_waypoints", "edit_settings"],
             )
+        if mode == SEARCH_MODE_TRACKER:
+            return await self.async_step_tracker()
         return await self.async_step_area()
 
     async def async_step_edit_waypoints(self, user_input=None):
@@ -548,6 +672,61 @@ class BlitzerdeOptionsFlow(OptionsFlowWithConfigEntry):
             }
         )
         return self.async_show_form(step_id="area", data_schema=data_schema, last_step=True)
+
+    async def async_step_tracker(self, user_input=None):
+        current = self.config_entry.data.get(CONF_TRACKER)
+        choices = _tracker_choices(self.hass, current)
+        if not choices:
+            return self.async_abort(reason="no_tracker_with_position")
+
+        if user_input is not None:
+            data = {
+                CONF_NAME: self.config_entry.data.get(CONF_NAME),
+                CONF_SEARCH_MODE: SEARCH_MODE_TRACKER,
+                CONF_TRACKER: user_input[CONF_TRACKER],
+                CONF_TRACKER_RADIUS: user_input[CONF_TRACKER_RADIUS],
+                CONF_TYPE: _as_flags(user_input[CONF_TYPE], FORM_DEFAULTS),
+                CONF_KINDS: _as_flags(user_input[CONF_KINDS], KIND_DEFAULTS),
+                CONF_COUNT: user_input['optional'][CONF_COUNT],
+                CONF_SELECTOR: user_input['optional'].get(CONF_SELECTOR, ""),
+                CONF_CONDITION: user_input['optional'][CONF_CONDITION],
+                CONF_UPDATE_INTERVAL: user_input['optional'][CONF_UPDATE_INTERVAL],
+                CONF_NEW_MINUTES: user_input['optional'].get(
+                    CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES
+                ),
+                CONF_BLACKLIST: user_input['optional'].get(CONF_BLACKLIST, ""),
+                **_hazard_data(user_input),
+            }
+            self.hass.config_entries.async_update_entry(
+                self._config_entry, data=data
+            )
+            return self.async_create_entry(
+                title=self._config_entry.title, data=data
+            )
+
+        return self.async_show_form(
+            step_id="tracker",
+            data_schema=_tracker_schema(
+                choices,
+                current,
+                radius_default=self.config_entry.data.get(
+                    CONF_TRACKER_RADIUS, DEFAULT_TRACKER_RADIUS
+                ),
+                type_defaults=self.config_entry.data.get(CONF_TYPE),
+                kind_defaults=self.config_entry.data.get(CONF_KINDS),
+                optional_defaults={
+                    CONF_CONDITION: self.config_entry.data.get(CONF_CONDITION),
+                    CONF_UPDATE_INTERVAL: self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                    CONF_NEW_MINUTES: self.config_entry.data.get(CONF_NEW_MINUTES, DEFAULT_NEW_MINUTES),
+                    CONF_COUNT: self.config_entry.data.get(CONF_COUNT),
+                    CONF_SELECTOR: _display_whitelist(self.config_entry.data.get(CONF_SELECTOR)),
+                    CONF_BLACKLIST: self.config_entry.data.get(CONF_BLACKLIST, ""),
+                },
+                hazard_defaults=self.config_entry.data.get(CONF_HAZARDS),
+                hazard_optional_defaults=_hazard_optional_defaults(self.config_entry.data),
+            ),
+            last_step=True,
+        )
 
     async def async_step_waypoint(self, user_input=None):
         errors = {}

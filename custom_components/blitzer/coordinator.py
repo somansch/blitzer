@@ -35,18 +35,23 @@ from .const import (
     CONF_HAZARDS,
     CONF_NEW_MINUTES,
     CONF_SEARCH_MODE,
+    CONF_TRACKER,
+    CONF_TRACKER_RADIUS,
     CONF_UPDATE_INTERVAL,
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
     CONTROL_KINDS,
     DEFAULT_HAZARD_COUNT,
     DEFAULT_NEW_MINUTES,
+    DEFAULT_TRACKER_RADIUS,
     DEFAULT_UPDATE_INTERVAL,
     FORM_DEFAULTS,
     FORM_KIND_LABELS,
     HAZARD_TYPES,
     SEARCH_MODE_AREA,
     SEARCH_MODE_ROUTE,
+    SEARCH_MODE_TRACKER,
+    tracker_position,
     TYPE_ARCHIVE,
     TYPE_FORMS,
     TYPE_TRAILER,
@@ -235,10 +240,23 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         # .get() with a default: entries created before route mode existed
         # only ever know the "area" (radius) search.
         self.search_mode = config_entry.data.get(CONF_SEARCH_MODE, SEARCH_MODE_AREA)
+        self.tracker_entity = None
+        self.tracker_radius = DEFAULT_TRACKER_RADIUS
         if self.search_mode == SEARCH_MODE_ROUTE:
             self.location = None
             self.waypoints = config_entry.data[CONF_WAYPOINTS]
             self.corridor_width = config_entry.data[CONF_CORRIDOR_WIDTH]
+        elif self.search_mode == SEARCH_MODE_TRACKER:
+            # The centre is read off the tracker on every poll, so there is
+            # nothing to know here yet - only which entity to ask and how
+            # wide a circle to draw around whatever it answers. self.location
+            # is filled in by _resolve_centre and is what everything
+            # downstream reads, exactly as in area mode.
+            self.location = None
+            self.tracker_entity = config_entry.data[CONF_TRACKER]
+            self.tracker_radius = config_entry.data.get(
+                CONF_TRACKER_RADIUS, DEFAULT_TRACKER_RADIUS
+            )
         else:
             self.location = config_entry.data[CONF_LOCATION]
         # Comma-separated city names, same syntax as the blacklist. Cities are
@@ -338,14 +356,19 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         # card instead of scattering through the entity list.
         #
         # The search mode goes in the model field, which is where Home
-        # Assistant puts "what kind of thing is this": an entry is either a
-        # radius around a point or a chain of waypoints, and that was
-        # previously visible nowhere.
+        # Assistant puts "what kind of thing is this": an entry is a radius
+        # around a point, a radius that follows a device tracker, or a chain
+        # of waypoints, and that was previously visible nowhere. The card
+        # reads this field for the line under its title, so the three values
+        # are part of what is published, not an internal note.
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, config_entry.entry_id)},
             name=self.displayname,
             manufacturer="Blitzer.de",
-            model="Wegpunkte" if self.search_mode == SEARCH_MODE_ROUTE else "Radius",
+            model={
+                SEARCH_MODE_ROUTE: "Wegpunkte",
+                SEARCH_MODE_TRACKER: "Tracker",
+            }.get(self.search_mode, "Radius"),
             entry_type=DeviceEntryType.SERVICE,
         )
 
@@ -460,6 +483,15 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             fetch_hazards = self._is_due("hazards", self.hazard_interval)
             self._forced.clear()
 
+            # Once per pass, not once per request: a poll that asks for
+            # controls, the archive and hazards would otherwise read the
+            # tracker three times and could search three different circles.
+            # Skipped entirely when neither half is due, so a tracker that
+            # is briefly without a fix doesn't fail a pass that was not
+            # going to fetch anything anyway.
+            if fetch_controls or fetch_hazards:
+                self._resolve_centre()
+
             # Whichever half isn't due keeps the list it last returned, so
             # its entities hold their state instead of blinking out between
             # the other half's polls.
@@ -487,8 +519,51 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             # This will show entities as unavailable by raising UpdateFailed exception
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
+    def _resolve_centre(self) -> None:
+        """In tracker mode, put the tracker's current position into
+        self.location - the same shape the area mode stores.
+
+        Everything downstream then reads one thing whichever mode this is:
+        the query below, and the distance each marker reports.
+
+        An UpdateFailed rather than an empty result when there is no
+        position: "we don't know where to look" is not the same answer as
+        "nothing is reported there", and the entities saying unavailable is
+        how Home Assistant spells the first one. A tracker without GPS - one
+        that only ever says home/not_home - carries no coordinates at all
+        and lands here on every poll, which is the honest outcome: it cannot
+        centre a radius. The coordinator logs the first failure and keeps the
+        repeats at debug, so a phone in a tunnel doesn't fill the log.
+        """
+        if self.search_mode != SEARCH_MODE_TRACKER:
+            return
+
+        state = self.hass.states.get(self.tracker_entity)
+        if state is None:
+            raise UpdateFailed(
+                f"{self.tracker_entity} does not exist (any more) - pick another "
+                f"tracker in this entry's options"
+            )
+        # The same test the config flow's picker uses, so a tracker that was
+        # offered in the form is one that can actually be searched around.
+        position = tracker_position(state)
+        if position is None:
+            raise UpdateFailed(
+                f"{self.tracker_entity} reports no usable position "
+                f"({state.state}) - only a tracker with coordinates can "
+                f"centre a radius"
+            )
+        self.location = {
+            "latitude": position[0],
+            "longitude": position[1],
+            "radius": self.tracker_radius,
+        }
+
     async def _query(self, types):
-        """One search for the given type codes, area or route as configured."""
+        """One search for the given type codes, as this entry is configured:
+        a circle around a fixed point, a circle around wherever the tracker
+        is, or a corridor along the route.
+        """
         if self.search_mode == SEARCH_MODE_ROUTE:
             return await self._get_route_items(types)
         return await self.api.getArea(

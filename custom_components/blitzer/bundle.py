@@ -28,12 +28,15 @@ _LOGGER = logging.getLogger(__name__)
 # replaces. The path is the domain's own, so nothing else can claim it.
 CARD_URL_BASE = f"/{DOMAIN}_static"
 CARD_FILE = "blitzer-card.js"
+# What Home Assistant is actually told to import. See the file itself for
+# why the card is not handed over directly.
+CARD_LOADER_FILE = "blitzer-card-loader.js"
 
 BLUEPRINT_DIR = "blueprints"
 
 
 async def async_register_card(hass: HomeAssistant) -> None:
-    """Serve the card and have every dashboard load it.
+    """Serve the card and its loader, and have every dashboard load it.
 
     "add_extra_js_url" rather than a Lovelace resource: a resource has to be
     written into the user's own resource list, which only exists on
@@ -41,18 +44,45 @@ async def async_register_card(hass: HomeAssistant) -> None:
     removal. An extra module URL is ours for as long as the integration is
     loaded and gone with it.
     """
-    source = Path(__file__).parent / "frontend" / CARD_FILE
-    url = f"{CARD_URL_BASE}/{CARD_FILE}"
+    frontend = Path(__file__).parent / "frontend"
+    card = frontend / CARD_FILE
+    loader = frontend / CARD_LOADER_FILE
 
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(url, str(source), False)]
-    )
+    if not card.is_file():
+        # An incomplete download is the realistic way here. Worth saying
+        # out loud, and worth not taking the rest of the integration down
+        # over: the areas, the sensors and the map markers do not need it.
+        _LOGGER.warning(
+            "The bundled dashboard card is missing (%s). Everything else is "
+            "set up as usual - reinstall the integration to get the card back.",
+            card,
+        )
+        return
 
-    # The version as a query string, so a browser holding the previous card
-    # fetches the new one after an update - rather than after a hard reload
-    # the user would have to know to do.
+    paths = [StaticPathConfig(f"{CARD_URL_BASE}/{CARD_FILE}", str(card), False)]
+    if loader.is_file():
+        paths.append(
+            StaticPathConfig(f"{CARD_URL_BASE}/{CARD_LOADER_FILE}", str(loader), False)
+        )
+    await hass.http.async_register_static_paths(paths)
+
+    # What gets imported is the loader, not the card. Home Assistant makes
+    # exactly one import attempt per page and never another, so a single
+    # fetch that does not arrive - a restart in that moment, a proxy
+    # hiccup - used to leave the card missing until the page was reloaded.
+    # The loader is a few hundred bytes and fetches the card itself, for as
+    # many attempts as it takes. See blitzer-card-loader.js.
+    #
+    # Without the loader on disk the card is handed over directly: a card
+    # that cannot retry still beats no card at all.
+    #
+    # The version travels as a query string, so a browser holding the
+    # previous card fetches the new one after an update rather than after a
+    # hard reload the user would have to know to do. The loader carries it
+    # over to the card's own URL.
     integration = await async_get_integration(hass, DOMAIN)
-    add_extra_js_url(hass, f"{url}?v={integration.version}")
+    name = CARD_LOADER_FILE if loader.is_file() else CARD_FILE
+    add_extra_js_url(hass, f"{CARD_URL_BASE}/{name}?v={integration.version}")
 
 
 async def async_install_blueprints(hass: HomeAssistant) -> None:
