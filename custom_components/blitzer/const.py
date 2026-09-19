@@ -243,6 +243,10 @@ CONF_ORS_RETURN_ROUTE = "ors_return_route"
 CONF_ORS_VIAS = "ors_vias"
 CONF_ROUTE_DISTANCE = "route_distance"
 CONF_ROUTE_DURATION = "route_duration"
+# Where a key comes from. In the code rather than in the sentence that
+# tells someone to go there: a translated string may not carry a URL, and
+# an address that changes should change in one place either way.
+ORS_SIGNUP_URL = "https://openrouteservice.org/"
 ORS_KIND_ZONE = "zone"
 ORS_KIND_POINT = "point"
 ORS_KIND_ADDRESS = "address"

@@ -197,7 +197,7 @@
             },
             "ors_key": {
                 "title": "openrouteservice",
-                "description": "The route is worked out by openrouteservice. It needs an API key, which is free:\n\n1. Sign up at [openrouteservice.org](https://openrouteservice.org/) and confirm the e-mail you receive.\n2. Log in. Your profile page shows the key at the top, **Basic Key**, with a copy button next to it.\n3. Paste it here.\n\nThe key is only used while a route is set up or changed. If a key is already saved, leave the field empty to keep it. A saved key is used for every further route without being asked for again.",
+                "description": "The route is worked out by openrouteservice. It needs an API key, which is free:\n\n1. Sign up at [openrouteservice.org]({url}) and confirm the e-mail you receive.\n2. Log in. Your profile page shows the key at the top, **Basic Key**, with a copy button next to it.\n3. Paste it here.\n\nThe key is only used while a route is set up or changed. If a key is already saved, leave the field empty to keep it. A saved key is used for every further route without being asked for again.",
                 "data": {
                     "ors_api_key": "API key",
                     "ors_save_key": "Save the key for further routes"
@@ -512,7 +512,7 @@
             },
             "ors_key": {
                 "title": "openrouteservice",
-                "description": "The route is worked out by openrouteservice. It needs an API key, which is free:\n\n1. Sign up at [openrouteservice.org](https://openrouteservice.org/) and confirm the e-mail you receive.\n2. Log in. Your profile page shows the key at the top, **Basic Key**, with a copy button next to it.\n3. Paste it here.\n\nThe key is only used while a route is set up or changed. If a key is already saved, leave the field empty to keep it. A saved key is used for every further route without being asked for again.",
+                "description": "The route is worked out by openrouteservice. It needs an API key, which is free:\n\n1. Sign up at [openrouteservice.org]({url}) and confirm the e-mail you receive.\n2. Log in. Your profile page shows the key at the top, **Basic Key**, with a copy button next to it.\n3. Paste it here.\n\nThe key is only used while a route is set up or changed. If a key is already saved, leave the field empty to keep it. A saved key is used for every further route without being asked for again.",
                 "data": {
                     "ors_api_key": "API key",
                     "ors_save_key": "Save the key for further routes"

@@ -57,6 +57,7 @@ from .const import (
     MAX_ROUTE_TOLERANCE,
     MIN_ROUTE_TOLERANCE,
     ORS_KIND_ADDRESS,
+    ORS_SIGNUP_URL,
     ORS_KIND_POINT,
     ORS_KIND_ZONE,
     tracker_position,
@@ -600,6 +601,7 @@ class _OrsRouteSteps:
                 }
             ),
             errors=errors,
+            description_placeholders={"url": ORS_SIGNUP_URL},
             last_step=False,
         )
 

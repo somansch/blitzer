@@ -197,7 +197,7 @@
             },
             "ors_key": {
                 "title": "openrouteservice",
-                "description": "Die Route berechnet openrouteservice. Dafür ist ein API-Key nötig, den es kostenlos gibt:\n\n1. Registriere dich auf [openrouteservice.org](https://openrouteservice.org/) und bestätige die E-Mail, die du bekommst.\n2. Melde dich an. Auf deiner Profilseite steht der Key oben als **Basic Key**, daneben ein Kopieren-Knopf.\n3. Füge ihn hier ein.\n\nDer Key wird nur beim Einrichten oder Ändern einer Route verwendet. Ist bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere Route verwendet, ohne erneut abgefragt zu werden.",
+                "description": "Die Route berechnet openrouteservice. Dafür ist ein API-Key nötig, den es kostenlos gibt:\n\n1. Registriere dich auf [openrouteservice.org]({url}) und bestätige die E-Mail, die du bekommst.\n2. Melde dich an. Auf deiner Profilseite steht der Key oben als **Basic Key**, daneben ein Kopieren-Knopf.\n3. Füge ihn hier ein.\n\nDer Key wird nur beim Einrichten oder Ändern einer Route verwendet. Ist bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere Route verwendet, ohne erneut abgefragt zu werden.",
                 "data": {
                     "ors_api_key": "API-Key",
                     "ors_save_key": "API-Key für weitere Routen speichern"
@@ -512,7 +512,7 @@
             },
             "ors_key": {
                 "title": "openrouteservice",
-                "description": "Die Route berechnet openrouteservice. Dafür ist ein API-Key nötig, den es kostenlos gibt:\n\n1. Registriere dich auf [openrouteservice.org](https://openrouteservice.org/) und bestätige die E-Mail, die du bekommst.\n2. Melde dich an. Auf deiner Profilseite steht der Key oben als **Basic Key**, daneben ein Kopieren-Knopf.\n3. Füge ihn hier ein.\n\nDer Key wird nur beim Einrichten oder Ändern einer Route verwendet. Ist bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere Route verwendet, ohne erneut abgefragt zu werden.",
+                "description": "Die Route berechnet openrouteservice. Dafür ist ein API-Key nötig, den es kostenlos gibt:\n\n1. Registriere dich auf [openrouteservice.org]({url}) und bestätige die E-Mail, die du bekommst.\n2. Melde dich an. Auf deiner Profilseite steht der Key oben als **Basic Key**, daneben ein Kopieren-Knopf.\n3. Füge ihn hier ein.\n\nDer Key wird nur beim Einrichten oder Ändern einer Route verwendet. Ist bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere Route verwendet, ohne erneut abgefragt zu werden.",
                 "data": {
                     "ors_api_key": "API-Key",
                     "ors_save_key": "API-Key für weitere Routen speichern"
