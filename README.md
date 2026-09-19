@@ -597,7 +597,7 @@ Two panels, each with three groups:
 
 Every field carries an **i** describing it, so the reference for its roughly 220 settings is the editor itself. The editor writes only what differs from the default, so a card configured entirely in the interface stays short in YAML.
 
-<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-custom.png" alt="The same three formats restyled: coloured badges, a renamed title, a background image, other symbols, underlined addresses, confirmation stars and recoloured counters" width="100%">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-custom.png" alt="The same three formats restyled: coloured badges, a renamed title, a background image, other symbols, underlined addresses, confirmation stars, a recoloured route with the discs its grouped reports sit on, and the minimal line with each of its three parts in a colour of its own" width="100%">
 
 The same card, the same area, the same data - and not a line of CSS. Everything above was set in the **Layout** panel.
 
