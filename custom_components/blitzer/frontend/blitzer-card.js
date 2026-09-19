@@ -58,7 +58,16 @@
       countView: (n) => `${n} in view`,
       newLabel: "New",
       newCount: (n) => `${n} New`,
+      // What the jams on this card add up to. Minutes up to an hour, hours
+      // and minutes above it - "+95 min" is a number to work out, "+1 h 35
+      // min" is one to read.
+      // Nought is not "+0": the plus means "on top of your journey", and
+      // nothing on top of it is what the minimal line says while the road
+      // is clear. The badge never shows this - it is not drawn at nought.
+      delaySum: (n) =>
+        n <= 0 ? "0 min" : n < 60 ? `+${n} min` : n % 60 ? `+${Math.floor(n / 60)} h ${n % 60} min` : `+${Math.floor(n / 60)} h`,
       noNew: "Nothing new right now",
+      noDelay: "Nothing is costing time right now",
       newReports: "new reports",
       popClose: "Close",
       foldOpen: (n) => `Show ${n} more`,
@@ -67,22 +76,27 @@
       edLayoutHelp: "Portrait stacks the map over the list, landscape puts them side by side. Minimal is one line with what is new, and the reports behind it in a pop-up.",
       miniLabelTotal: "total",
       miniLabelNew: "new",
+      miniLabelDelay: "delay",
       edMiniIconHelp: "Any MDI name, drawn in front of the number. Empty leaves the number on its own.",
       edMiniIconColorHelp: "Empty takes the colour of the number beside it.",
       edMiniIconSizeHelp: "How large the symbol is drawn, e.g. 22px. Empty keeps its usual size.",
       edFontColor: "Text color",
       edMiniBg: "Background color",
-      edMiniBgHelp: "The fill behind this half of the minimal line. The new reports start on the accent they already wear; empty leaves the fill clear.",
+      edMiniBgHelp: "The fill behind this part of the minimal line. The new reports and the delay start on the colour they already wear; empty leaves the fill clear.",
       edMiniBgOpacity: "Opacity",
       edMiniBgOpacityHelp: "How much of that colour comes through, in percent. With no colour set there is nothing for it to act on.",
       edElMiniTotal: "Total number of reports",
-      edElMiniTotalHelp: "The half of the minimal line counting everything the area reports.",
+      edElMiniTotalHelp: "The part of the minimal line counting everything the area reports.",
       edMiniTotalColorHelp: "Text color for the total.",
       edMiniTotalFontHelp: "Font size for the total.",
       edElMiniNew: "New reports",
-      edElMiniNewHelp: "The half of the minimal line counting only what is still new.",
+      edElMiniNewHelp: "The part of the minimal line counting only what is still new.",
       edMiniNewColorHelp: "Text color for the number of new reports.",
       edMiniNewFontHelp: "Font size for the number of new reports.",
+      edElMiniDelay: "What the jams cost",
+      edElMiniDelayHelp: "The part of the minimal line adding up the delay of every report behind it.",
+      edMiniDelayColorHelp: "Text color for what the jams cost.",
+      edMiniDelayFontHelp: "Font size for what the jams cost.",
       edElPopNew: "New marker in the list",
       edElPopNewHelp: "The NEW tag on an entry of the list in the pop-up.",
       edPopNewColorHelp: "Text color for that NEW tag.",
@@ -94,12 +108,14 @@
       edMiniTap: "Tap action",
       edMiniTapHelp: "What a tap on either of the two numbers does. On \"Default\" it opens the pop-up on the reports that number counts, which is what the format is for.",
       edMiniTotal: "Show the total",
-      edMiniTotalHelp: "The half of the minimal line counting how many reports the area has at all. Off leaves only what is new.",
+      edMiniTotalHelp: "The part of the minimal line counting how many reports the area has at all. Off leaves the line to the other parts.",
       layoutPortrait: "Portrait",
       layoutLandscape: "Landscape",
       layoutMinimal: "Minimal",
       newFilterOn: "Show only the new reports",
       newFilterOff: "Back to all reports",
+      delayFilterOn: "Show only the reports costing time",
+      delayFilterOff: "Back to all reports",
       // editor
       edPanelSettings: "Settings",
       edPanelSettingsDesc: "General, content and list",
@@ -113,8 +129,10 @@
       edTitleHelp: "Empty keeps the default heading.",
       edNothing: "Text when nothing is reported",
       edNothingHelp: "What the card says when the area has nothing to show. Empty keeps its own wording.",
+      edShowDelay: "Show what the jams cost",
+      edShowDelayHelp: "The red badge beside the NEW one, adding up the delay of every report on this card that carries one - and narrowing the card to those reports when it is clicked. In the minimal format it is the third part of the line instead, which opens the pop-up on those reports. Off, the delay stays in each report's own summary and nothing is added up.",
       edShowNew: "Show and mark new reports",
-      edShowNewHelp: "Marks fresh reports as NEW, and draws the new half of the minimal line. How long something counts as new is set on the area in Home Assistant - one window for controls, one for hazards.",
+      edShowNewHelp: "Marks fresh reports as NEW, and draws the new part of the minimal line. How long something counts as new is set on the area in Home Assistant - one window for controls, one for hazards.",
       edSubIcon: "Icon",
       edSubIconHelp: "Any Material Design icon, drawn in front of the line. Empty draws none.",
       edSubIconColor: "Icon color",
@@ -239,6 +257,14 @@
       edNewBackgroundHelp: "Show a rounded background behind the NEW marker.",
       edNewBg: "Background color",
       edNewBgHelp: "Background color behind the NEW marker.",
+      edElDelay: "Delay badge",
+      edElDelayHelp: "How the badge beside the NEW one is drawn - the one that adds up what the jams on this card cost, and narrows the card to them when clicked.",
+      edDelayColorHelp: "Text color for the delay badge.",
+      edDelayFontHelp: "Font size for the delay badge.",
+      edDelayBackground: "Show background",
+      edDelayBackgroundHelp: "Show a rounded background behind the delay badge.",
+      edDelayBg: "Background color",
+      edDelayBgHelp: "Background color behind the delay badge. Empty is the theme's own error color.",
       edHideTitle: "Hide",
       edHideTitleHelp: "Hide the card's own title, even when one is set above. The pop-up of the minimal format wears the same title, and loses it here too.",
       edElTitle: "Card title",
@@ -312,7 +338,7 @@
       edOnlyNew: "Only new reports",
       edOnlyNewHelp: "Shows only what is still marked as new. The badge in the head switches it too.",
       edReference: "Measure distance from",
-      edReferenceHelp: "The point every distance is measured from.",
+      edReferenceHelp: "The point every distance is measured from. On a route - waypoints or start/destination - every distance is the way along the route from its start, whatever is picked here.",
       refModeArea: "Centre of the area",
       refModeMap: "Centre of the map view",
       refModeEntity: "A person, a tracker or a zone",
@@ -356,6 +382,22 @@
       edMarkerBackgroundHelp: "The filled disc each marker sits on. Off lets the map show through.",
       edFollowMap: "List follows the map",
       edFollowMapHelp: "The map then shows the whole area and the list shows what is inside the visible part of it - for following a route. Switched off, the map mirrors the list instead.",
+      edMapRoute: "Show the route on the map",
+      edMapRouteHelp: "For a route entry - waypoints or start/destination - the route itself, drawn under the reports and fitted into view when the card first draws it. Its color and width are under Layout -> Map.",
+      edElRoute: "Route",
+      edElRouteHelp: "The line a route entry's route is drawn with. Only drawn while \"Show the route on the map\" is on under Settings -> General.",
+      edRouteColor: "Line color",
+      edRouteColorHelp: "The color of the route line and its end markers. Empty follows the theme's primary color.",
+      edRouteWidth: "Line width",
+      edRouteWidthHelp: "How thick the route line is drawn, in pixels. 4 by default.",
+      edElCluster: "Grouped reports",
+      edElClusterHelp: "The discs the map gathers nearby reports into when zoomed out, with the count on them. Zooming in splits them into the single reports again.",
+      edClusterColor: "Disc color",
+      edClusterColorHelp: "The color of the disc and of the ring around it. Empty follows the theme's primary color.",
+      edClusterTextColor: "Number color",
+      edClusterTextColorHelp: "The color of the count on the disc. Empty follows the theme's text color for it.",
+      edClusterFont: "Size and style of the number",
+      edClusterFontHelp: "The count's font size - 14px, 1.2em - and whether it is bold, italic or underlined. Empty keeps the map's own size.",
     },
     de: {
       title: "Blitzer.de",
@@ -381,7 +423,10 @@
       countView: (n) => `${n} im Ausschnitt`,
       newLabel: "Neu",
       newCount: (n) => `${n} Neu`,
+      delaySum: (n) =>
+        n <= 0 ? "0 Min" : n < 60 ? `+${n} Min` : n % 60 ? `+${Math.floor(n / 60)} Std ${n % 60} Min` : `+${Math.floor(n / 60)} Std`,
       noNew: "Aktuell nichts Neues",
+      noDelay: "Aktuell kostet nichts Zeit",
       newReports: "neue Meldungen",
       popClose: "Schließen",
       foldOpen: (n) => `${n} weitere anzeigen`,
@@ -390,22 +435,27 @@
       edLayoutHelp: "Hochformat stellt die Karte über die Liste, Querformat nebeneinander. Minimalformat ist eine Zeile mit dem, was neu ist, und den Meldungen dahinter in einem Pop-up.",
       miniLabelTotal: "gesamt",
       miniLabelNew: "neu",
+      miniLabelDelay: "Stau",
       edMiniIconHelp: "Ein beliebiger MDI-Name, gezeichnet vor der Zahl. Leer steht die Zahl für sich.",
       edMiniIconColorHelp: "Leer übernimmt die Farbe der Zahl daneben.",
       edMiniIconSizeHelp: "Wie groß das Symbol gezeichnet wird, z. B. 22px. Leer bleibt es bei seiner üblichen Größe.",
       edFontColor: "Schriftfarbe",
       edMiniBg: "Hintergrundfarbe",
-      edMiniBgHelp: "Die Fläche hinter dieser Hälfte der Minimalzeile. Bei den neuen Meldungen steht hier der Akzent, den sie ohnehin trägt; leer bleibt die Fläche durchsichtig.",
+      edMiniBgHelp: "Die Fläche hinter diesem Teil der Minimalzeile. Bei den neuen Meldungen und beim Stau steht hier die Farbe, die sie ohnehin tragen; leer bleibt die Fläche durchsichtig.",
       edMiniBgOpacity: "Deckkraft",
       edMiniBgOpacityHelp: "Wie viel von dieser Farbe durchkommt, in Prozent. Ohne gesetzte Farbe hat sie nichts, worauf sie wirken könnte.",
       edElMiniTotal: "Gesamtanzahl Meldungen",
-      edElMiniTotalHelp: "Die Hälfte der Minimalzeile, die alles zählt, was der Bereich meldet.",
+      edElMiniTotalHelp: "Der Teil der Minimalzeile, der alles zählt, was der Bereich meldet.",
       edMiniTotalColorHelp: "Textfarbe für die Gesamtanzahl.",
       edMiniTotalFontHelp: "Schriftgröße für die Gesamtanzahl.",
       edElMiniNew: "Neue Meldungen",
-      edElMiniNewHelp: "Die Hälfte der Minimalzeile, die nur zählt, was noch neu ist.",
+      edElMiniNewHelp: "Der Teil der Minimalzeile, der nur zählt, was noch neu ist.",
       edMiniNewColorHelp: "Textfarbe für die Anzahl der neuen Meldungen.",
       edMiniNewFontHelp: "Schriftgröße für die Anzahl der neuen Meldungen.",
+      edElMiniDelay: "Was die Staus kosten",
+      edElMiniDelayHelp: "Der Teil der Minimalzeile, der die Verzögerung aller Meldungen dahinter zusammenzählt.",
+      edMiniDelayColorHelp: "Textfarbe für das, was die Staus kosten.",
+      edMiniDelayFontHelp: "Schriftgröße für das, was die Staus kosten.",
       edElPopNew: "Neu-Markierung in der Liste",
       edElPopNewHelp: "Das NEU-Zeichen an einem Eintrag der Liste im Pop-up.",
       edPopNewColorHelp: "Textfarbe für dieses NEU-Zeichen.",
@@ -417,12 +467,14 @@
       edMiniTap: "Klick-Aktion",
       edMiniTapHelp: "Was ein Klick auf eine der beiden Zahlen tut. Bei \"Standard\" öffnet er das Pop-up mit den Meldungen, die diese Zahl zählt - wofür das Format gedacht ist.",
       edMiniTotal: "Gesamtanzahl anzeigen",
-      edMiniTotalHelp: "Die Hälfte der Minimalzeile, die zählt, wie viele Meldungen der Bereich überhaupt hat. Aus bleibt nur, was neu ist.",
+      edMiniTotalHelp: "Der Teil der Minimalzeile, der zählt, wie viele Meldungen der Bereich überhaupt hat. Aus überlässt die Zeile den anderen Teilen.",
       layoutPortrait: "Hochformat",
       layoutLandscape: "Querformat",
       layoutMinimal: "Minimalformat",
       newFilterOn: "Nur die neuen Meldungen anzeigen",
       newFilterOff: "Zurück zu allen Meldungen",
+      delayFilterOn: "Nur die Meldungen anzeigen, die Zeit kosten",
+      delayFilterOff: "Zurück zu allen Meldungen",
       // editor
       edPanelSettings: "Einstellungen",
       edPanelSettingsDesc: "Allgemein, Inhalt und Liste",
@@ -436,8 +488,10 @@
       edTitleHelp: "Leer behält die Standardüberschrift.",
       edNothing: "Text ohne Meldungen",
       edNothingHelp: "Was die Karte sagt, wenn der Bereich nichts zu zeigen hat. Leer behält ihren eigenen Wortlaut.",
+      edShowDelay: "Zeigen, was die Staus kosten",
+      edShowDelayHelp: "Das rote Abzeichen neben dem NEU-Abzeichen, das die Verzögerung aller Meldungen dieser Karte zusammenzählt - und die Karte beim Klick darauf auf diese Meldungen filtert. Im Minimalformat ist es stattdessen der dritte Teil der Zeile, der das Fenster auf diese Meldungen öffnet. Aus bleibt die Verzögerung in der Zusammenfassung jeder einzelnen Meldung, und nichts wird zusammengezählt.",
       edShowNew: "Neue Meldungen anzeigen und markieren",
-      edShowNewHelp: "Markiert frische Meldungen als NEU und zeichnet die Neu-Hälfte der Minimalzeile. Wie lange etwas als neu gilt, steht am Bereich in Home Assistant - je ein Zeitraum für Kontrollen und für Gefahren.",
+      edShowNewHelp: "Markiert frische Meldungen als NEU und zeichnet den Neu-Teil der Minimalzeile. Wie lange etwas als neu gilt, steht am Bereich in Home Assistant - je ein Zeitraum für Kontrollen und für Gefahren.",
       edSubIcon: "Symbol",
       edSubIconHelp: "Ein beliebiges Material-Design-Symbol, gezeichnet vor der Zeile. Leer zeichnet keines.",
       edSubIconColor: "Symbolfarbe",
@@ -562,6 +616,14 @@
       edNewBackgroundHelp: "Zeigt einen abgerundeten Hintergrund hinter der Neu-Markierung an.",
       edNewBg: "Hintergrundfarbe",
       edNewBgHelp: "Hintergrundfarbe hinter der Neu-Markierung.",
+      edElDelay: "Verzögerungs-Abzeichen",
+      edElDelayHelp: "Wie das Abzeichen neben dem NEU-Abzeichen gezeichnet wird - das, welches zusammenzählt, was die Staus dieser Karte kosten, und die Karte beim Klick darauf filtert.",
+      edDelayColorHelp: "Textfarbe für das Verzögerungs-Abzeichen.",
+      edDelayFontHelp: "Schriftgröße für das Verzögerungs-Abzeichen.",
+      edDelayBackground: "Hintergrund anzeigen",
+      edDelayBackgroundHelp: "Zeigt einen abgerundeten Hintergrund hinter dem Verzögerungs-Abzeichen an.",
+      edDelayBg: "Hintergrundfarbe",
+      edDelayBgHelp: "Hintergrundfarbe hinter dem Verzögerungs-Abzeichen. Leer ist die Fehlerfarbe des Themes.",
       edHideTitle: "Ausblenden",
       edHideTitleHelp: "Eigenen Kartentitel ausblenden, auch wenn oben einer gesetzt ist. Das Pop-up des Minimalformats trägt denselben Titel und verliert ihn hier mit.",
       edElTitle: "Kartentitel",
@@ -635,7 +697,7 @@
       edOnlyNew: "Nur neue Meldungen",
       edOnlyNewHelp: "Zeigt nur, was noch als neu markiert ist. Das Abzeichen im Kopf schaltet es ebenfalls um.",
       edReference: "Entfernung messen ab",
-      edReferenceHelp: "Der Punkt, von dem aus alle Entfernungen gerechnet werden.",
+      edReferenceHelp: "Der Punkt, von dem aus alle Entfernungen gerechnet werden. Bei einer Route - Wegpunkte oder Start/Ziel - ist jede Entfernung die Wegstrecke vom Start aus, egal was hier gewählt ist.",
       refModeArea: "Mittelpunkt des Bereichs",
       refModeMap: "Mittelpunkt der Kartenansicht",
       refModeEntity: "Person, Tracker oder Zone",
@@ -679,6 +741,22 @@
       edMarkerBackgroundHelp: "Die gefüllte Scheibe, auf der eine Markierung sitzt. Aus scheint die Karte durch.",
       edFollowMap: "Liste folgt der Karte",
       edFollowMapHelp: "Die Karte zeigt dann den ganzen Bereich und die Liste, was im sichtbaren Ausschnitt liegt - zum Verfolgen einer Route. Ausgeschaltet spiegelt die Karte stattdessen die Liste.",
+      edMapRoute: "Route in der Karte einzeichnen",
+      edMapRouteHelp: "Bei einem Routen-Eintrag - Wegpunkte oder Start/Ziel - die Route selbst, unter den Meldungen gezeichnet und beim ersten Aufbau der Karte ins Bild gerückt. Farbe und Breite stehen unter Layout -> Karte.",
+      edElRoute: "Route",
+      edElRouteHelp: "Die Linie, mit der die Route eines Routen-Eintrags gezeichnet wird. Nur solange \"Route in der Karte einzeichnen\" unter Einstellungen -> Allgemein an ist.",
+      edRouteColor: "Linienfarbe",
+      edRouteColorHelp: "Die Farbe der Routenlinie und ihrer Endpunkte. Leer folgt der Primärfarbe des Themes.",
+      edRouteWidth: "Linienbreite",
+      edRouteWidthHelp: "Wie dick die Routenlinie gezeichnet wird, in Pixeln. Standard 4.",
+      edElCluster: "Zusammengefasste Meldungen",
+      edElClusterHelp: "Die Scheiben, in denen die Karte nahe beieinanderliegende Meldungen herausgezoomt zusammenfasst, mit der Anzahl darauf. Hineinzoomen teilt sie wieder in die einzelnen Meldungen auf.",
+      edClusterColor: "Farbe der Scheibe",
+      edClusterColorHelp: "Die Farbe der Scheibe und des Rings darum. Leer folgt der Primärfarbe des Themes.",
+      edClusterTextColor: "Farbe der Zahl",
+      edClusterTextColorHelp: "Die Farbe der Anzahl auf der Scheibe. Leer folgt der Textfarbe, die das Theme dafür vorsieht.",
+      edClusterFont: "Größe und Stil der Zahl",
+      edClusterFontHelp: "Schriftgröße der Anzahl - 14px, 1.2em - und ob sie fett, kursiv oder unterstrichen ist. Leer behält die Größe der Karte.",
     },
   };
 
@@ -738,6 +816,21 @@
     // stylesheet no longer paints one of its own.
     mini_new_fill_color: "var(--blitzer-new-background, var(--accent-color, #ff9800))",
     mini_new_fill_opacity: 14,
+    // The third part, arranged like the second: a clock rather than a queue,
+    // because what this part counts is time rather than reports, and the
+    // colour of the badge it stands in for.
+    mini_delay_icon: "mdi:timer-alert-outline",
+    mini_delay_icon_color: "",
+    mini_delay_icon_size: "",
+    mini_delay_color: "",
+    mini_delay_font_size: "",
+    mini_delay_bold: false,
+    mini_delay_italic: false,
+    mini_delay_uppercase: false,
+    mini_delay_underline: false,
+    mini_delay_letter_spacing: "",
+    mini_delay_fill_color: "var(--blitzer-delay-background, var(--error-color, #db4437))",
+    mini_delay_fill_opacity: 14,
     // The same starting look as the NEW tag in the card's own list: bold,
     // in capitals, on its pill.
     pop_new_color: "",
@@ -750,8 +843,9 @@
     pop_new_underline: false,
     pop_new_letter_spacing: "",
     // And whether that pop-up puts a map beside the list.
-    // Which halves the minimal line is made of. The other one follows
-    // show_new: with nothing marked as new there is no new half to draw.
+    // Which parts the minimal line is made of. The other two follow
+    // show_new and show_delay, which answer for the head's badges where
+    // there is a head instead.
     mini_show_total: true,
     title: "",           // empty = the translated default
     areas: [],           // device ids; empty = every configured area
@@ -865,6 +959,12 @@
     // lasts is not the card's to answer - it belongs to the area, and is
     // read back off its sensors. See newWindows().
     show_new: true,
+    // What the jams cost, added up (see delaySum): the badge beside the NEW
+    // one where there is a head to draw it in, the third part of the line
+    // where there is not. The badge is only drawn where there is something
+    // to add up; the part of the line stands quiet at nought, the way the
+    // new part beside it does.
+    show_delay: true,
     new_color: "",
     new_background: true,
     new_background_color: "",
@@ -876,6 +976,18 @@
     new_uppercase: true,
     new_underline: false,
     new_letter_spacing: "",
+    // The delay badge beside it (see delaySum): the same nine settings, so
+    // the two can be styled as a pair or told apart. Bold and in capitals
+    // like the badge it stands next to, which is where it started.
+    delay_color: "",
+    delay_background: true,
+    delay_background_color: "",
+    delay_font_size: "",
+    delay_bold: true,
+    delay_italic: false,
+    delay_uppercase: true,
+    delay_underline: false,
+    delay_letter_spacing: "",
     // On by default, both of them: a map beside the list is what most people
     // put this card on a dashboard for, and with the list following the map
     // panning it is how one reads a route rather than a radius.
@@ -892,6 +1004,21 @@
     // into the card is what this card is meant to look like. The switch is
     // there for anyone who wants the plain rectangle back.
     map_fade: true,
+    // The route of a route entry - waypoints or start/destination - drawn on
+    // the map. Its colour follows the theme's primary colour until one is
+    // picked; the width is in pixels.
+    map_route: true,
+    route_color: "",
+    route_width: 4,
+    // The discs Home Assistant's map gathers nearby reports into, with the
+    // count on them: the disc's colour and the count's. Empty leaves the
+    // theme's primary colour and its text colour on it.
+    cluster_color: "",
+    cluster_text_color: "",
+    cluster_font_size: "",
+    cluster_bold: false,
+    cluster_italic: false,
+    cluster_underline: false,
     follow_map: true,
     // A click on a list entry aims the map at that report rather than
     // opening Home Assistant's details dialog for it.
@@ -1019,6 +1146,334 @@
   // sees it. A renamed device answers on name_by_user, so both are read - and
   // the id, not the name, is what the entities are matched against further
   // down, so renaming an area never breaks the card.
+  // ------------------------------------------------------------------ route
+  //
+  // The line a "Route (start/destination)" entry searches along, drawn on
+  // Home Assistant's own map - in this card, in its pop-up, and in the setup
+  // dialog, which has no field of its own that could draw one.
+  //
+  // Drawn with the map element's own Leaflet (ha-map's Leaflet and
+  // leafletMap), in the overlay pane, so the reports sit on top of it.
+  function routeSig(route) {
+    if (!route || !route.points || route.points.length < 2) return "";
+    const pts = route.points;
+    return pts.length + ":" + pts[0].join(",") + ":" + pts[pts.length - 1].join(",");
+  }
+
+  // The colour the route is drawn in: the one picked in the editor, or the
+  // theme's primary colour. A picked one is resolved here - a preset is a CSS
+  // variable, and Leaflet writes the colour into an SVG attribute, where a
+  // variable means nothing.
+  function routeColor(el, picked) {
+    try {
+      if (picked) {
+        const probe = document.createElement("span");
+        probe.style.display = "none";
+        probe.style.color = picked;
+        (el.shadowRoot || el).appendChild(probe);
+        const rgb = getComputedStyle(probe).color;
+        probe.remove();
+        if (rgb) return rgb;
+      }
+      return getComputedStyle(el).getPropertyValue("--primary-color").trim() || "#03a9f4";
+    } catch (err) {
+      return "#03a9f4";
+    }
+  }
+
+  function drawRoute(L, leaflet, points, color, vias, weight) {
+    const width = Number.isFinite(Number(weight)) && Number(weight) > 0 ? Number(weight) : 4;
+    const line = L.polyline(points, { color, weight: width, opacity: 0.85, interactive: false });
+    // Start hollow, destination filled: which way round it runs, without a
+    // legend.
+    const end = (point, filled) =>
+      L.circleMarker(point, {
+        radius: 5,
+        color: "#fff",
+        weight: 2,
+        fillColor: color,
+        fillOpacity: filled ? 1 : 0.35,
+        interactive: false,
+      });
+    const layers = [line, end(points[0], false), end(points[points.length - 1], true)];
+    // The via points too, smaller: a route that bends away from where it
+    // seems to be going is almost always following one, and without it on
+    // the map there is nothing to say why.
+    for (const via of Array.isArray(vias) ? vias : []) {
+      layers.push(
+        L.circleMarker(via, {
+          radius: 4,
+          color: "#fff",
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 0.7,
+          interactive: false,
+        })
+      );
+    }
+    layers.forEach((layer) => layer.addTo(leaflet));
+    return { layers, bounds: line.getBounds() };
+  }
+
+  function removeRoute(drawn) {
+    if (!drawn) return;
+    for (const layer of drawn.layers) {
+      try {
+        layer.remove();
+      } catch (err) {
+        // Its map is already gone.
+      }
+    }
+  }
+
+  // Since 2026.9 the streets under ha-map are a MapLibre GL layer, and it
+  // does not follow a jump it was not animated through: after a plain fit it
+  // keeps its last frame, stretched over the new view - measured, labels
+  // three times their size until something else moved the map. Telling it
+  // its size again makes it draw the view it is actually showing.
+  function refreshBaseMap(leaflet) {
+    try {
+      leaflet.eachLayer((layer) => {
+        if (typeof layer.getMaplibreMap !== "function") return;
+        const gl = layer.getMaplibreMap();
+        if (gl && typeof gl.resize === "function") gl.resize();
+      });
+    } catch (err) {
+      // No MapLibre layer on this version - nothing to refresh.
+    }
+  }
+
+  // Without animation: an animated fit is exactly what leaves the stretched
+  // frame behind.
+  function fitRoute(leaflet, bounds) {
+    try {
+      leaflet.invalidateSize(false);
+      leaflet.fitBounds(bounds, { padding: [20, 20], animate: false });
+    } catch (err) {
+      return;
+    }
+    refreshBaseMap(leaflet);
+  }
+
+  // Home Assistant's map fits itself to its markers once it has them, and
+  // that lands after a route fitted the moment the map attached. Measured on
+  // a 458 x 258 map: the first fit left the route's far end outside it, while
+  // the very same fit repeated later showed it end to end - and with the list
+  // following the map, reports at that end had dropped out of the list too.
+  //
+  // When that fit comes is not something to guess at: with the streets drawn
+  // by MapLibre the map takes 15-30 s to appear, and a few timed refits a
+  // few seconds apart still lost. So the map is asked instead - every time it
+  // comes to rest, a route no longer entirely in view is fitted again. The
+  // route's own fit comes to rest with the route in view, so it does not set
+  // itself off again. The first touch - a drag, a pinch, the wheel, a key -
+  // ends it for good: where someone put the view is where it stays.
+  function fitRouteSettled(leaflet, bounds) {
+    fitRoute(leaflet, bounds);
+    const container = typeof leaflet.getContainer === "function" ? leaflet.getContainer() : null;
+    const events = ["mousedown", "touchstart", "wheel", "keydown"];
+    let done = false;
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      try {
+        leaflet.off("moveend", onRest);
+      } catch (err) {
+        // The map went first.
+      }
+      if (container) {
+        events.forEach((name) => container.removeEventListener(name, cleanup));
+      }
+    };
+    const onRest = () => {
+      let inView = true;
+      try {
+        inView = leaflet.getBounds().contains(bounds);
+      } catch (err) {
+        cleanup();
+        return;
+      }
+      if (!inView) fitRoute(leaflet, bounds);
+    };
+    leaflet.on("moveend", onRest);
+    if (container) {
+      events.forEach((name) => container.addEventListener(name, cleanup, { passive: true }));
+    }
+    // Long enough for the slowest first load measured, and not forever: a
+    // map left alone for a minute has settled.
+    window.setTimeout(cleanup, 60000);
+  }
+
+  // ---------------------------------------------------------- setup dialog
+  //
+  // The integration hands a route step's points to the frontend in the
+  // step's description_placeholders, under "blitzer_route" - a key no text
+  // refers to. Every Home Assistant page loads this file, so the dialog is
+  // watched from here and a native map with the route is put under the
+  // step's description.
+  //
+  // None of what this reaches into is a documented interface:
+  // dialog-data-entry-flow in home-assistant's shadow root, the
+  // step-flow-form inside it and that element's "step" property. Each step
+  // is a new step-flow-form. Everything is guarded, so a dialog laid out
+  // differently one day shows its form without the map rather than failing.
+  function ensureHaMap() {
+    if (customElements.get("ha-map")) return Promise.resolve();
+    // ha-map is loaded on demand. A location selector pulls it in, and the
+    // dialog has one defined already.
+    let probe;
+    try {
+      const ha = document.querySelector("home-assistant");
+      probe = document.createElement("ha-selector");
+      probe.hass = ha && ha.hass;
+      probe.selector = { location: {} };
+      probe.value = { latitude: 0, longitude: 0 };
+      probe.style.cssText = "position:fixed;left:-9999px;top:0;width:10px;height:10px";
+      document.body.appendChild(probe);
+    } catch (err) {
+      probe = undefined;
+    }
+    return Promise.race([
+      customElements.whenDefined("ha-map"),
+      new Promise((resolve) => window.setTimeout(resolve, 8000)),
+    ]).then(() => {
+      if (probe) probe.remove();
+    });
+  }
+
+  // A number on a route, for telling alternatives apart: a small disc at
+  // the route's middle point, in the line's colour.
+  function routeLabel(L, points, text, color) {
+    const middle = points[Math.floor(points.length / 2)];
+    return L.marker(middle, {
+      interactive: false,
+      icon: L.divIcon({
+        className: "",
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+        html:
+          `<div style="width:22px;height:22px;border-radius:50%;background:${color};` +
+          `color:#fff;font:700 13px/22px sans-serif;text-align:center;` +
+          `box-shadow:0 0 0 2px #fff">${text}</div>`,
+      }),
+    });
+  }
+
+  // Where several routes are on offer, the fastest is drawn as the route
+  // and the others beside it in their own colours, each numbered the way
+  // the menu numbers them - so "Route 2" can be found on the map.
+  const ALTERNATIVE_COLORS = ["#ff9800", "#9c27b0"];
+
+  function drawFlowRoute(map, points, vias, attempt, alternatives) {
+    const leaflet = map.leafletMap;
+    const L = map.Leaflet;
+    if (!leaflet || !L) {
+      if (attempt < 40) {
+        window.setTimeout(() => drawFlowRoute(map, points, vias, attempt + 1, alternatives), 250);
+      }
+      return;
+    }
+    const color = routeColor(map);
+    let bounds = null;
+    (alternatives || []).forEach((route, i) => {
+      const tint = ALTERNATIVE_COLORS[i % ALTERNATIVE_COLORS.length];
+      const line = L.polyline(route, { color: tint, weight: 4, opacity: 0.8, dashArray: "8 6", interactive: false });
+      line.addTo(leaflet);
+      routeLabel(L, route, String(i + 2), tint).addTo(leaflet);
+      bounds = bounds ? bounds.extend(line.getBounds()) : line.getBounds();
+    });
+    const drawn = drawRoute(L, leaflet, points, color, vias);
+    if (alternatives && alternatives.length) routeLabel(L, points, "1", color).addTo(leaflet);
+    bounds = bounds ? bounds.extend(drawn.bounds) : drawn.bounds;
+    fitRoute(leaflet, bounds);
+    // The dialog grows into its size while it opens; fit once more after.
+    window.setTimeout(() => fitRoute(leaflet, bounds), 500);
+  }
+
+  async function addFlowMap(form, points, vias, attempt, alternatives) {
+    const root = form.shadowRoot;
+    const description = root && root.querySelector("ha-markdown");
+    if (!description || !description.parentNode) {
+      if (attempt < 20) {
+        window.setTimeout(() => addFlowMap(form, points, vias, attempt + 1, alternatives), 150);
+      }
+      return;
+    }
+    await ensureHaMap();
+    if (!customElements.get("ha-map") || !form.isConnected) return;
+    const ha = document.querySelector("home-assistant");
+    const map = document.createElement("ha-map");
+    map.hass = ha && ha.hass;
+    map.style.cssText =
+      "display:block;height:240px;margin:12px 0 4px;border-radius:8px;overflow:hidden";
+    description.parentNode.insertBefore(map, description.nextSibling);
+    drawFlowRoute(map, points, vias, 0, alternatives);
+  }
+
+  function decorateFlow(dialog) {
+    // A form, or the menu that picks between routes - both carry a
+    // description, which is where the map goes.
+    const form =
+      dialog.shadowRoot && dialog.shadowRoot.querySelector("step-flow-form, step-flow-menu");
+    if (!form || form.__blitzerRoute) return;
+    const placeholders = form.step && form.step.description_placeholders;
+    const raw = placeholders && placeholders.blitzer_route;
+    if (!raw) return;
+    let points;
+    try {
+      points = JSON.parse(raw);
+    } catch (err) {
+      return;
+    }
+    if (!Array.isArray(points) || points.length < 2) return;
+    let vias = [];
+    try {
+      vias = JSON.parse(placeholders.blitzer_vias || "[]");
+    } catch (err) {
+      vias = [];
+    }
+    let alternatives = [];
+    try {
+      alternatives = JSON.parse(placeholders.blitzer_alternatives || "[]");
+    } catch (err) {
+      alternatives = [];
+    }
+    if (!Array.isArray(alternatives)) alternatives = [];
+    form.__blitzerRoute = true;
+    addFlowMap(form, points, vias, 0, alternatives);
+  }
+
+  function watchFlowDialogs() {
+    if (window.__blitzerFlowMapWatch) return;
+    const ha = document.querySelector("home-assistant");
+    if (!ha || !ha.shadowRoot) {
+      window.setTimeout(watchFlowDialogs, 1000);
+      return;
+    }
+    window.__blitzerFlowMapWatch = true;
+    const watched = new WeakSet();
+    const scan = () => {
+      for (const dialog of ha.shadowRoot.querySelectorAll("dialog-data-entry-flow")) {
+        if (watched.has(dialog) || !dialog.shadowRoot) continue;
+        watched.add(dialog);
+        new MutationObserver(() => decorateFlow(dialog)).observe(dialog.shadowRoot, {
+          childList: true,
+          subtree: true,
+        });
+        decorateFlow(dialog);
+      }
+    };
+    new MutationObserver(scan).observe(ha.shadowRoot, { childList: true, subtree: true });
+    scan();
+  }
+
+  // The device's model field is what the integration puts the search mode
+  // in: "Wegpunkte" for a waypoint route, "Route" for one openrouteservice
+  // worked out.
+  function isRouteArea(area) {
+    return !!area && (area.model === "Wegpunkte" || area.model === "Route");
+  }
+
   function blitzerAreas(hass, wanted) {
     const out = [];
     for (const device of Object.values(hass.devices || {})) {
@@ -1279,6 +1734,16 @@
   // actually been set is written, so an untouched card keeps the theme's own
   // look rather than a frozen copy of today's defaults. `prefix` is the
   // element's own config prefix - "title", "no_reports".
+  // How many minutes one report costs. The integration works this out the
+  // way Blitzer.de's own map does - ceil(delay / 60) - and only reports it
+  // on the types that describe a queue, so anything without it simply
+  // costs nothing (see _tailback_figures in geo_location.py).
+  function delayMinutes(row) {
+    const raw = row && row.state && row.state.attributes ? row.state.attributes.delay_minutes : null;
+    const minutes = Number.parseInt(raw, 10);
+    return Number.isFinite(minutes) && minutes > 0 ? minutes : 0;
+  }
+
   function elementStyle(config, prefix) {
     const parts = [];
     const color = config[`${prefix}_color`];
@@ -1312,6 +1777,55 @@
     if (config.map_marker_border === false) parts.push("border-color: transparent !important;");
     if (config.map_marker_background === false) parts.push("background: none !important;");
     return parts.length ? `.marker { ${parts.join(" ")} }` : "";
+  }
+
+  // The map's cluster discs - the ones it gathers nearby reports into, with
+  // the count on them - as --blitzer-cluster-* custom properties, the way
+  // every other element of this card is dressed. Home Assistant draws each
+  // as a filled disc with a wider ring of the same colour at a fifth of its
+  // opacity, and the count on it in its text colour; every fallback here is
+  // Home Assistant's own declaration, so nothing changes until a property
+  // is set. The ring follows the disc, so a recoloured disc still looks like
+  // Home Assistant's. The rule lands inside the map's own shadow root, which
+  // the card's stylesheet cannot reach - but the properties do: a custom
+  // property set on the map card, by the editor or by a theme, is inherited
+  // straight through.
+  const CLUSTER_CSS = [
+    ".marker-cluster div {",
+    "  background-color: var(--blitzer-cluster-background, var(--primary-color)) !important;",
+    "  border-color: color-mix(in srgb, var(--blitzer-cluster-background, var(--primary-color)) 20%, transparent) !important;",
+    "  color: var(--blitzer-cluster-color, var(--text-primary-color)) !important;",
+    "  font-size: var(--blitzer-cluster-font-size, var(--ha-font-size-m)) !important;",
+    "  font-weight: var(--blitzer-cluster-font-weight, normal) !important;",
+    "  font-style: var(--blitzer-cluster-font-style, normal) !important;",
+    "  text-transform: var(--blitzer-cluster-text-transform, none) !important;",
+    "  text-decoration: var(--blitzer-cluster-text-decoration, none) !important;",
+    "  letter-spacing: var(--blitzer-cluster-letter-spacing, normal) !important;",
+    // Centred whatever its size. Home Assistant gives the count a line height
+    // of twice its font size and lets the disc centre that line, which holds
+    // at the size it ships with and sinks the count as it grows - at 24px it
+    // sat 8px low. Centring the count itself instead, at a line height of its
+    // own size, puts it in the middle at every size, and at the map's own
+    // size within a third of a pixel of where it was.
+    "  display: flex !important;",
+    "  align-items: center !important;",
+    "  justify-content: center !important;",
+    "}",
+    ".marker-cluster span { line-height: 1 !important; }",
+  ].join("\n");
+
+  // What the editor's cluster settings put into those properties. Only the
+  // ones set: an unset one is removed again, so a theme's value shows
+  // through the moment the card's own is cleared.
+  function clusterVars(config) {
+    return {
+      "--blitzer-cluster-background": config.cluster_color || "",
+      "--blitzer-cluster-color": config.cluster_text_color || "",
+      "--blitzer-cluster-font-size": config.cluster_font_size || "",
+      "--blitzer-cluster-font-weight": config.cluster_bold ? "700" : "",
+      "--blitzer-cluster-font-style": config.cluster_italic ? "italic" : "",
+      "--blitzer-cluster-text-decoration": config.cluster_underline ? "underline" : "",
+    };
   }
 
   // The subtitle line's icon has a colour and a size of its own, so it can be
@@ -1466,9 +1980,11 @@
       this._config = defaultConfig(config);
       this._filter = this._config.filter;
       this._onlyNew = this._config.only_new === true;
+      this._onlyDelay = false;
       this._highlight = null;
       this._centred = false;
       this._newRows = new Set();
+      this._delayRows = new Set();
       this._area = undefined;
       this._signature = undefined;
       this._mapKey = undefined;
@@ -1720,7 +2236,11 @@
 
       const areaId = this._areaId();
       const area = areas.find((a) => a.id === areaId);
-      const reference = this._referencePoint();
+      // On a route the integration's figure is the way along the route from
+      // its start, and that is what a route's markers show whatever is
+      // picked under "Measure distance from": a straight line from the map's
+      // centre says nothing about where on the trip a report is.
+      const reference = isRouteArea(area) ? null : this._referencePoint();
       const all = reportsFor(this._hass, areaId, this._filter, reference, this._config.sort);
       this._allRows = all;
       this._total = all.length;
@@ -1751,6 +2271,21 @@
       this._newRows = new Set(
         pool.filter((row) => isNewReport(row, windows, now)).map((r) => r.entityId)
       );
+      // The jams that say what they cost, and what they cost together. Off
+      // the same pool as the badge above, so both numbers answer for the
+      // same reports - what is on this card, and while the list follows the
+      // map, what is on screen.
+      this._delayRows = new Set();
+      this._delayTotal = 0;
+      for (const row of this._config.show_delay === false ? [] : pool) {
+        const minutes = delayMinutes(row);
+        if (!minutes) continue;
+        this._delayRows.add(row.entityId);
+        this._delayTotal += minutes;
+      }
+      // Nothing left that costs time - the badge that would switch this back
+      // off has gone with it, the same way "only new" lets go of itself.
+      if (this._onlyDelay && !this._delayRows.size) this._onlyDelay = false;
       // Nothing new left to show - the badge that would switch this back off
       // has gone with it, so the card lets go of the filter itself rather
       // than stranding whoever set it on an empty list. Not when the card was
@@ -1760,7 +2295,14 @@
         this._onlyNew = false;
       }
 
-      const candidates = this._onlyNew ? pool.filter((r) => this._newRows.has(r.entityId)) : pool;
+      // One at a time: each badge narrows the card to what it counted, and
+      // two narrowings at once would leave a card that can be empty with
+      // both badges still standing on it.
+      const candidates = this._onlyNew
+        ? pool.filter((r) => this._newRows.has(r.entityId))
+        : this._onlyDelay
+          ? pool.filter((r) => this._delayRows.has(r.entityId))
+          : pool;
       this._inView = this._following && this._bounds ? candidates.length : null;
       const limit = this._config.show_max ? this._config.max : 0;
       this._rows = limit > 0 ? candidates.slice(0, limit) : candidates;
@@ -1770,7 +2312,9 @@
       this._mapRows = this._following
         ? (this._onlyNew
             ? all.filter((r) => isNewReport(r, windows, now))
-            : all)
+            : this._onlyDelay
+              ? all.filter((r) => delayMinutes(r) > 0)
+              : all)
         : this._rows;
 
       const minimal = this._layout === "minimal";
@@ -1811,14 +2355,16 @@
       // button. With a tap action set it leads somewhere regardless of the
       // count, so it stays one.
       const dead = (value) => !value && !this._miniTapAction;
-      const half = (what, scope, prefix, value, label) => {
+      // What is written is not always what decides whether there is anything
+      // there: the delay part says "+22 min", and a string is never nought.
+      const half = (what, scope, prefix, value, label, count = value) => {
         const style = elementStyle(this._config, prefix);
         // The fill goes on a layer of its own rather than on the button, for
         // the same reason the card's background does: an opacity set on the
         // button would take the number and the word down with it.
         const fill = [];
         const colour = this._config[`${prefix}_fill_color`];
-        const half = prefix === "mini_new" ? "mini-new" : "mini-total";
+        const half = { mini_new: "mini-new", mini_delay: "mini-delay" }[prefix] || "mini-total";
         if (colour) fill.push(`--blitzer-${half}-fill-color: ${colour}`);
         const percent = Number(this._config[`${prefix}_fill_opacity`]);
         if (Number.isFinite(percent) && percent !== 100) {
@@ -1834,8 +2380,8 @@
           .split("; ")
           .filter((part) => !part.startsWith("font-size:"))
           .join("; ");
-        return `<button type="button" class="mini-half ${what}${dead(value) ? " empty" : ""}"
-                 data-scope="${scope}"${dead(value) ? " disabled" : ""}
+        return `<button type="button" class="mini-half ${what}${dead(count) ? " empty" : ""}"
+                 data-scope="${scope}"${dead(count) ? " disabled" : ""}
                  style="${escapeHtml(fill.join("; "))}">
           ${miniIconHtml(this._config, prefix)}
           <span class="mini-value" style="${escapeHtml(style)}">${escapeHtml(
@@ -1846,9 +2392,9 @@
           )}</span>
         </button>`;
       };
-      // Each half on its own switch, and neither stands in for the other:
-      // with both off the line is empty, which is what two switches set to
-      // off asked for.
+      // Each part on its own switch, and none stands in for another: with
+      // all of them off the line is empty, which is what three switches set
+      // to off asked for.
       const halves = [];
       if (this._config.mini_show_total !== false) {
         halves.push(
@@ -1861,6 +2407,17 @@
                this._newRows.size, str.miniLabelNew)
         );
       }
+      // And what those reports cost in time. Drawn at nought too, quiet the
+      // way the new part is: a line that gained and lost a third of itself
+      // every time a jam cleared would move everything under it each time.
+      if (this._config.show_delay !== false) {
+        halves.push(
+          half(this._delayTotal ? "delay" : "delay quiet", "delay", "mini_delay",
+               str.delaySum(this._delayTotal), str.miniLabelDelay, this._delayTotal)
+        );
+      }
+      // Three parts need the room two had; the words go first (see .mini.three).
+      this._miniEl.classList.toggle("three", halves.length > 2);
       this._miniEl.innerHTML = halves.join("");
       for (const button of this._miniEl.querySelectorAll(".mini-half")) {
         button.addEventListener("click", () => {
@@ -1960,9 +2517,14 @@
       return (this._allRows || []).filter((r) => this._newRows.has(r.entityId));
     }
 
-    // What the pop-up is about - decided by which of the two numbers opened it.
+    _delayReports() {
+      return (this._allRows || []).filter((r) => this._delayRows.has(r.entityId));
+    }
+
+    // What the pop-up is about - decided by which of the numbers opened it.
     _popRows() {
-      return this._popScope === "all" ? this._allRows || [] : this._newReports();
+      if (this._popScope === "all") return this._allRows || [];
+      return this._popScope === "delay" ? this._delayReports() : this._newReports();
     }
 
     // The reports behind the line: the map on one side, the list on the other,
@@ -2010,7 +2572,12 @@
             )
             .join("")}</div>`
         : `<div class="empty" style="${escapeHtml(elementStyle(this._config, "no_reports"))}">${escapeHtml(
-            this._config.no_reports_text || (this._popScope === "all" ? str.nothing : str.noNew)
+            this._config.no_reports_text ||
+              (this._popScope === "all"
+                ? str.nothing
+                : this._popScope === "delay"
+                  ? str.noDelay
+                  : str.noNew)
           )}</div>`;
       this._fitIcons();
       // The same click as in the card: it aims the map at the report, and
@@ -2091,6 +2658,7 @@
         }
         this._popLeaflet = leaflet;
         this._popHaMap = haMap;
+        this._paintPopRoute();
         this._onPopMarkerClick = (ev) => {
           if (this._config.map_highlight === false) return;
           const marker = ev.composedPath().find((n) => n && n.tagName === "HA-ENTITY-MARKER");
@@ -2139,6 +2707,8 @@
           // Its shadow root went with it.
         }
       }
+      removeRoute(this._popRouteDrawn);
+      this._popRouteDrawn = undefined;
       this._popLeaflet = undefined;
       this._popHaMap = undefined;
       this._onPopMapClick = undefined;
@@ -2155,8 +2725,13 @@
     // goes for one with neither the map nor the list switched on.
     _openPop(scope) {
       if (!this._hass) return;
-      const wanted = scope === "all" ? "all" : "new";
-      const rows = wanted === "all" ? this._allRows || [] : this._newReports();
+      const wanted = scope === "all" || scope === "delay" ? scope : "new";
+      const rows =
+        wanted === "all"
+          ? this._allRows || []
+          : wanted === "delay"
+            ? this._delayReports()
+            : this._newReports();
       if (!rows.length) return;
       if (this._config.show_map === false && this._config.show_list === false) return;
       this._popScope = wanted;
@@ -2188,7 +2763,7 @@
       // mode in; "Radius" is also what every entry made before the other two
       // existed carries, which is why it is the fallback rather than a case.
       const mode =
-        area.model === "Wegpunkte"
+        isRouteArea(area)
           ? str.waypoints
           : area.model === "Tracker"
           ? str.tracker
@@ -2230,6 +2805,13 @@
                     style="${escapeHtml(elementStyle(this._config, "new"))}"
                  >${escapeHtml(str.newCount(this._newRows.size))}</button>`
               : ""}
+            ${this._delayTotal
+              ? `<button type="button" class="badge delay" data-what="delay-filter"
+                    aria-pressed="${this._onlyDelay ? "true" : "false"}"
+                    title="${escapeHtml(this._onlyDelay ? str.delayFilterOff : str.delayFilterOn)}"
+                    style="${escapeHtml(elementStyle(this._config, "delay"))}"
+                 >${escapeHtml(str.delaySum(this._delayTotal))}</button>`
+              : ""}
           </div>
           ${subText || refresh
             ? `<div class="sub" style="${escapeHtml(elementStyle(this._config, "sub"))}">${
@@ -2260,6 +2842,16 @@
       if (newButton) {
         newButton.addEventListener("click", () => {
           this._onlyNew = !this._onlyNew;
+          if (this._onlyNew) this._onlyDelay = false;
+          this._render();
+        });
+      }
+
+      const delayButton = this._headEl.querySelector('[data-what="delay-filter"]');
+      if (delayButton) {
+        delayButton.addEventListener("click", () => {
+          this._onlyDelay = !this._onlyDelay;
+          if (this._onlyDelay) this._onlyNew = false;
           this._render();
         });
       }
@@ -2381,17 +2973,29 @@
         return;
       }
 
+      // Asked first, because it decides how the map is built: a route is
+      // fitted to by this card, so Home Assistant's own fit to the markers
+      // must not undo it on the next update.
+      const route = this._config.map_route === false ? null : await this._routeFor(areaId);
+      this._route = route;
+      // A new colour or width is repainted in place; only the route itself
+      // rebuilds the map, since it decides how the map is fitted.
+      const routeStyle = `${this._config.route_color}|${this._config.route_width}`;
+      const restyle = this._routeStyle !== routeStyle;
+      this._routeStyle = routeStyle;
+
       const shown = this._mapRows;
       const ids = (shown || []).map((r) => r.entityId).sort();
       const key =
         `${areaId}|${ids.join(",")}|${this._config.map_aspect_ratio}` +
-        `|${this._following}|${this._watchesMap}|${this._layout}`;
+        `|${this._following}|${this._watchesMap}|${this._layout}|${routeSig(route)}`;
       if (key === this._mapKey && this._map) {
         this._map.hass = this._hass;
         // Hooks can be missing here for reasons other than a view switch -
         // the map card rebuilding its own insides, say. Both of these do
         // nothing when they are already in place.
         if (!this._leaflet) this._attachMap();
+        else if (restyle) this._paintRoute();
         this._watchMarkers();
         this._styleMap();
         return;
@@ -2412,7 +3016,7 @@
         // While the card is listening to the map - following it, or measuring
         // from its centre - refitting on every data update would undo the pan
         // the person just made. It fits once, when the map first appears.
-        auto_fit: this._keepsView ? !this._mapFitted : true,
+        auto_fit: route ? false : this._keepsView ? !this._mapFitted : true,
         // Side by side, the map has a height to fill - its half of the card -
         // so a ratio of its own would only fight it.
         ...(this._layout === "landscape"
@@ -2529,6 +3133,7 @@
           "  background: rgba(90, 90, 90, 0.85) !important;",
           "}",
           ".leaflet-control-attribution.blitzer-open::before { content: none; }",
+          CLUSTER_CSS,
           // The soft edge, drawn inside the map itself. Leaflet stacks its
           // drawing panes up to 700 and puts its buttons at 1000, so a layer
           // at 800 fades the tiles and the markers and leaves every button
@@ -2554,6 +3159,10 @@
               ].join("\n"),
         ].join("\n");
         if (sheet.textContent !== css) sheet.textContent = css;
+        for (const [name, value] of Object.entries(clusterVars(this._config))) {
+          if (value) card.style.setProperty(name, value);
+          else card.style.removeProperty(name);
+        }
 
         // The map card draws itself as a card: a hairline border and a filled
         // background, on the ha-card inside its own shadow root - which this
@@ -2674,6 +3283,7 @@
         }
         this._leaflet = leaflet;
         this._haMap = haMap;
+        this._paintRoute();
 
         // A click on a report picks its entry out of the list. The marker's
         // own handler opens Home Assistant's details dialog, which would
@@ -2724,6 +3334,60 @@
       tryAttach(0);
     }
 
+    // An area's route, if it has one. Asked of the integration again only
+    // when the area's total sensor changed - which is also what an edited
+    // entry does when it reloads, the one moment its route can change.
+    _routeFor(areaId) {
+      const device = this._hass && this._hass.devices && this._hass.devices[areaId];
+      const entryId = device && (device.config_entries || [])[0];
+      if (!entryId || !this._hass.callWS) return Promise.resolve(null);
+      const sensor = totalSensor(this._hass, areaId);
+      const sig = entryId + "|" + (sensor ? sensor.last_changed : "");
+      if (this._routeAsked !== sig) {
+        this._routeAsked = sig;
+        this._routePromise = this._hass
+          .callWS({ type: "blitzer/route", config_entry_id: entryId })
+          .then(
+            (answer) => (answer && routeSig(answer) ? answer : null),
+            // An older integration without the command, or no connection.
+            () => null
+          );
+      }
+      return this._routePromise;
+    }
+
+    _paintRoute() {
+      removeRoute(this._routeDrawn);
+      this._routeDrawn = undefined;
+      const route = this._route;
+      const haMap = this._haMap;
+      if (!route || !haMap || !haMap.Leaflet || !this._leaflet) return;
+      this._routeDrawn = drawRoute(
+        haMap.Leaflet, this._leaflet, route.points,
+        routeColor(this, this._config.route_color), route.vias, this._config.route_width
+      );
+      // Fitted once per route, not on every redraw - a pan the person made
+      // stays where they put it.
+      const sig = routeSig(route);
+      if (this._routeFitted !== sig) {
+        this._routeFitted = sig;
+        fitRouteSettled(this._leaflet, this._routeDrawn.bounds);
+      }
+    }
+
+    async _paintPopRoute() {
+      const leaflet = this._popLeaflet;
+      const haMap = this._popHaMap;
+      const route = this._config.map_route === false ? null : await this._routeFor(this._areaId());
+      if (!route || this._popLeaflet !== leaflet || !haMap || !haMap.Leaflet) return;
+      removeRoute(this._popRouteDrawn);
+      this._popRouteDrawn = drawRoute(
+        haMap.Leaflet, leaflet, route.points,
+        routeColor(this, this._config.route_color), route.vias, this._config.route_width
+      );
+      fitRouteSettled(leaflet, this._popRouteDrawn.bounds);
+    }
+
     _detachMap() {
       if (this._leaflet && this._onMove) {
         try {
@@ -2747,6 +3411,8 @@
           // Its shadow root went with it.
         }
       }
+      removeRoute(this._routeDrawn);
+      this._routeDrawn = undefined;
       this._leaflet = undefined;
       this._haMap = undefined;
       this._onMove = undefined;
@@ -2917,10 +3583,10 @@
       fallback: "var(--secondary-text-color)",
       hidden: (config) => config.layout === "minimal",
     },
-    // The minimal format's own three, and the only ones it offers besides
+    // The minimal format's own four, and the only ones it offers besides
     // the title: everything below answers for a head, a subtitle or a picker
     // that one line does not draw. Read top down the way the format is - the
-    // two halves of the line, then the one thing its pop-up shows that the
+    // three parts of the line, then the one thing its pop-up shows that the
     // line behind it cannot.
     mini: {
       label: "edElMiniTotal",
@@ -2997,6 +3663,44 @@
       },
       hidden: (config) => config.layout !== "minimal" || config.show_new === false,
     },
+    // And the third part, arranged like the second. Its own switch is the
+    // one that draws the head's badge in the other formats: one setting for
+    // what the jams cost, wherever the format puts it.
+    mini_delay: {
+      label: "edElMiniDelay",
+      help: "edElMiniDelayHelp",
+      colorLabel: "edFontColor",
+      colorLast: true,
+      colorHelp: "edMiniDelayColorHelp",
+      fontHelp: "edMiniDelayFontHelp",
+      // The red the part is drawn in, so an untouched swatch shows what is
+      // actually there - the same colour the badge wears in a head.
+      fallback: "var(--blitzer-delay-background, var(--error-color, #db4437))",
+      icon: {
+        key: "mini_delay_icon",
+        label: "edSubIcon",
+        help: "edMiniIconHelp",
+        color: {
+          key: "mini_delay_icon_color",
+          label: "edSubIconColor",
+          help: "edMiniIconColorHelp",
+          fallback: "var(--blitzer-delay-background, var(--error-color, #db4437))",
+        },
+        size: { key: "mini_delay_icon_size", label: "edSubIconSize", help: "edMiniIconSizeHelp" },
+      },
+      extra: {
+        key: "mini_delay_fill_color",
+        label: "edMiniBg",
+        help: "edMiniBgHelp",
+        fallback: "var(--ha-card-background, var(--card-background-color))",
+      },
+      opacity: {
+        key: "mini_delay_fill_opacity",
+        label: "edMiniBgOpacity",
+        help: "edMiniBgOpacityHelp",
+      },
+      hidden: (config) => config.layout !== "minimal" || config.show_delay === false,
+    },
     pop_new: {
       label: "edElPopNew",
       help: "edElPopNewHelp",
@@ -3057,6 +3761,26 @@
       // NEW badge and no NEW tag to give a look to. In the minimal format
       // neither is drawn here - the pop-up's tag has an element of its own.
       hidden: (config) => config.show_new === false || config.layout === "minimal",
+    },
+    // Its neighbour, and the same arrangement: a colour, a pill behind it
+    // and the font the two share. Its own defaults are the theme's error
+    // colour, which is what a badge about lost time renders in.
+    delay: {
+      label: "edElDelay",
+      help: "edElDelayHelp",
+      colorHelp: "edDelayColorHelp",
+      fontHelp: "edDelayFontHelp",
+      fallback: "var(--blitzer-delay-color, #fff)",
+      bgToggle: { key: "delay_background", label: "edDelayBackground", help: "edDelayBackgroundHelp" },
+      extra: {
+        key: "delay_background_color",
+        label: "edDelayBg",
+        help: "edDelayBgHelp",
+        fallback: "var(--blitzer-delay-background, var(--error-color, #db4437))",
+      },
+      // Follows its own switch, and the format: the badge is drawn in the
+      // head, which the minimal format does not have.
+      hidden: (config) => config.show_delay === false || config.layout === "minimal",
     },
     area_select: {
       label: "edElAreaPicker",
@@ -3609,6 +4333,75 @@
       return block;
     }
 
+    // The route line: its colour and its width, in a collapsible block of
+    // their own like the card background. The block answers to "Show the
+    // route on the map" under Settings -> General and hides with it.
+    _routeBlock(str) {
+      const block = document.createElement("div");
+      block.className = "design-element";
+      block.dataset.design = "route";
+      block.dataset.withRoute = "";
+      block.appendChild(this._groupLabelRow(str.edElRoute, str.edElRouteHelp));
+      block.appendChild(this._colorRow("route_color", str.edRouteColor, str.edRouteColorHelp, str));
+      const width = document.createElement("div");
+      width.className = "unit-input-wrap";
+      width.appendChild(this._numberInput("route_width", 1, 12));
+      const suffix = document.createElement("span");
+      suffix.className = "unit-suffix";
+      suffix.textContent = "px";
+      width.appendChild(suffix);
+      block.appendChild(this._fieldRow(str.edRouteWidth, str.edRouteWidthHelp, width, true));
+      return block;
+    }
+
+    // The cluster discs: the disc's colour and the count's, in a collapsible
+    // block of their own. Nothing to switch on: the map draws them whenever
+    // reports lie close together, and empty keeps the theme's colours.
+    _clusterBlock(str) {
+      const block = document.createElement("div");
+      block.className = "design-element";
+      block.dataset.design = "cluster";
+      block.appendChild(this._groupLabelRow(str.edElCluster, str.edElClusterHelp));
+      block.appendChild(this._colorRow("cluster_color", str.edClusterColor, str.edClusterColorHelp, str));
+      block.appendChild(
+        this._colorRow("cluster_text_color", str.edClusterTextColor, str.edClusterTextColorHelp, str)
+      );
+      // The count's size and style - the font row every text element has,
+      // less the capitals switch: a number has none.
+      const row = this._fieldRow(str.edClusterFont, str.edClusterFontHelp, null, true);
+      const slot = row.querySelector(".field-input-row");
+      const size = document.createElement("input");
+      size.type = "text";
+      size.dataset.field = "cluster_font_size";
+      size.placeholder = str.edFontPlaceholder;
+      size.addEventListener("input", () => this._set("cluster_font_size", size.value));
+      slot.appendChild(size);
+      const toggles = document.createElement("div");
+      toggles.className = "field-toggles";
+      for (const [attr, text] of [
+        ["bold", str.edBold],
+        ["italic", str.edItalic],
+        ["underline", str.edUnderline],
+      ]) {
+        const group = document.createElement("div");
+        group.className = "toggle-group";
+        group.innerHTML = `
+          <label class="toggle">
+            <input type="checkbox" data-toggle="cluster_${attr}">
+            <span class="track"></span>
+          </label>
+          <span class="toggle-label toggle-label-${attr}"></span>`;
+        group.querySelector(".toggle-label").textContent = text;
+        group.querySelector("input").addEventListener("change", (ev) =>
+          this._set(`cluster_${attr}`, ev.target.checked)
+        );
+        toggles.appendChild(group);
+      }
+      slot.appendChild(toggles);
+      block.appendChild(row);
+      return block;
+    }
+
     // The file input is created on document.body rather than kept in this
     // shadow root: inside the dialog, the native file picker handing focus
     // back is read as a click outside it, and the whole editor closes before
@@ -3994,6 +4787,11 @@
 
         body.appendChild(this._toggleRow("show_new", str.edShowNew, str.edShowNewHelp));
 
+        // Under it, because the two stand next to each other wherever they
+        // are drawn: the badges beside the title in a head, the second and
+        // third part of the line where there is none.
+        body.appendChild(this._toggleRow("show_delay", str.edShowDelay, str.edShowDelayHelp));
+
         // The line under the title: whether it is drawn at all, then each of
         // the three things it can say, indented beneath that. The minimal
         // format draws no such line, so it is not offered one.
@@ -4016,6 +4814,13 @@
         // Whether there is a map at all. Its looks stay under Layout -> Map,
         // and "the list follows it" is a property of the list.
         body.appendChild(this._toggleRow("show_map", str.edShowMap, str.edShowMapHelp));
+        // Whether a route entry's route is drawn on it - indented under the
+        // map switch, since without a map there is nothing to draw it on.
+        // Its looks are under Layout -> Map.
+        const routeRow = this._toggleRow("map_route", str.edMapRoute, str.edMapRouteHelp);
+        routeRow.classList.add("sub-field-row", "sub-toggle-row");
+        routeRow.dataset.withMap = "";
+        body.appendChild(routeRow);
         body.appendChild(this._toggleRow("show_list", str.edShowList, str.edShowListHelp));
         // Last, because it is the one setting here that is about the map and
         // the list together rather than about either on its own.
@@ -4209,6 +5014,8 @@
           this._toggleRow("map_marker_background", str.edMarkerBackground, str.edMarkerBackgroundHelp)
         );
         body.appendChild(this._toggleRow("map_fade", str.edMapFade, str.edMapFadeHelp));
+        body.appendChild(this._routeBlock(str));
+        body.appendChild(this._clusterBlock(str));
         // What a click on the map does to the list is set here too, since it
         // is the map that decides which entry is meant.
         for (const [prefix, el] of Object.entries(DESIGN_ELEMENTS)) {
@@ -4308,6 +5115,11 @@
     // and still lie across the preview. That is what a check against the
     // dialog missed.
     //
+    // And inside everything that clips it top to bottom (see _clipRect): below
+    // the icon when there is no room above it, which is where a long tooltip
+    // on a row near the top of the dialog's form column used to lose its
+    // first lines.
+    //
     // Overlapping the rows behind it is not a fault - it is what a floating
     // tooltip does, in Annuals as here. Being cut off is.
     _placeTooltip(anchor) {
@@ -4316,25 +5128,74 @@
       tip.style.cssText = "";
       tip.classList.remove("tip-right", "tip-down");
       const pane = this.getBoundingClientRect();
-      const box = this._scrollAncestorRect();
+      const box = this._clipRect(anchor);
       let rect = tip.getBoundingClientRect();
+      const left = Math.max(pane.left, box.left) + 4;
+      const right = Math.min(pane.right, box.right) - 4;
 
       // Right-aligned to the icon when opening rightward would run past the
       // column - the same flip Annuals makes in CSS, decided by measurement so
       // that a row it has no rule for is covered too.
-      if (rect.right > pane.right - 4) {
+      if (rect.right > right) {
         tip.classList.add("tip-right");
         rect = tip.getBoundingClientRect();
       }
-      // Still hanging off the left after the flip - a wide tooltip on a narrow
-      // column - so slide it back in by hand.
-      if (rect.left < pane.left + 4) {
-        tip.style.left = `${pane.left + 4 - anchor.getBoundingClientRect().left}px`;
+      // Still outside the column on either side - a wide tooltip on a narrow
+      // column, or an "i" that itself sits at or past the column's edge, the
+      // way a long switch label pushes it at 290px - so move it in by hand, as
+      // far as the column's width allows.
+      const maxLeft = right - rect.width;
+      if (rect.left < left || rect.left > maxLeft) {
+        const target = Math.max(left, Math.min(rect.left, maxLeft));
+        tip.style.left = `${target - anchor.getBoundingClientRect().left}px`;
         tip.style.right = "auto";
         rect = tip.getBoundingClientRect();
       }
-      // And below the icon when there is no room above it.
-      if (rect.top < box.top + 4) tip.classList.add("tip-down");
+      // Below the icon when there is no room above it. A tooltip too tall for
+      // either side takes the side that cuts less - a short window, or, on a
+      // narrow screen, a panel's last rows scrolled up to the top of the
+      // dialog, with that panel's own bottom edge just below them.
+      if (rect.top < box.top + 4) {
+        tip.classList.add("tip-down");
+        const below = tip.getBoundingClientRect();
+        const cutAbove = box.top + 4 - rect.top;
+        const cutBelow = below.bottom - (box.bottom - 4);
+        if (cutBelow > 0 && cutBelow > cutAbove) tip.classList.remove("tip-down");
+      }
+    }
+
+    // The area a tooltip can be seen in: the window, narrowed by every
+    // ancestor that clips its content - whether or not it scrolls right now.
+    // The dialog's form column clips a tooltip above its top edge just the
+    // same when the open tab is short enough to fit, and taking only a
+    // container that overflowed (_scrollAncestorRect, which the colour menus
+    // still use) let a tooltip be measured against the window and cut off
+    // anyway.
+    //
+    // Walked from the anchor, not from this editor: the panel the "i" sits in
+    // has overflow hidden for its rounded corners, and it lies inside this
+    // shadow root, where a walk that starts at the host never looks. And
+    // through the slot an element is shown in, not to its light-DOM parent:
+    // the form column is slotted into ha-dialog, whose own scrolling body -
+    // the one that scrolls when the preview is stacked below the form on a
+    // narrow screen - only exists in ha-dialog's shadow root.
+    _clipRect(anchor) {
+      const nextUp = (node) =>
+        node.assignedSlot ||
+        node.parentElement ||
+        (node.getRootNode() && node.getRootNode().host) ||
+        null;
+      const box = { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth };
+      for (let node = nextUp(anchor); node && node !== document.documentElement; node = nextUp(node)) {
+        const style = getComputedStyle(node);
+        if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+        const r = node.getBoundingClientRect();
+        box.top = Math.max(box.top, r.top);
+        box.bottom = Math.min(box.bottom, r.bottom);
+        box.left = Math.max(box.left, r.left);
+        box.right = Math.min(box.right, r.right);
+      }
+      return box;
     }
 
     // Walks out of this editor's own shadow root to find the dialog container
@@ -4521,6 +5382,15 @@
       this.shadowRoot.querySelectorAll("[data-with-ratio]").forEach((row) => {
         row.hidden = (this._config.layout || "portrait") !== "portrait" || inOffTab(row);
       });
+      // The route's looks answer to the switch that draws it.
+      this.shadowRoot.querySelectorAll("[data-with-route]").forEach((row) => {
+        row.hidden = this._config.map_route === false || !this._wantsMapHere() || inOffTab(row);
+      });
+      this._syncColorRow("route_color", this._config.route_color || "", "var(--primary-color)", str);
+      this._syncColorRow("cluster_color", this._config.cluster_color || "", "var(--primary-color)", str);
+      this._syncColorRow(
+        "cluster_text_color", this._config.cluster_text_color || "", "var(--text-primary-color)", str
+      );
       // No number to type while the list is not capped at all.
       this.shadowRoot.querySelectorAll("[data-with-max]").forEach((row) => {
         row.hidden = this._config.show_max !== true || inOffTab(row);
@@ -5141,11 +6011,17 @@
       selector: ".mini-half.new .mini-value, .mini-half.new .mini-label",
       icon: ".mini-half.new ha-icon",
     },
+    mini_delay: {
+      name: "mini-delay",
+      selector: ".mini-half.delay .mini-value, .mini-half.delay .mini-label",
+      icon: ".mini-half.delay ha-icon",
+    },
     pop_new: { name: "pop-new", selector: ".pop-list .new-tag" },
     count: { name: "count", selector: ".badge:not(.new)" },
     // The head badge and the tag in the card's own list, which is what this
     // element has always been both of. The pop-up's tag is pop_new above.
     new: { name: "new", selector: ".badge.new, .listwrap .new-tag" },
+    delay: { name: "delay", selector: ".badge.delay" },
     area_select: { name: "area-select", selector: 'select[data-what="area"]' },
     filter_select: { name: "filter-select", selector: 'select[data-what="filter"]' },
     sub: { name: "sub", selector: ".sub", icon: ".sub .fit-icon" },
@@ -5261,9 +6137,10 @@
     ha-card[data-layout="landscape"] .mapwrap ha-card { height: 100%; }
     /* One line, and the line is the button. */
     ha-card[data-layout="minimal"] { padding: 0; }
-    /* Two halves, each a button: how much there is, and how much of it is new.
-       The right half carries the accent, so what is new is what the eye lands
-       on - and both are plainly places to press rather than two runs of text. */
+    /* Two or three parts, each a button: how much there is, how much of it is
+       new, and what the jams among it cost. The parts after the first carry a
+       colour, so what interrupts a glance is what the eye lands on - and each
+       is plainly a place to press rather than a run of text. */
     .mini { display: flex; width: 100%; height: 100%; min-height: 48px;
             border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; }
     .mini-half { flex: 1 1 0; min-width: 0; display: flex; align-items: center;
@@ -5287,6 +6164,15 @@
       background: var(--blitzer-mini-new-fill-color, transparent);
       opacity: var(--blitzer-mini-new-fill-opacity, 1);
     }
+    .mini-half.delay::before {
+      background: var(--blitzer-mini-delay-fill-color, transparent);
+      opacity: var(--blitzer-mini-delay-fill-opacity, 1);
+    }
+    /* Two parts are one half each. Three are not three thirds: what the
+       jams cost is a good deal wider than a count, and an equal share of a
+       narrow card cuts it off. Each part then takes what it needs first
+       and shares out what is left, so the line divides by its contents. */
+    .mini.three .mini-half { flex: 1 1 auto; }
     .mini-half > * { position: relative; z-index: 1; }
     .mini-half:hover { background: rgba(127, 127, 127, 0.1); }
     .mini-half:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
@@ -5312,21 +6198,58 @@
                var(--secondary-text-color));
       }
     }
+    /* The third part wears the badge's red for the reason the second wears
+       the accent: the colour is what it says, not decoration. The fill is
+       two settings of its own (see mini_delay_fill_color); this is what
+       stands on it. */
+    .mini-half.delay ha-icon,
+    .mini-half.delay .mini-value { color: var(--blitzer-delay-background, var(--error-color, #db4437)); }
+    .mini-half.delay .mini-label { color: #b8564c; }
+    @supports (color: color-mix(in srgb, red 10%, transparent)) {
+      .mini-half.delay .mini-label {
+        color: color-mix(in srgb,
+               var(--blitzer-delay-background, var(--error-color, #db4437)) 70%,
+               var(--secondary-text-color));
+      }
+    }
+    /* "+1 h 35 min" is one thing to read, not three. */
+    .mini-half.delay .mini-value { white-space: nowrap; }
     /* With nothing new there is nothing to interrupt a glance for, so the
        accent stands down until there is - the fill with it. */
-    .mini-half.new.quiet::before { background: none; }
+    .mini-half.new.quiet::before,
+    .mini-half.delay.quiet::before { background: none; }
     .mini-half.new.quiet ha-icon,
     .mini-half.new.quiet .mini-value,
-    .mini-half.new.quiet .mini-label { color: var(--secondary-text-color); }
+    .mini-half.new.quiet .mini-label,
+    .mini-half.delay.quiet ha-icon,
+    .mini-half.delay.quiet .mini-value,
+    .mini-half.delay.quiet .mini-label { color: var(--secondary-text-color); }
     /* A half counting nothing leads nowhere, so it stops offering: no hand,
        no lift under the pointer. The button itself is disabled, and this is
        what keeps it from still looking pressable. */
     .mini-half.empty { cursor: default; }
     .mini-half.empty:hover,
-    .mini-half.new.quiet:hover { background: none; }
-    /* Too narrow for words: the numbers and their symbols carry it alone. */
+    .mini-half.new.quiet:hover,
+    .mini-half.delay.quiet:hover { background: none; }
+    /* Too narrow for words: the numbers and their symbols carry it alone.
+       Three parts share the room two had, so their words go sooner. */
     @container (max-width: 250px) {
       .mini-label { display: none; }
+    }
+    @container (max-width: 440px) {
+      .mini.three .mini-label { display: none; }
+    }
+    /* Narrower still, and three numbers are more than the line can set in
+       full: the type steps down rather than letting "+1 h 35 min" be cut
+       off at both ends. The symbols are the last to go - a number that is
+       neither counted nor coloured says least without one. */
+    @container (max-width: 270px) {
+      .mini.three .mini-value { font-size: 17px; }
+      .mini.three .mini-half { gap: 6px; padding: 0 6px; }
+      .mini.three .mini-half ha-icon { --mdc-icon-size: 18px; width: 18px; height: 18px; }
+    }
+    @container (max-width: 230px) {
+      .mini.three .mini-half ha-icon { display: none; }
     }
     /* The reports behind that line. A dialog rather than a panel of our own:
        the browser draws it above everything, so the card being one row tall
@@ -5432,6 +6355,15 @@
       background: var(--blitzer-new-background, var(--accent-color, #ff9800));
       color: var(--blitzer-new-color, #fff);
     }
+    /* The same badge in the colour of what it reports: time lost. These
+       two are what an unset Colour and Background mean on its own element
+       (Layout -> Delay badge); anything set there is written inline and
+       wins, exactly as it does on the NEW badge above. */
+    .badge.delay {
+      background: var(--blitzer-delay-background, var(--error-color, #db4437));
+      color: var(--blitzer-delay-color, #fff);
+      white-space: nowrap;
+    }
     .new-tag { font-size: .68rem; padding: 1px 6px; border-radius: 8px; margin-left: 6px;
                vertical-align: middle; white-space: nowrap; }
     /* The head badge is a button - clicking it narrows the card to what is
@@ -5527,6 +6459,8 @@
   if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, BlitzerCardEditor);
 
   window.customCards = window.customCards || [];
+  watchFlowDialogs();
+
   if (!window.customCards.some((c) => c.type === CARD_TAG)) {
     window.customCards.push({
       type: CARD_TAG,

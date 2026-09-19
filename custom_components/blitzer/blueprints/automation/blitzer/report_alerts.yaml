@@ -46,7 +46,7 @@ blueprint:
     - `{{ reason }}` - a hazard's own written-out text. Empty on a control
     - `{{ street }}`, `{{ city }}`, `{{ zip_code }}` - address
     - `{{ latitude }}`, `{{ longitude }}` - position
-    - `{{ distance }}` - km from the reference point set under Proximity, or `unknown` if none is set
+    - `{{ distance }}` - km from the reference point set under Proximity. Without one, the report's own figure: on a route the way along it from its start ("km 23"), otherwise the distance from the area's centre or the tracker
     - `{{ map_url }}` - the report on blitzer.de's map. Empty for a police report, whose id that map cannot resolve
 
     **A digest** additionally has:
@@ -299,8 +299,10 @@ blueprint:
           description: >-
             A zone or a person to measure each report against. This is also what
             `{{ distance }}` refers to, and what a digest is sorted by. Leave
-            empty to report the whole configured area, sorted by each entity's
-            own distance to its area centre.
+            empty to report the whole configured area with each report's own
+            figure: on a route the way along it from its start, so a digest
+            reads in driving order; otherwise the distance from the area's
+            centre or the tracker.
           default: ""
           selector:
             entity:
@@ -510,7 +512,7 @@ variables:
     {%- if is_live and ref_lat is not none -%}
     {{ (distance(ref_lat | float, ref_lng | float,
                  latitude | float, longitude | float) or 0) | round(1) }}
-    {%- elif is_live -%}unknown{%- else -%}{%- endif -%}
+    {%- elif is_live -%}{{ trigger.event.data.distance | default('unknown', true) }}{%- else -%}{%- endif -%}
 
   # --- the digest ----------------------------------------------------------
   all_reports: >-

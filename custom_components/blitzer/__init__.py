@@ -6,10 +6,12 @@ import logging
 
 import voluptuous as vol
 
+from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 from homeassistant.helpers.device_registry import DeviceEntry
@@ -20,12 +22,22 @@ import homeassistant.helpers.config_validation as cv
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
     CONF_KINDS,
+    CONF_ORS_DESTINATION,
+    CONF_ORS_START,
+    CONF_ORS_VIAS,
+    CONF_ROUTE_DISTANCE,
+    CONF_ROUTE_DURATION,
+    CONF_SEARCH_MODE,
+    CONF_WAYPOINTS,
+    ROUTE_MODES,
+    SEARCH_MODE_ROUTE_ORS,
     DOMAIN,
     KIND_DEFAULTS,
     SERVICE_REFRESH_CONTROLS,
     SERVICE_REFRESH_HAZARDS,
 )
 from .bundle import async_install_blueprints, async_register_card
+from .ors import async_forget_key
 from .coordinator import (
     BlitzerdeAPIData,
     BlitzerdeCoordinator,
@@ -79,7 +91,64 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """
     await async_register_card(hass)
     await async_install_blueprints(hass)
+    websocket_api.async_register_command(hass, websocket_route)
     return True
+
+
+@websocket_api.websocket_command(
+    {"type": "blitzer/route", "config_entry_id": str}
+)
+@callback
+def websocket_route(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The line a route entry searches along, for the card.
+
+    Both route modes: openrouteservice's route, or the straight lines between
+    hand-placed waypoints - which is exactly what that entry searches, so it
+    is what the card should show.
+
+    Asked for rather than published as an attribute: attributes are written
+    to the recorder with every state change, which for a sensor polling once
+    a minute would store the same route again every minute. The card asks
+    once when it draws its map.
+
+    Answers with points set to null for every other kind of entry, so the
+    card can ask about any area without first working out what it is.
+    """
+    entry = hass.config_entries.async_get_entry(msg["config_entry_id"])
+    if entry is None or entry.domain != DOMAIN:
+        connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "Not a Blitzer.de entry")
+        return
+    data = entry.data
+    mode = data.get(CONF_SEARCH_MODE)
+    waypoints = data.get(CONF_WAYPOINTS) or []
+    if mode not in ROUTE_MODES or not waypoints:
+        connection.send_result(msg["id"], {"points": None})
+        return
+
+    def end(value):
+        value = value or {}
+        return {
+            "latitude": value.get("latitude"),
+            "longitude": value.get("longitude"),
+            "label": value.get("label", ""),
+        }
+
+    # A waypoint route has no named ends: its first and last points are them.
+    ors = mode == SEARCH_MODE_ROUTE_ORS
+    connection.send_result(
+        msg["id"],
+        {
+            "mode": mode,
+            "points": [[p["latitude"], p["longitude"]] for p in waypoints],
+            "start": end(data.get(CONF_ORS_START) if ors else waypoints[0]),
+            "destination": end(data.get(CONF_ORS_DESTINATION) if ors else waypoints[-1]),
+            "vias": [[v["latitude"], v["longitude"]] for v in data.get(CONF_ORS_VIAS, [])],
+            "distance": data.get(CONF_ROUTE_DISTANCE),
+            "duration": data.get(CONF_ROUTE_DURATION),
+        },
+    )
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -241,7 +310,11 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     # If you have created any custom services, they need to be removed here too.
 
     # Remove the config options update listener
-    hass.data[DOMAIN][config_entry.entry_id].cancel_update_listener()
+    runtime = hass.data[DOMAIN][config_entry.entry_id]
+    runtime.cancel_update_listener()
+    # An entry going away takes its repair with it - it cannot be failing
+    # any more, and a reload starts its count afresh.
+    ir.async_delete_issue(hass, DOMAIN, runtime.coordinator.repair_issue_id)
 
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(
@@ -254,6 +327,18 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     # Return that unloading was successful.
     return unload_ok
+
+async def async_remove_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    """Forget the saved openrouteservice key along with the last entry.
+
+    Home Assistant takes the entry off its list before calling this, so an
+    empty list means nothing of the integration is left. A key saved "for
+    further routes" then has nothing left to be for, and a credential should
+    not outlive what it was given to.
+    """
+    if not hass.config_entries.async_entries(DOMAIN):
+        await async_forget_key(hass)
+
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Migrate old entry."""

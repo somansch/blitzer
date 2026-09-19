@@ -19,6 +19,7 @@ from .const import (
     EVENT_NEW_CONTROL,
     EVENT_NEW_HAZARD,
     HAZARD_ICONS,
+    ROUTE_MODES,
     SEARCH_MODE_ROUTE,
 )
 from .coordinator import (
@@ -200,6 +201,15 @@ def _control_summary(item: dict, language: str) -> str:
     return _joined(parts, item_info(item).get("desc") or "")
 
 
+def _report_distance(hass, coordinator, lat, lng) -> float | None:
+    """A report's own distance in the instance's unit, or None before a
+    tracker entry has a position."""
+    meters = coordinator.report_distance(lat, lng)
+    if meters is None:
+        return None
+    return hass.config.units.length(meters, UnitOfLength.METERS)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -283,6 +293,13 @@ async def async_setup_entry(
 
         return _sync
 
+    def _payload_distance(item: dict):
+        # The marker's own figure, rounded the way the marker shows it - so an
+        # automation can say "at km 23" on a route or "4.2 km away" in an
+        # area without a reference point of its own.
+        value = _report_distance(hass, coordinator, item["lat"], item["lng"])
+        return round(value, 1) if value is not None else None
+
     def _control_payload(item: dict) -> dict:
         # The same wording the entity carries, so an automation can print one
         # field instead of assembling six - and can do it straight from the
@@ -303,6 +320,7 @@ async def async_setup_entry(
             "zip_code": item["address"]["zip_code"],
             "latitude": item["lat"],
             "longitude": item["lng"],
+            "distance": _payload_distance(item),
         }
 
     def _hazard_payload(item: dict) -> dict:
@@ -321,6 +339,7 @@ async def async_setup_entry(
             "zip_code": address.get("zip_code", ""),
             "latitude": item["lat"],
             "longitude": item["lng"],
+            "distance": _payload_distance(item),
         }
 
     sync_controls = _make_sync(
@@ -383,29 +402,15 @@ class BlitzerdeGeoEvent(GeolocationEvent):
         return self._coordinator.hass.config.language
 
     def _distance_from_area_center(self, lat: float, lng: float) -> float | None:
-        """Return the distance to the nearest configured reference point,
-        instead of hass.config.distance()'s home zone: the area's center
-        point in area mode, the closest route waypoint in route mode, and in
-        tracker mode wherever the tracker was when this search was made -
-        which is the point these reports were actually found around.
+        """Return the distance to the configured reference, instead of
+        hass.config.distance()'s home zone: the area's center point in area
+        mode, in tracker mode wherever the tracker was when this search was
+        made - which is the point these reports were actually found around -
+        and in route mode the way along the route from its start to where the
+        report lies, so the markers read like a trip: this one at km 3, that
+        one at km 23. The same figure the new-report events carry.
         """
-        if self._coordinator.search_mode == SEARCH_MODE_ROUTE:
-            reference_points = self._coordinator.waypoints
-        else:
-            # None until a tracker-mode entry has resolved its first
-            # position; nothing is drawn before that either, but a marker
-            # rebuilt in that window would otherwise be a TypeError.
-            reference_points = [self._coordinator.location]
-
-        distances = [
-            meters
-            for point in reference_points
-            if point
-            and (meters := location_util.distance(point["latitude"], point["longitude"], lat, lng)) is not None
-        ]
-        if not distances:
-            return None
-        return self.hass.config.units.length(min(distances), UnitOfLength.METERS)
+        return _report_distance(self.hass, self._coordinator, lat, lng)
 
     async def async_added_to_hass(self) -> None:
         """Calculate distance once the entity has access to hass.config."""

@@ -3,10 +3,12 @@
 [![GitHub release](https://img.shields.io/github/v/release/somansch/blitzer)](https://github.com/somansch/blitzer/releases/latest)
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![License](https://img.shields.io/github/license/somansch/blitzer)](https://github.com/somansch/blitzer/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/somansch/blitzer/total)](https://github.com/somansch/blitzer/releases)
+[![Downloads@latest](https://img.shields.io/github/downloads/somansch/blitzer/latest/total)](https://github.com/somansch/blitzer/releases/latest)
 
 > **Note:** This is a continuation of the original [`hass-blitzerde`](https://github.com/timniklas/hass-blitzerde) integration by [@timniklas](https://github.com/timniklas). That GitHub account and repository are no longer available. This repository keeps the project going, so existing users are not left without updates.
 
-<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-default.png" alt="The Blitzer card in its three formats: portrait with the map above the list, landscape with them side by side, and the minimal line counting everything reported and what of it is new" width="100%">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-default.png" alt="The Blitzer card in its three formats: portrait with the map above the list, landscape with them side by side, and the minimal line counting everything reported, what of it is new, and what the jams among it cost" width="100%">
 
 > **A note on language:** this README is written in English. The integration speaks both, so every button and field below is named **English / Deutsch**. Sample data stays as Blitzer.de sends it, which is German.
 
@@ -58,6 +60,7 @@ That is the whole setup. Everything below covers the individual options in more 
   - [Hazard types / Gefahren](#hazard-types--gefahren) - the ten switches, and the two worth knowing about
   - [Device tracker (radius) / Gerätetracker (Radius)](#device-tracker-radius--gerätetracker-radius) - a circle that follows a phone or a car
   - [Route (waypoints) / Route (Wegpunkte)](#route-waypoints--route-wegpunkte)
+  - [Route (start/destination) / Route (Start/Ziel)](#route-startdestination--route-startziel) - a route worked out by openrouteservice
 
 **How reports behave**
 
@@ -77,7 +80,7 @@ That is the whole setup. Everything below covers the individual options in more 
 - [Blitzer card](#blitzer-card) - the card that comes with the integration
   - [Formats](#formats) - portrait, landscape, and one line with a pop-up
   - [YAML](#yaml) - the options that decide what the card is
-  - [CSS variables](#css-variables) - all 132, and the scheme behind their names
+  - [CSS variables](#css-variables) - all 159, and the scheme behind their names
 - [Map card](#map-card)
 - [Markdown card](#markdown-card)
 
@@ -98,8 +101,9 @@ After naming the entry, pick a search mode / **Suchart**:
 - **Area (radius)** / **Bereich (Radius)** - the classic mode: one centre point plus a radius circle.
 - **Device tracker (radius)** / **Gerätetracker (Radius)** - the same circle, around a tracker instead of a fixed point ([below](#device-tracker-radius--gerätetracker-radius)).
 - **Route (waypoints)** / **Route (Wegpunkte)** - search a corridor along a route you draw ([below](#route-waypoints--route-wegpunkte)).
+- **Route (start/destination)** / **Route (Start/Ziel)** - the same corridor, along a route openrouteservice works out from a start, a destination and optional via points ([below](#route-startdestination--route-startziel)).
 
-<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-wizard.png" alt="The first setup screen: the entry's name, and the choice between Area (radius), Device tracker (radius) and Route (waypoints)" width="55%">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-wizard.png" alt="The first setup screen: the entry's name, and the choice between Area (radius), Device tracker (radius), Route (waypoints) and Route (start/destination)" width="55%">
 
 Every field can be changed later. Open **Settings → Devices & Services**, find the entry and click **Configure** / **Konfigurieren**. The form opens pre-filled.
 
@@ -250,12 +254,53 @@ For a commute, an area search would need an impractically large radius. Route mo
 
 Below that are the same **Kontrollen**, **Kontrollarten**, **Gefahren** and optional-settings sections as in area mode, both update intervals included. Hazards along a route are found exactly the way controls are: the corridor is sampled point by point and the results merged.
 
-Internally the integration interpolates extra sample points along each straight segment, spaced one corridor width apart. It queries Blitzer.de around every one of them, then merges the results and removes duplicates by id.
+Internally the integration places sample points along the line, one every corridor width of route. It queries Blitzer.de around every one of them, then merges the results and removes duplicates by id - so a route drawn with many waypoints close together costs no more requests than one drawn with few.
 
 Editing a route via **Configure** / **Konfigurieren** first asks what to edit:
 
 - **Edit waypoints** / **Wegpunkte bearbeiten** steps through every saved waypoint, one at a time. Move the map to reposition it, or check **Remove this waypoint** / **Diesen Wegpunkt entfernen** to drop it. Afterwards you can append further waypoints to the end. The route is not discarded and redrawn.
 - **Edit search settings** / **Sucheinstellungen bearbeiten** jumps straight to corridor width, the switches and the optional settings, leaving the waypoints untouched.
+
+### Route (start/destination) / Route (Start/Ziel)
+
+The waypoint route searches along straight lines, which is why it needs a waypoint on every bend. This mode leaves the road to openrouteservice: you give it a start, a destination and, wherever your usual way differs from the fastest one, a few via points. The route it works out is stored with the entry and searched like a waypoint route, in a corridor as wide as its length calls for.
+
+It needs a free **openrouteservice API key** - an account at [openrouteservice.org](https://openrouteservice.org) comes with one. The key is only used while the route is set up or changed. Working out a route is a single request; every poll after that goes to Blitzer.de alone.
+
+The setup walks these screens:
+
+1. **API key** / **API-Key.** Tried out straight away with one lookup, so a wrong key is caught here rather than at the end. **Save the key for further routes** / **API-Key für weitere Routen speichern**, on by default, keeps it with the integration, and every further route then skips this screen. The field is never filled in - a filled-in field sends its value to the browser along with the form - so to keep a key that is already there, leave it empty. Removing the last Blitzer.de entry removes the saved key with it.
+2. **Start** and **Destination** / **Ziel**, each picked from a menu:
+   - **Zone** - any zone, `zone.home` or your workplace, say.
+   - **Point on the map** / **Punkt auf der Karte** - move the map to the spot.
+   - **Address** / **Adresse** - street and town, looked up near your home. The next screen, **Address found** / **Adresse gefunden**, shows the match in an editable field: continue unchanged to take it, or correct it and continue to have it looked up again and shown again.
+3. **Via points** / **Via-Punkte.** openrouteservice takes the fastest road between the points it is given. If yours is a different one, add a via point on it. Up to 20; **Remove all via points** / **Alle Via-Punkte entfernen** starts over. Each via point only snaps to a road heading the way the route runs there, so one dropped on a motorway picks the carriageway in your direction - not the opposite one, which would send the route on to the next junction and back.
+4. **Which way?** / **Welcher Weg?** - only without via points, and only when openrouteservice has more than one way to offer. Up to three routes, fastest first, each named with its length and driving time, and all of them on the map: the first as the route, the others dashed, numbered the way the entries are. Pick one to continue. With via points the way is already pinned down and this screen is skipped.
+5. **Your route** / **Deine Route.** The route on a map - start, destination and via points marked - with its length and driving time, and below it **Distance from the route** / **Abstand zur Route**, then **Also create the way back** / **Auch den Rückweg anlegen**, then the switches and optional sections of the waypoint route.
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-wizard-routes.png" alt="The Which way? screen: three routes from openrouteservice, fastest first with their length and driving time, all of them drawn on the map with the first as the route and the others dashed" width="55%">
+
+**Also create the way back** makes a second entry, destination to start, with its own route worked out by openrouteservice - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. It is named after the first entry with "return" / "Rückweg" added, and takes the same settings. Both entries are independent from then on: each has its own **Configure**, and removing one leaves the other. The switch is offered when a route is created, not when one is edited.
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-route-return.png" alt="The card of a return entry: the route drawn on the map with the reports on it, and a list measuring each one along the route from its start" width="45%">
+
+There is no corridor width to set. The route is searched in boxes along it - about 40 of them, never narrower than 300 m and never wider than 5 km, so a long route does not cost hundreds of Blitzer.de requests a minute. Their width is the `corridor_width` attribute of the entry's **Total count** sensor.
+
+Those boxes only find candidates. What is reported is decided by **Distance from the route** / **Abstand zur Route**: 60 m by default, adjustable from 10 to 300 m, measured from the route line itself. On a first real route, Munich to Poing, that kept 9 of 18 reports - the other 9 were on streets 290 to 800 m away, and nothing lay between 80 and 290 m.
+
+Some reports have a length and are measured along it: roadworks that come with a line of their own, and tailbacks with an end point, so a queue whose far end reaches onto the route counts. A tailback must also run the way the route does - on a motorway the opposite carriageway lies well within 60 m, and a queue there is one this route never meets. Blitzer.de does not say which way a queue runs; routing along three real motorway queues in both directions showed it runs from the reported point towards its end point. Speed cameras cannot be told apart by direction: Blitzer.de gives them none beyond free text, so a camera in the other tube of a tunnel stays in.
+
+The map on that last screen is Home Assistant's own, the one its dashboards use. A setup form has no field that can draw a line, so the integration's frontend file puts the map there itself. That relies on how Home Assistant builds its dialogs rather than on a documented interface. Should that change one day, the screen still works - it names the route, its length and its driving time, without the map.
+
+If openrouteservice cannot produce a route - a point too far from any road, no road between the points, a route beyond its limits, or a key it no longer accepts - a screen says which, and continuing goes back to where it can be fixed.
+
+Editing a route entry via **Configure** / **Konfigurieren** first asks what to edit:
+
+- **Change the route (start, destination, via points)** / **Route ändern (Start, Ziel, Via-Punkte)** walks the screens again, each filled in with what is saved. The route is only worked out again once an end or a via point has actually changed.
+- **Edit search settings** / **Sucheinstellungen bearbeiten** goes straight to the last screen, with the saved route - no request to openrouteservice at all.
+- **Change the openrouteservice API key** / **openrouteservice-API-Key ändern**. A saved key changed here changes for every route that uses it.
+
+On the [Blitzer card](#blitzer-card), the map of a route entry - this mode or the waypoint one - shows the route itself, fitted into view when the card first draws it, with the reports on top of it. **Show the route on the map** / **Route in der Karte einzeichnen** under the card's map switch turns that off; **Layout → Map** sets the line's colour and width.
 
 ## Created entities
 
@@ -275,9 +320,11 @@ Every entry gets a **device** of its own, named after the area. Home Assistant r
 
 The **entity id** does not follow the language. It is generated once, when the entity is first registered, from the name in force at that moment - and never changes afterwards. An instance set up in German keeps `sensor.berlin_anzahl_kontrollen` even after switching to English. Only entries added *after* the switch get English ids.
 
-The device's **model** field says how the entry searches: `Radius`, `Tracker` or `Wegpunkte`. All of an area's entities, markers included, group under that one device card.
+The device's **model** field says how the entry searches: `Radius`, `Tracker`, `Wegpunkte` or `Route`. All of an area's entities, markers included, group under that one device card.
 
 Every `last_update` is the moment that half last *fetched*, not the moment its data last changed. It only advances on a fetch that actually succeeded.
+
+An entry whose polls fail **three times in a row** raises a repair under **Settings → System → Repairs** / **Einstellungen → System → Reparaturen**, naming the entry and the last reason - a tracker that reports no position, a tracker entity that no longer exists, a Blitzer.de that cannot be reached. One missed poll does not: a phone in a tunnel is back before the third. The repair goes away with the next poll that succeeds, and with the entry when it is removed or reloaded.
 
 Each count sensor also carries what its half counts as **new**:
 
@@ -286,6 +333,7 @@ Each count sensor also carries what its half counts as **new**:
 | `new_minutes` | Control count, Hazard count | That half's window, in minutes. `0` when the marking is switched off. |
 | `new` | Control count, Hazard count | How many of the reported ones fall inside it. Absent while the window is `0`. |
 | `new_minutes_controls`, `new_minutes_hazards` | Total count | Both windows, always. The one place they can be read side by side. |
+| `corridor_width` | Total count | Route (start/destination) entries only: the width of the boxes the route is searched in, in metres, worked out from its length. Which reports within them are kept is decided by **Distance from the route**. |
 | `new` | Total count | Both halves added together, whenever at least one window is on. |
 
 The window is deliberately a property of the *area* rather than of a card or an automation. A notification, a template and the [Blitzer card](#blitzer-card) reading the same number is what keeps them from disagreeing about what "new" means.
@@ -294,7 +342,7 @@ Attributes on each control's `geo_location` entity:
 
 | Attribute | Description |
 |---|---|
-| `state` | Distance in km (or miles) to the nearest reference point. That is the area's centre point, or the nearest waypoint in route mode. |
+| `state` | Distance in km (or miles). From the area's centre point, from the tracker, or - on a route - the way along the route from its start to where the report lies, so the markers read like the trip: this one at km 3, that one at km 23. |
 | `source` | `blitzer_<area>_controls`, e.g. `blitzer_berlin_controls`. Lets a map card select one area's controls. |
 | `area` | The display name you gave this area. |
 | `type` | How the control is installed: `mobile`, `trailer`, `fixed` or `archive`. Decided by the `fixed` and `partly_fixed` flags inside `info`, by their *value* - the API also sends `partly_fixed: "0"` for one explicitly *not* semi-stationary. **This no longer reports `redlight`**; see `kind`. |
@@ -346,7 +394,7 @@ Want it on its own, in an instance without the integration? Import it straight f
 - **Live alerts** / **Live-Meldungen** - only what is new. One notification per newly reported control or hazard, the moment it shows up. Never for one already known, and never right after a restart. A time window keeps it quiet at night; a window from `22:00` to `06:00` spans midnight.
 - **Digest** / **Sammelmeldung** - everything currently reported. One message listing what is standing right now, nearest first, capped at a length you choose. Trigger it at a time of day, when someone leaves a zone, from any entity changing state, or on demand via `automation.trigger`. Several of these can be armed at once.
 - **One set of filters for both.** Which areas and routes, controls and/or hazards, what a control measures, how it is installed, which hazard types. A minimum speed limit keeps a 30 km/h camera in a side street quiet while the one on the motorway still reports.
-- **Proximity** / **Umkreis.** Measure against a zone or a person instead of the area's centre, report only what is within a radius of it, and sort the digest by that distance.
+- **Proximity** / **Umkreis.** Measure against a zone or a person, report only what is within a radius of it, and sort the digest by that distance. Left empty, every report carries its own figure - from the area's centre, from the tracker, or on a route the way along it from its start, so a route's digest reads in driving order.
 - **Notify anywhere**, each its own collapsible section:
   - **Mobile App Notify**: push to one or more devices via the Companion App. A live alert is tappable straight through to that report on blitzer.de's map.
   - **Notifications**: Home Assistant's own notification bell, and/or a dashboard status helper (`input_text`) for a Markdown or Entity card.
@@ -385,13 +433,15 @@ automation:
 
 </details>
 
-The event data holds `config_entry_id`, `area`, `id`, `type`, `kind`, `type_name`, `summary`, `vmax`, `street`, `city`, `zip_code`, `latitude` and `longitude`.
+The event data holds `config_entry_id`, `area`, `id`, `type`, `kind`, `type_name`, `summary`, `vmax`, `street`, `city`, `zip_code`, `latitude`, `longitude` and `distance`.
+
+`distance` is the marker's own figure, in km (or miles): from the area's centre, from the tracker, or on a route the way along it from its start - so an automation can say "at km 23" without a reference point of its own.
 
 `summary` is the same one-line description the entity carries. A notification can print that one field instead of assembling six - straight from the event, without looking the entity up.
 
 Drop the `event_data: area: ...` filter to match every configured area. This is a plain event, not tied to an entity, so the data is read from `trigger.event.data.*`.
 
-Hazards fire their own **`blitzer_new_hazard`** event on the same terms. Its data is `config_entry_id`, `area`, `id`, `type` (the key from [Hazard types](#hazard-types--gefahren)), `type_name`, `summary`, `reason`, `street`, `city`, `zip_code`, `latitude` and `longitude`. Here too, `summary` is the finished line, tailback figures included.
+Hazards fire their own **`blitzer_new_hazard`** event on the same terms. Its data is `config_entry_id`, `area`, `id`, `type` (the key from [Hazard types](#hazard-types--gefahren)), `type_name`, `summary`, `reason`, `street`, `city`, `zip_code`, `latitude`, `longitude` and `distance`. Here too, `summary` is the finished line, tailback figures included.
 
 `reason` is the free text Blitzer.de attaches. On a police report that is a fully written-out bulletin ("A44, Düsseldorf Richtung Essen, ... linker Fahrstreifen gesperrt"). On a community-reported jam it is usually empty.
 
@@ -497,6 +547,8 @@ Or build the action once in **Developer Tools → Actions** / **Entwicklerwerkze
 
 The integration's own card. One list answering "what is on my way right now", per area or route: controls and hazards together, nearest first, with a map above them that can either mirror the list or drive it.
 
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-actions.gif" alt="The card on a route entry being used: the NEW badge narrows it to what has just been reported, the red badge narrows it to the jams and what each of them costs, and a second click gives all the reports back - the map following the list each time" width="45%">
+
 It comes with the integration. There is nothing to download, nothing to copy into `www` and nothing to register as a dashboard resource - restart Home Assistant after installing and the card is there, under **Blitzer.de** in the card picker.
 
 Everything it draws is already in the frontend's own state. The reports are `geo_location` entities, the area names and their search mode come from the device registry, the "last updated" moment from the area's **Total count** sensor, and what still counts as new from that area's own [**Counts as new for** / **Als neu zählen für**](#area-radius--bereich-radius) windows. Nothing has to be configured a second time here.
@@ -514,7 +566,7 @@ Everything it draws is already in the frontend's own state. The reports are `geo
 |---|---|
 | `portrait` | The map above, the list below. The default. |
 | `landscape` | Map and list side by side. |
-| `minimal` | One line carrying two numbers - everything the area reports, and what of it is still new - with the reports themselves behind it in a pop-up. Built for a dense dashboard, or for a section where a card of full height would be one too many. |
+| `minimal` | One line carrying two or three numbers - everything the area reports, what of it is still new, and what the jams among it cost - each opening the pop-up on what it counted. Built for a dense dashboard, or for a section where a card of full height would be one too many. |
 
 The picture at the top of this page shows all three side by side.
 
@@ -523,12 +575,18 @@ The picture at the top of this page shows all three side by side.
 - **Pick the area on the card**, or pin it to one. Several areas on one card share a dropdown; a card pinned to a single area drops it.
 - **Show controls, hazards or both**, switchable on the card itself.
 - **A map that mirrors the list, or drives it.** Clicking an entry can centre the map on that report; the list can restrict itself to what the map currently shows, so panning the map is a way of asking a different question.
+- **Draw a route on the map.** A route entry's route - the one openrouteservice worked out, or the straight lines between hand-placed waypoints - is drawn underneath the reports and fitted into view when the card first draws it. **Show the route on the map** / **Route in der Karte einzeichnen** turns it off; **Layout → Map** sets the line's colour and width, and the **Grouped reports** / **Zusammengefasste Meldungen** block beside it recolours the discs the map gathers nearby reports into. On a route entry every distance is the way along the route from its start, so the list reads in driving order.
 - **Sort by distance, newest or oldest.** The order also decides which reports survive when the number shown is capped.
 - **Measure distance from the area's centre, from the map, or from a person or zone**, so "nearest first" means nearest to whoever is driving.
 - **Mark what is new.** The threshold is the area's own, set on its device page, so the card and every automation agree on what "new" means. A badge next to the title counts them; each entry carries a tag.
+- **Say what the jams cost.** Where reports carry a delay - Blitzer.de sends one on a tailback, not on a roadwork - a red badge beside the NEW one adds them up: *+10 min*, *+1 h 35 min*. Clicking it narrows the card and the map to exactly those reports, the same way the NEW badge narrows them to what is new; clicking it again, or the other badge, lets go. **Show what the jams cost** / **Zeigen, was die Staus kosten** switches the badge off; it has its own block under **Layout → General**, with the same colour, background, font and switches the NEW marker has. With the list following the map it counts what is on screen, like the number beside it.
+
+  In the [minimal format](#formats) the same switch draws a third part of the line instead of a badge - *+22 min* after the total and the new count, in the same red - and a tap on it opens the pop-up on those reports alone. It stays there at *0 min*, quiet and not pressable, the way the new part does at nought: a line that gained and lost a third of itself every time a jam cleared would move everything under it each time. Its own block under **Layout → General** sets its colour, its fill and its symbol, and on a narrow card the words go first, then the type steps down, so the figure is never cut off.
 - **Fold a long list** after a number of entries you choose, with a chevron to open the rest.
 - **Refresh on demand**, with a button at the end of the subtitle line. Worth having above all on an area set to poll manually - an update interval of `0`.
 - **A tap action in the minimal format.** Home Assistant's own set: more-info, navigate, URL, an action, toggle, or nothing. Left on **Default** the tap opens the pop-up, which is what the format is for.
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-route-delay.png" alt="A route entry on the card: the red badge adding up what the jams cost, switched on so that card, list and map show only the reports costing time - two tailbacks with their queue length, speed and delay" width="50%">
 
 ### Settings
 
@@ -537,7 +595,7 @@ Two panels, each with three groups:
 - **Settings** - *General, Content, List*: what the card shows.
 - **Layout** - *General, Map, List*: how it is drawn. One collapsible block per element - the title, the badges, each line of an entry, the dropdowns, the rule between entries - with colour, typeface, size and, where the element has one, its symbol.
 
-Every field carries an **i** describing it, so the reference for its roughly 190 settings is the editor itself. The editor writes only what differs from the default, so a card configured entirely in the interface stays short in YAML.
+Every field carries an **i** describing it, so the reference for its roughly 220 settings is the editor itself. The editor writes only what differs from the default, so a card configured entirely in the interface stays short in YAML.
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-custom.png" alt="The same three formats restyled: coloured badges, a renamed title, a background image, other symbols, underlined addresses, confirmation stars and recoloured counters" width="100%">
 
@@ -583,17 +641,21 @@ The options that decide what the card *is*, rather than how it is drawn:
 | `title` | *(the translated default)* | The card's own title. |
 | `filter` | `all` | What the card starts on: `all`, `controls` or `hazards`. |
 | `sort` | `distance` | `distance`, `newest` or `oldest`. |
-| `reference_mode` | `area` | Where distances are measured from: `area`, `map` or `entity`. |
+| `reference_mode` | `area` | Where distances are measured from: `area`, `map` or `entity`. On a route entry every distance is the way along the route from its start, whatever this says. |
 | `reference` | - | The person, device tracker or zone, with `reference_mode: entity`. |
 | `only_new` | `false` | Show nothing but what is still new. |
 | `show_max` / `max` | `false` / `5` | Cap how many reports are listed. |
 | `collapse_list` / `collapse_after` | `false` / `3` | Fold the list after this many entries. Portrait only. |
 | `show_map` / `show_list` | `true` / `true` | The two halves of the card, and of the pop-up in the minimal format. |
 | `map_aspect_ratio` | `16:9` | The map's shape. |
+| `map_route` | `true` | Draw a route entry's route on the map. |
+| `route_color` / `route_width` | *(theme primary)* / `4` | The route line's colour and its width in pixels. |
+| `cluster_color` / `cluster_text_color` | *(theme)* | The discs the map gathers nearby reports into, and the count on them. |
+| `cluster_font_size` / `cluster_bold` / `cluster_italic` / `cluster_underline` | *(the map's)* / `false` | The count's size and style. |
 | `follow_map` | `true` | Restrict the list to what the map shows. |
 | `center_on_click` | `true` | A click on an entry centres the map on it. |
 | `show_area_picker` / `show_filter_picker` | `true` / `true` | The two dropdowns. |
-| `show_title` / `show_count` / `show_new` / `show_sub` | `true` | The parts of the head. |
+| `show_title` / `show_count` / `show_new` / `show_delay` / `show_sub` | `true` | The parts of the head. |
 | `show_refresh` | `true` | The refresh button at the end of the subtitle line. |
 | `mini_tap_action` | *(opens the pop-up)* | Minimal format: what a tap on either number does. |
 | `mini_show_total` | `true` | Minimal format: show the total next to the new count. |
@@ -602,7 +664,7 @@ The rest of the keys say how a given element is drawn. Those are what the **Layo
 
 ### CSS variables
 
-Every setting the **Layout** panel makes is also a custom property, so a theme can dress the card without anyone opening the editor - and so a dashboard full of these cards is styled in one place rather than card by card.
+Every setting the **Layout** panel makes is also a custom property - bar the route line, which the card draws into the map rather than styling in CSS - so a theme can dress the card without anyone opening the editor - and so a dashboard full of these cards is styled in one place rather than card by card.
 
 The names follow one scheme throughout:
 
@@ -643,6 +705,7 @@ Which suffixes an element takes depends on what it is made of:
 | `--blitzer-sub-` | Subtitle line | ✓ | ✓ | | ✓ | |
 | `--blitzer-count-` | Number of reports shown | ✓ | ✓ | ✓ | | |
 | `--blitzer-new-` | New marker - the badge, and the tag in the card's own list | ✓ | ✓ | ✓ | | |
+| `--blitzer-delay-` | The delay badge beside it - what the jams cost | ✓ | ✓ | ✓ | | |
 | `--blitzer-no-reports-` | Text without reports | ✓ | ✓ | | | |
 | `--blitzer-area-select-` | Area dropdown | ✓ | ✓ | ✓ | | |
 | `--blitzer-filter-select-` | Filter dropdown | ✓ | ✓ | ✓ | | |
@@ -655,7 +718,9 @@ Which suffixes an element takes depends on what it is made of:
 | `--blitzer-row-stars-` | Stars | ✓ | | | | ✓ |
 | `--blitzer-mini-total-` | Minimal format: the total | ✓ | ✓ | | ✓ | |
 | `--blitzer-mini-new-` | Minimal format: what is new | ✓ | ✓ | | ✓ | |
+| `--blitzer-mini-delay-` | Minimal format: what the jams cost | ✓ | ✓ | | ✓ | |
 | `--blitzer-pop-new-` | New marker on an entry of the pop-up's list | ✓ | ✓ | ✓ | | |
+| `--blitzer-cluster-` | Grouped reports on the map: the count on the disc, and with `-background` the disc itself | ✓ | ✓ | ✓ | | |
 
 | Column | Suffixes |
 |---|---|
@@ -666,6 +731,8 @@ Which suffixes an element takes depends on what it is made of:
 | Size | `-size` |
 
 So `--blitzer-sub-icon-size` exists and `--blitzer-title-icon-size` does not, because the title has no symbol.
+
+The grouped reports are the one element drawn by Home Assistant's map rather than by the card, inside the map's own stylesheet. The properties reach it all the same - set on the card, they are inherited into the map - and each falls back to the map's own declaration, so an unset one changes nothing there either.
 
 #### On their own
 
@@ -683,7 +750,7 @@ Nine more, where one property is the whole of what the element is:
 | `--blitzer-divider-style` | `solid`, `dashed`, `dotted`. |
 | `--blitzer-highlight-background` | What backs the entry whose report was clicked on the map. |
 
-And four for the two halves of the minimal line, which are filled rather than drawn on:
+And six for the three parts of the minimal line, which are filled rather than drawn on:
 
 | Variable | What it does |
 |---|---|
@@ -691,8 +758,10 @@ And four for the two halves of the minimal line, which are filled rather than dr
 | `--blitzer-mini-total-fill-opacity` | Its opacity, `0` to `1`. |
 | `--blitzer-mini-new-fill-color` | The colour behind the new count. Preset to the accent colour. |
 | `--blitzer-mini-new-fill-opacity` | Its opacity. Preset to `0.14`. |
+| `--blitzer-mini-delay-fill-color` | The colour behind what the jams cost. Preset to the theme's error colour. |
+| `--blitzer-mini-delay-fill-opacity` | Its opacity. Preset to `0.14`. |
 
-132 in all, and none of them changes anything until it is set: an unset property falls back to the card's own stylesheet rather than to nothing.
+159 in all, and none of them changes anything until it is set: an unset property falls back to the card's own stylesheet rather than to nothing.
 
 ## Map card
 

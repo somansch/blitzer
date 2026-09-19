@@ -3,9 +3,10 @@
     "selector": {
         "search_mode": {
             "options": {
-                "area": "Area (radius)",
-                "tracker": "Device tracker (radius)",
-                "route": "Route (waypoints)"
+                "area": "📍 Area (radius)",
+                "tracker": "📱 Device tracker (radius)",
+                "route": "🧭 Route (waypoints)",
+                "route_ors": "🛣️ Route (start/destination) *"
             }
         },
         "control_form": {
@@ -81,6 +82,9 @@
                 "data": {
                     "name": "Display name",
                     "search_mode": "Search mode"
+                },
+                "data_description": {
+                    "search_mode": "\\* needs a free openrouteservice API key - the next screen tells you how to get one."
                 }
             },
             "area": {
@@ -190,6 +194,152 @@
                         }
                     }
                 }
+            },
+            "ors_key": {
+                "title": "openrouteservice",
+                "description": "The route is worked out by openrouteservice. It needs an API key, which is free:\n\n1. Sign up at [openrouteservice.org](https://openrouteservice.org/) and confirm the e-mail you receive.\n2. Log in. Your profile page shows the key at the top, **Basic Key**, with a copy button next to it.\n3. Paste it here.\n\nThe key is only used while a route is set up or changed. If a key is already saved, leave the field empty to keep it. A saved key is used for every further route without being asked for again.",
+                "data": {
+                    "ors_api_key": "API key",
+                    "ors_save_key": "Save the key for further routes"
+                }
+            },
+            "ors_start": {
+                "title": "Start",
+                "description": "Where does the route start?",
+                "menu_options": {
+                    "ors_start_zone": "Zone",
+                    "ors_start_point": "Point on the map",
+                    "ors_start_address": "Address"
+                }
+            },
+            "ors_start_zone": {
+                "title": "Start: zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_start_point": {
+                "title": "Start: point on the map",
+                "description": "Move the map so the marker sits on the start.",
+                "data": {
+                    "location": "Start"
+                }
+            },
+            "ors_start_address": {
+                "title": "Start: address",
+                "description": "Street and town - the best match near your home is used.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_start_address_confirm": {
+                "title": "Start: address found",
+                "description": "Found: **{label}**\n\nIf this is not the place you meant, correct the address and continue - it will be looked up again.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_destination": {
+                "title": "Destination",
+                "description": "Where does the route end?",
+                "menu_options": {
+                    "ors_destination_zone": "Zone",
+                    "ors_destination_point": "Point on the map",
+                    "ors_destination_address": "Address"
+                }
+            },
+            "ors_destination_zone": {
+                "title": "Destination: zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_destination_point": {
+                "title": "Destination: point on the map",
+                "description": "Move the map so the marker sits on the destination.",
+                "data": {
+                    "location": "Destination"
+                }
+            },
+            "ors_destination_address": {
+                "title": "Destination: address",
+                "description": "Street and town - the best match near your home is used.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_destination_address_confirm": {
+                "title": "Destination: address found",
+                "description": "Found: **{label}**\n\nIf this is not the place you meant, correct the address and continue - it will be looked up again.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_vias": {
+                "title": "Via points",
+                "description": "From {start} to {destination}, {count} via points so far. openrouteservice takes the fastest road between them - add a via point wherever your usual way differs.",
+                "menu_options": {
+                    "ors_via": "Add a via point",
+                    "ors_vias_clear": "Remove all via points",
+                    "ors_route": "Calculate the route"
+                }
+            },
+            "ors_via": {
+                "title": "Via point {count}",
+                "description": "Move the map so the marker sits on a road the route should take.",
+                "data": {
+                    "location": "Via point"
+                }
+            },
+            "ors_route": {
+                "title": "Your route",
+                "description": "{start} → {destination}, {vias} via points: {distance} km, about {duration} min. The map shows the route that will be searched along.",
+                "data": {
+                    "route_tolerance": "Distance from the route (meters)",
+                    "ors_return_route": "Also create the way back",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optional settings for controls",
+                        "data": {
+                            "count": "Number of controls",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
+                        }
+                    }
+                },
+                "data_description": {
+                    "ors_return_route": "A second entry, destination to start, worked out by openrouteservice as well - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added."
+                }
+            },
+            "ors_alternatives": {
+                "title": "Which way?",
+                "description": "openrouteservice offers {count} routes from {start} to {destination}, fastest first. The map draws them numbered: the first as the route, the others dashed.",
+                "menu_options": {
+                    "ors_alternative_1": "Route 1: {distance_1} km, about {duration_1} min",
+                    "ors_alternative_2": "Route 2: {distance_2} km, about {duration_2} min",
+                    "ors_alternative_3": "Route 3: {distance_3} km, about {duration_3} min"
+                }
+            },
+            "ors_route_failed": {
+                "title": "No route",
+                "description": "Continue to change the points."
             }
         },
         "abort": {
@@ -198,7 +348,16 @@
             "no_tracker_with_position": "No device tracker is reporting a position right now. This mode needs one that sends coordinates - a tracker that knows nothing but home and away cannot centre a radius."
         },
         "error": {
-            "route_needs_two_waypoints": "A route needs at least two waypoints."
+            "route_needs_two_waypoints": "A route needs at least two waypoints.",
+            "invalid_api_key": "openrouteservice did not accept the API key.",
+            "quota_exceeded": "The openrouteservice quota of this key is used up for now. Try again later.",
+            "address_not_found": "No place was found for this address.",
+            "point_not_routable": "One of the points is too far from a road. Move it closer to one.",
+            "no_route": "openrouteservice found no road connecting these points.",
+            "route_too_long": "The route is too long for openrouteservice, or has too many points.",
+            "cannot_connect": "openrouteservice could not be reached.",
+            "zone_without_position": "This zone has no position.",
+            "api_key_required": "Enter an API key."
         }
     },
     "services": {
@@ -229,7 +388,10 @@
                 "title": "What do you want to edit?",
                 "menu_options": {
                     "edit_waypoints": "Edit waypoints",
-                    "edit_settings": "Edit search settings (corridor width, types, filters)"
+                    "edit_settings": "Edit search settings (corridor width, types, filters)",
+                    "edit_route": "Change the route (start, destination, via points)",
+                    "edit_ors_settings": "Edit search settings (distance from the route, types, filters)",
+                    "edit_ors_key": "Change the openrouteservice API key"
                 }
             },
             "area": {
@@ -347,13 +509,170 @@
                         }
                     }
                 }
+            },
+            "ors_key": {
+                "title": "openrouteservice",
+                "description": "The route is worked out by openrouteservice. It needs an API key, which is free:\n\n1. Sign up at [openrouteservice.org](https://openrouteservice.org/) and confirm the e-mail you receive.\n2. Log in. Your profile page shows the key at the top, **Basic Key**, with a copy button next to it.\n3. Paste it here.\n\nThe key is only used while a route is set up or changed. If a key is already saved, leave the field empty to keep it. A saved key is used for every further route without being asked for again.",
+                "data": {
+                    "ors_api_key": "API key",
+                    "ors_save_key": "Save the key for further routes"
+                }
+            },
+            "ors_start": {
+                "title": "Start",
+                "description": "Where does the route start?",
+                "menu_options": {
+                    "ors_start_zone": "Zone",
+                    "ors_start_point": "Point on the map",
+                    "ors_start_address": "Address"
+                }
+            },
+            "ors_start_zone": {
+                "title": "Start: zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_start_point": {
+                "title": "Start: point on the map",
+                "description": "Move the map so the marker sits on the start.",
+                "data": {
+                    "location": "Start"
+                }
+            },
+            "ors_start_address": {
+                "title": "Start: address",
+                "description": "Street and town - the best match near your home is used.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_start_address_confirm": {
+                "title": "Start: address found",
+                "description": "Found: **{label}**\n\nIf this is not the place you meant, correct the address and continue - it will be looked up again.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_destination": {
+                "title": "Destination",
+                "description": "Where does the route end?",
+                "menu_options": {
+                    "ors_destination_zone": "Zone",
+                    "ors_destination_point": "Point on the map",
+                    "ors_destination_address": "Address"
+                }
+            },
+            "ors_destination_zone": {
+                "title": "Destination: zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_destination_point": {
+                "title": "Destination: point on the map",
+                "description": "Move the map so the marker sits on the destination.",
+                "data": {
+                    "location": "Destination"
+                }
+            },
+            "ors_destination_address": {
+                "title": "Destination: address",
+                "description": "Street and town - the best match near your home is used.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_destination_address_confirm": {
+                "title": "Destination: address found",
+                "description": "Found: **{label}**\n\nIf this is not the place you meant, correct the address and continue - it will be looked up again.",
+                "data": {
+                    "address": "Address"
+                }
+            },
+            "ors_vias": {
+                "title": "Via points",
+                "description": "From {start} to {destination}, {count} via points so far. openrouteservice takes the fastest road between them - add a via point wherever your usual way differs.",
+                "menu_options": {
+                    "ors_via": "Add a via point",
+                    "ors_vias_clear": "Remove all via points",
+                    "ors_route": "Calculate the route"
+                }
+            },
+            "ors_via": {
+                "title": "Via point {count}",
+                "description": "Move the map so the marker sits on a road the route should take.",
+                "data": {
+                    "location": "Via point"
+                }
+            },
+            "ors_route": {
+                "title": "Your route",
+                "description": "{start} → {destination}, {vias} via points: {distance} km, about {duration} min. The map shows the route that will be searched along.",
+                "data": {
+                    "route_tolerance": "Distance from the route (meters)",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optional settings for controls",
+                        "data": {
+                            "count": "Number of controls",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
+                        }
+                    }
+                }
+            },
+            "ors_alternatives": {
+                "title": "Which way?",
+                "description": "openrouteservice offers {count} routes from {start} to {destination}, fastest first. The map draws them numbered: the first as the route, the others dashed.",
+                "menu_options": {
+                    "ors_alternative_1": "Route 1: {distance_1} km, about {duration_1} min",
+                    "ors_alternative_2": "Route 2: {distance_2} km, about {duration_2} min",
+                    "ors_alternative_3": "Route 3: {distance_3} km, about {duration_3} min"
+                }
+            },
+            "ors_route_failed": {
+                "title": "No route",
+                "description": "Continue to change the points."
             }
         },
         "error": {
-            "route_needs_two_waypoints": "A route needs at least two waypoints."
+            "route_needs_two_waypoints": "A route needs at least two waypoints.",
+            "invalid_api_key": "openrouteservice did not accept the API key.",
+            "quota_exceeded": "The openrouteservice quota of this key is used up for now. Try again later.",
+            "address_not_found": "No place was found for this address.",
+            "point_not_routable": "One of the points is too far from a road. Move it closer to one.",
+            "no_route": "openrouteservice found no road connecting these points.",
+            "route_too_long": "The route is too long for openrouteservice, or has too many points.",
+            "cannot_connect": "openrouteservice could not be reached.",
+            "zone_without_position": "This zone has no position.",
+            "api_key_required": "Enter an API key."
         },
         "abort": {
             "no_tracker_with_position": "No device tracker is reporting a position right now. This mode needs one that sends coordinates - a tracker that knows nothing but home and away cannot centre a radius."
+        }
+    },
+    "issues": {
+        "entry_failing": {
+            "title": "{name} is not delivering",
+            "description": "The Blitzer.de entry **{name}** has failed {count} polls in a row, so its entities are unavailable. The last reason:\n\n`{reason}`\n\nA tracker without a position, or a tracker entity that no longer exists, is fixed under the entry's **Configure**; if Blitzer.de itself cannot be reached, this clears on its own once it can. This repair goes away with the next poll that succeeds."
         }
     }
 }

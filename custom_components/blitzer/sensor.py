@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import DOMAIN, SEARCH_MODE_ROUTE_ORS
 from .coordinator import BlitzerdeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -322,6 +322,10 @@ class SensorGrandTotal(SensorTotalBase):
             "new_minutes_controls": controls,
             "new_minutes_hazards": hazards,
         }
+        if self.coordinator.search_mode == SEARCH_MODE_ROUTE_ORS:
+            # A route's corridor is worked out from its length, not set in a
+            # form, so this is the one place its width can be read back.
+            attrs["corridor_width"] = self.coordinator.corridor_width
         if controls or hazards:
             now = dt_util.now()
             data = self.coordinator.data

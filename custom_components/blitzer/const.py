@@ -222,6 +222,48 @@ CONF_TRACKER_RADIUS = "tracker_radius"
 # start from the same circle.
 DEFAULT_TRACKER_RADIUS = 1000
 
+# The fourth search mode: a corridor along a route worked out by
+# openrouteservice from a start, a destination and optional via points,
+# instead of along straight lines between hand-placed waypoints. The route is
+# stored with the entry as a thinned-out list of points under CONF_WAYPOINTS,
+# so everything that searches and measures along a waypoint route does the
+# same along this one.
+#
+# Each end is a zone, a point on the map or an address; the kind is stored
+# with it, so that editing the entry offers the same kind again.
+SEARCH_MODE_ROUTE_ORS = "route_ors"
+ROUTE_MODES = (SEARCH_MODE_ROUTE, SEARCH_MODE_ROUTE_ORS)
+CONF_ORS_API_KEY = "ors_api_key"
+CONF_ORS_SAVE_KEY = "ors_save_key"
+CONF_ORS_START = "ors_start"
+CONF_ORS_DESTINATION = "ors_destination"
+# The switch on a new route's last screen that makes the way back as a
+# second entry. A form field only - never stored.
+CONF_ORS_RETURN_ROUTE = "ors_return_route"
+CONF_ORS_VIAS = "ors_vias"
+CONF_ROUTE_DISTANCE = "route_distance"
+CONF_ROUTE_DURATION = "route_duration"
+ORS_KIND_ZONE = "zone"
+ORS_KIND_POINT = "point"
+ORS_KIND_ADDRESS = "address"
+# openrouteservice takes up to 50 points per request; far fewer vias than
+# that are needed to pin a commute to the road it actually takes.
+MAX_ORS_VIAS = 20
+
+# How far from the route line a report may lie and still count as on the
+# route. The boxes a route is searched in are hundreds of metres wide and
+# catch every parallel street; this keeps the road itself. 60 m covers a
+# wide road, a report placed by a phone's GPS and the 10 m the stored route
+# was thinned out by, and on the first real route there was nothing between
+# 80 m and 290 m to be unsure about. Bounded at 300 m: the search boxes grow
+# with the tolerance where they must (coordinator._search_radius), and past a
+# few hundred metres this is no longer "on the route" but a corridor, which
+# the waypoint route already is.
+CONF_ROUTE_TOLERANCE = "route_tolerance"
+DEFAULT_ROUTE_TOLERANCE = 60
+MIN_ROUTE_TOLERANCE = 10
+MAX_ROUTE_TOLERANCE = 300
+
 def tracker_position(state) -> tuple[float, float] | None:
     """What a device tracker is reporting as its position, or None.
 

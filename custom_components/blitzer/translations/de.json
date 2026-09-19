@@ -3,9 +3,10 @@
     "selector": {
         "search_mode": {
             "options": {
-                "area": "Bereich (Radius)",
-                "tracker": "Gerätetracker (Radius)",
-                "route": "Route (Wegpunkte)"
+                "area": "📍 Bereich (Radius)",
+                "tracker": "📱 Gerätetracker (Radius)",
+                "route": "🧭 Route (Wegpunkte)",
+                "route_ors": "🛣️ Route (Start/Ziel) *"
             }
         },
         "control_form": {
@@ -81,6 +82,9 @@
                 "data": {
                     "name": "Anzeigename",
                     "search_mode": "Suchart"
+                },
+                "data_description": {
+                    "search_mode": "\\* braucht einen kostenlosen API-Key von openrouteservice – wie du ihn bekommst, steht auf dem nächsten Schritt."
                 }
             },
             "area": {
@@ -190,6 +194,152 @@
                         }
                     }
                 }
+            },
+            "ors_key": {
+                "title": "openrouteservice",
+                "description": "Die Route berechnet openrouteservice. Dafür ist ein API-Key nötig, den es kostenlos gibt:\n\n1. Registriere dich auf [openrouteservice.org](https://openrouteservice.org/) und bestätige die E-Mail, die du bekommst.\n2. Melde dich an. Auf deiner Profilseite steht der Key oben als **Basic Key**, daneben ein Kopieren-Knopf.\n3. Füge ihn hier ein.\n\nDer Key wird nur beim Einrichten oder Ändern einer Route verwendet. Ist bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere Route verwendet, ohne erneut abgefragt zu werden.",
+                "data": {
+                    "ors_api_key": "API-Key",
+                    "ors_save_key": "API-Key für weitere Routen speichern"
+                }
+            },
+            "ors_start": {
+                "title": "Start",
+                "description": "Wo beginnt die Route?",
+                "menu_options": {
+                    "ors_start_zone": "Zone",
+                    "ors_start_point": "Punkt auf der Karte",
+                    "ors_start_address": "Adresse"
+                }
+            },
+            "ors_start_zone": {
+                "title": "Start: Zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_start_point": {
+                "title": "Start: Punkt auf der Karte",
+                "description": "Verschiebe die Karte, sodass der Marker auf dem Start liegt.",
+                "data": {
+                    "location": "Start"
+                }
+            },
+            "ors_start_address": {
+                "title": "Start: Adresse",
+                "description": "Straße und Ort – verwendet wird der beste Treffer in der Nähe deines Zuhauses.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_start_address_confirm": {
+                "title": "Start: Adresse gefunden",
+                "description": "Gefunden: **{label}**\n\nFalls das nicht der gewünschte Ort ist, korrigiere die Adresse und fahre fort – sie wird dann erneut gesucht.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_destination": {
+                "title": "Ziel",
+                "description": "Wo endet die Route?",
+                "menu_options": {
+                    "ors_destination_zone": "Zone",
+                    "ors_destination_point": "Punkt auf der Karte",
+                    "ors_destination_address": "Adresse"
+                }
+            },
+            "ors_destination_zone": {
+                "title": "Ziel: Zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_destination_point": {
+                "title": "Ziel: Punkt auf der Karte",
+                "description": "Verschiebe die Karte, sodass der Marker auf dem Ziel liegt.",
+                "data": {
+                    "location": "Ziel"
+                }
+            },
+            "ors_destination_address": {
+                "title": "Ziel: Adresse",
+                "description": "Straße und Ort – verwendet wird der beste Treffer in der Nähe deines Zuhauses.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_destination_address_confirm": {
+                "title": "Ziel: Adresse gefunden",
+                "description": "Gefunden: **{label}**\n\nFalls das nicht der gewünschte Ort ist, korrigiere die Adresse und fahre fort – sie wird dann erneut gesucht.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_vias": {
+                "title": "Via-Punkte",
+                "description": "Von {start} nach {destination}, bisher {count} Via-Punkte. openrouteservice nimmt dazwischen die schnellste Strecke – setze einen Via-Punkt überall dort, wo dein üblicher Weg davon abweicht.",
+                "menu_options": {
+                    "ors_via": "Via-Punkt hinzufügen",
+                    "ors_vias_clear": "Alle Via-Punkte entfernen",
+                    "ors_route": "Route berechnen"
+                }
+            },
+            "ors_via": {
+                "title": "Via-Punkt {count}",
+                "description": "Verschiebe die Karte, sodass der Marker auf einer Straße liegt, über die die Route führen soll.",
+                "data": {
+                    "location": "Via-Punkt"
+                }
+            },
+            "ors_route": {
+                "title": "Deine Route",
+                "description": "{start} → {destination}, {vias} Via-Punkte: {distance} km, etwa {duration} Min. Die Karte zeigt die Route, entlang der gesucht wird.",
+                "data": {
+                    "route_tolerance": "Abstand zur Route (Meter)",
+                    "ors_return_route": "Auch den Rückweg anlegen",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optionale Einstellungen Kontrollen",
+                        "data": {
+                            "count": "Maximale Anzahl der Kontrollen",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
+                        }
+                    }
+                },
+                "data_description": {
+                    "ors_return_route": "Ein zweiter Eintrag, Ziel nach Start, ebenfalls von openrouteservice berechnet - auf der Autobahn ist der Rückweg die andere Fahrbahn, und ein Stau auf der einen ist keiner auf der anderen. Benannt wie dieser Eintrag, mit „Rückweg“ dahinter."
+                }
+            },
+            "ors_alternatives": {
+                "title": "Welcher Weg?",
+                "description": "openrouteservice bietet {count} Routen von {start} nach {destination}, die schnellste zuerst. Die Karte zeichnet sie nummeriert: die erste als Route, die anderen gestrichelt.",
+                "menu_options": {
+                    "ors_alternative_1": "Route 1: {distance_1} km, etwa {duration_1} Min",
+                    "ors_alternative_2": "Route 2: {distance_2} km, etwa {duration_2} Min",
+                    "ors_alternative_3": "Route 3: {distance_3} km, etwa {duration_3} Min"
+                }
+            },
+            "ors_route_failed": {
+                "title": "Keine Route",
+                "description": "Weiter, um die Punkte zu ändern."
             }
         },
         "abort": {
@@ -198,7 +348,16 @@
             "no_tracker_with_position": "Kein Gerätetracker meldet gerade eine Position. Dieser Modus braucht einen, der Koordinaten sendet – ein Tracker, der nur „zuhause“ und „abwesend“ kennt, kann keinen Radius zentrieren."
         },
         "error": {
-            "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte."
+            "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte.",
+            "invalid_api_key": "openrouteservice hat den API-Key nicht akzeptiert.",
+            "quota_exceeded": "Das openrouteservice-Kontingent dieses Keys ist vorerst aufgebraucht. Versuche es später erneut.",
+            "address_not_found": "Zu dieser Adresse wurde kein Ort gefunden.",
+            "point_not_routable": "Einer der Punkte liegt zu weit von einer Straße entfernt. Verschiebe ihn näher an eine.",
+            "no_route": "openrouteservice hat keine Straße gefunden, die diese Punkte verbindet.",
+            "route_too_long": "Die Route ist für openrouteservice zu lang oder hat zu viele Punkte.",
+            "cannot_connect": "openrouteservice war nicht erreichbar.",
+            "zone_without_position": "Diese Zone hat keine Position.",
+            "api_key_required": "Gib einen API-Key ein."
         }
     },
     "services": {
@@ -229,7 +388,10 @@
                 "title": "Was möchtest du bearbeiten?",
                 "menu_options": {
                     "edit_waypoints": "Wegpunkte bearbeiten",
-                    "edit_settings": "Sucheinstellungen bearbeiten (Korridorbreite, Typen, Filter)"
+                    "edit_settings": "Sucheinstellungen bearbeiten (Korridorbreite, Typen, Filter)",
+                    "edit_route": "Route ändern (Start, Ziel, Via-Punkte)",
+                    "edit_ors_settings": "Sucheinstellungen bearbeiten (Abstand zur Route, Typen, Filter)",
+                    "edit_ors_key": "openrouteservice-API-Key ändern"
                 }
             },
             "area": {
@@ -347,13 +509,170 @@
                         }
                     }
                 }
+            },
+            "ors_key": {
+                "title": "openrouteservice",
+                "description": "Die Route berechnet openrouteservice. Dafür ist ein API-Key nötig, den es kostenlos gibt:\n\n1. Registriere dich auf [openrouteservice.org](https://openrouteservice.org/) und bestätige die E-Mail, die du bekommst.\n2. Melde dich an. Auf deiner Profilseite steht der Key oben als **Basic Key**, daneben ein Kopieren-Knopf.\n3. Füge ihn hier ein.\n\nDer Key wird nur beim Einrichten oder Ändern einer Route verwendet. Ist bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere Route verwendet, ohne erneut abgefragt zu werden.",
+                "data": {
+                    "ors_api_key": "API-Key",
+                    "ors_save_key": "API-Key für weitere Routen speichern"
+                }
+            },
+            "ors_start": {
+                "title": "Start",
+                "description": "Wo beginnt die Route?",
+                "menu_options": {
+                    "ors_start_zone": "Zone",
+                    "ors_start_point": "Punkt auf der Karte",
+                    "ors_start_address": "Adresse"
+                }
+            },
+            "ors_start_zone": {
+                "title": "Start: Zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_start_point": {
+                "title": "Start: Punkt auf der Karte",
+                "description": "Verschiebe die Karte, sodass der Marker auf dem Start liegt.",
+                "data": {
+                    "location": "Start"
+                }
+            },
+            "ors_start_address": {
+                "title": "Start: Adresse",
+                "description": "Straße und Ort – verwendet wird der beste Treffer in der Nähe deines Zuhauses.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_start_address_confirm": {
+                "title": "Start: Adresse gefunden",
+                "description": "Gefunden: **{label}**\n\nFalls das nicht der gewünschte Ort ist, korrigiere die Adresse und fahre fort – sie wird dann erneut gesucht.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_destination": {
+                "title": "Ziel",
+                "description": "Wo endet die Route?",
+                "menu_options": {
+                    "ors_destination_zone": "Zone",
+                    "ors_destination_point": "Punkt auf der Karte",
+                    "ors_destination_address": "Adresse"
+                }
+            },
+            "ors_destination_zone": {
+                "title": "Ziel: Zone",
+                "data": {
+                    "zone": "Zone"
+                }
+            },
+            "ors_destination_point": {
+                "title": "Ziel: Punkt auf der Karte",
+                "description": "Verschiebe die Karte, sodass der Marker auf dem Ziel liegt.",
+                "data": {
+                    "location": "Ziel"
+                }
+            },
+            "ors_destination_address": {
+                "title": "Ziel: Adresse",
+                "description": "Straße und Ort – verwendet wird der beste Treffer in der Nähe deines Zuhauses.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_destination_address_confirm": {
+                "title": "Ziel: Adresse gefunden",
+                "description": "Gefunden: **{label}**\n\nFalls das nicht der gewünschte Ort ist, korrigiere die Adresse und fahre fort – sie wird dann erneut gesucht.",
+                "data": {
+                    "address": "Adresse"
+                }
+            },
+            "ors_vias": {
+                "title": "Via-Punkte",
+                "description": "Von {start} nach {destination}, bisher {count} Via-Punkte. openrouteservice nimmt dazwischen die schnellste Strecke – setze einen Via-Punkt überall dort, wo dein üblicher Weg davon abweicht.",
+                "menu_options": {
+                    "ors_via": "Via-Punkt hinzufügen",
+                    "ors_vias_clear": "Alle Via-Punkte entfernen",
+                    "ors_route": "Route berechnen"
+                }
+            },
+            "ors_via": {
+                "title": "Via-Punkt {count}",
+                "description": "Verschiebe die Karte, sodass der Marker auf einer Straße liegt, über die die Route führen soll.",
+                "data": {
+                    "location": "Via-Punkt"
+                }
+            },
+            "ors_route": {
+                "title": "Deine Route",
+                "description": "{start} → {destination}, {vias} Via-Punkte: {distance} km, etwa {duration} Min. Die Karte zeigt die Route, entlang der gesucht wird.",
+                "data": {
+                    "route_tolerance": "Abstand zur Route (Meter)",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optionale Einstellungen Kontrollen",
+                        "data": {
+                            "count": "Maximale Anzahl der Kontrollen",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
+                        }
+                    }
+                }
+            },
+            "ors_alternatives": {
+                "title": "Welcher Weg?",
+                "description": "openrouteservice bietet {count} Routen von {start} nach {destination}, die schnellste zuerst. Die Karte zeichnet sie nummeriert: die erste als Route, die anderen gestrichelt.",
+                "menu_options": {
+                    "ors_alternative_1": "Route 1: {distance_1} km, etwa {duration_1} Min",
+                    "ors_alternative_2": "Route 2: {distance_2} km, etwa {duration_2} Min",
+                    "ors_alternative_3": "Route 3: {distance_3} km, etwa {duration_3} Min"
+                }
+            },
+            "ors_route_failed": {
+                "title": "Keine Route",
+                "description": "Weiter, um die Punkte zu ändern."
             }
         },
         "error": {
-            "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte."
+            "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte.",
+            "invalid_api_key": "openrouteservice hat den API-Key nicht akzeptiert.",
+            "quota_exceeded": "Das openrouteservice-Kontingent dieses Keys ist vorerst aufgebraucht. Versuche es später erneut.",
+            "address_not_found": "Zu dieser Adresse wurde kein Ort gefunden.",
+            "point_not_routable": "Einer der Punkte liegt zu weit von einer Straße entfernt. Verschiebe ihn näher an eine.",
+            "no_route": "openrouteservice hat keine Straße gefunden, die diese Punkte verbindet.",
+            "route_too_long": "Die Route ist für openrouteservice zu lang oder hat zu viele Punkte.",
+            "cannot_connect": "openrouteservice war nicht erreichbar.",
+            "zone_without_position": "Diese Zone hat keine Position.",
+            "api_key_required": "Gib einen API-Key ein."
         },
         "abort": {
             "no_tracker_with_position": "Kein Gerätetracker meldet gerade eine Position. Dieser Modus braucht einen, der Koordinaten sendet – ein Tracker, der nur „zuhause“ und „abwesend“ kennt, kann keinen Radius zentrieren."
+        }
+    },
+    "issues": {
+        "entry_failing": {
+            "title": "{name} liefert nicht",
+            "description": "Der Blitzer.de-Eintrag **{name}** ist {count} Abfragen in Folge fehlgeschlagen, seine Entitäten sind nicht verfügbar. Der letzte Grund:\n\n`{reason}`\n\nEin Tracker ohne Position oder eine Tracker-Entität, die es nicht mehr gibt, lässt sich unter **Konfigurieren** des Eintrags beheben; ist Blitzer.de selbst nicht erreichbar, erledigt sich das von allein, sobald es wieder geht. Dieser Hinweis verschwindet mit der nächsten erfolgreichen Abfrage."
         }
     }
 }

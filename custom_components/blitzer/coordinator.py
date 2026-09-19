@@ -14,12 +14,14 @@ from homeassistant.const import (
     CONF_CONDITION
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 from homeassistant.util import location as location_util
 
 from .api import BlitzerdeAPI, APIConnectionError
+from .route_match import RouteLine, on_route
 from .const import DOMAIN
 
 from .const import (
@@ -35,6 +37,7 @@ from .const import (
     CONF_HAZARDS,
     CONF_NEW_MINUTES,
     CONF_SEARCH_MODE,
+    CONF_ROUTE_TOLERANCE,
     CONF_TRACKER,
     CONF_TRACKER_RADIUS,
     CONF_UPDATE_INTERVAL,
@@ -43,13 +46,16 @@ from .const import (
     CONTROL_KINDS,
     DEFAULT_HAZARD_COUNT,
     DEFAULT_NEW_MINUTES,
+    DEFAULT_ROUTE_TOLERANCE,
     DEFAULT_TRACKER_RADIUS,
     DEFAULT_UPDATE_INTERVAL,
     FORM_DEFAULTS,
     FORM_KIND_LABELS,
     HAZARD_TYPES,
     SEARCH_MODE_AREA,
+    ROUTE_MODES,
     SEARCH_MODE_ROUTE,
+    SEARCH_MODE_ROUTE_ORS,
     SEARCH_MODE_TRACKER,
     tracker_position,
     TYPE_ARCHIVE,
@@ -61,6 +67,12 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Polls that must fail in a row before a repair is raised. Three: at the
+# default minute apart, a tracker that lost its fix for a tunnel is back
+# before this; one whose entity is gone, or a Blitzer.de that is down, is
+# not.
+FAILURES_FOR_REPAIR = 3
 
 # HAZARD_TYPES the other way round: from the code the API sends back to the
 # key the config flow, the icons and the attributes use.
@@ -227,6 +239,10 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         # with it, so Home Assistant saw the whole set as new entities and
         # left the old ones behind as orphans. The entry id never changes.
         self.entry_id = config_entry.entry_id
+        # Polls failed in a row. A single miss is a phone in a tunnel or a
+        # hiccup at Blitzer.de and stays in the log; FAILURES_FOR_REPAIR of
+        # them are an entry that needs looking at, and become a repair.
+        self._failures = 0
         # The entry itself, for the two number entities: setting one of them
         # writes the value back to where the options flow keeps it, so that
         # the device page and the options form are one setting rather than
@@ -242,10 +258,28 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         self.search_mode = config_entry.data.get(CONF_SEARCH_MODE, SEARCH_MODE_AREA)
         self.tracker_entity = None
         self.tracker_radius = DEFAULT_TRACKER_RADIUS
-        if self.search_mode == SEARCH_MODE_ROUTE:
+        # Both route modes store their line under CONF_WAYPOINTS - hand-placed
+        # points, or openrouteservice's route thinned out - so both are
+        # searched the same way from here on.
+        # The route as a line, for measuring how far along it a report lies.
+        # Reports are filtered against it only for a route openrouteservice
+        # worked out (route_tolerance set): a waypoint route's straight lines
+        # leave the road on every bend, and a report on the road there would
+        # be judged off the route.
+        self._route_line = None
+        self.route_tolerance = None
+        if self.search_mode in ROUTE_MODES:
             self.location = None
             self.waypoints = config_entry.data[CONF_WAYPOINTS]
             self.corridor_width = config_entry.data[CONF_CORRIDOR_WIDTH]
+            if self.waypoints:
+                self._route_line = RouteLine(
+                    [(p["latitude"], p["longitude"]) for p in self.waypoints]
+                )
+            if self.search_mode == SEARCH_MODE_ROUTE_ORS and self.waypoints:
+                self.route_tolerance = config_entry.data.get(
+                    CONF_ROUTE_TOLERANCE, DEFAULT_ROUTE_TOLERANCE
+                )
         elif self.search_mode == SEARCH_MODE_TRACKER:
             # The centre is read off the tracker on every poll, so there is
             # nothing to know here yet - only which entity to ask and how
@@ -367,6 +401,7 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             manufacturer="Blitzer.de",
             model={
                 SEARCH_MODE_ROUTE: "Wegpunkte",
+                SEARCH_MODE_ROUTE_ORS: "Route",
                 SEARCH_MODE_TRACKER: "Tracker",
             }.get(self.search_mode, "Radius"),
             entry_type=DeviceEntryType.SERVICE,
@@ -478,6 +513,35 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         so entities can quickly look up their data.
         """
         try:
+            data = await self._update()
+        except UpdateFailed as err:
+            self._failures += 1
+            if self._failures == FAILURES_FOR_REPAIR:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    self.repair_issue_id,
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="entry_failing",
+                    translation_placeholders={
+                        "name": self.displayname,
+                        "count": str(self._failures),
+                        "reason": str(err),
+                    },
+                )
+            raise
+        if self._failures >= FAILURES_FOR_REPAIR:
+            ir.async_delete_issue(self.hass, DOMAIN, self.repair_issue_id)
+        self._failures = 0
+        return data
+
+    @property
+    def repair_issue_id(self) -> str:
+        return f"entry_failing_{self.entry_id}"
+
+    async def _update(self):
+        try:
             previous = self.data
             fetch_controls = self._is_due("controls", self.control_interval)
             fetch_hazards = self._is_due("hazards", self.hazard_interval)
@@ -564,7 +628,7 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         a circle around a fixed point, a circle around wherever the tracker
         is, or a corridor along the route.
         """
-        if self.search_mode == SEARCH_MODE_ROUTE:
+        if self.search_mode in ROUTE_MODES:
             return await self._get_route_items(types)
         return await self.api.getArea(
             latitude=self.location['latitude'],
@@ -665,36 +729,99 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         return hazards
 
     def _route_sample_points(self):
-        """Interpolate points along the waypoint chain, spaced corridor_width
-        apart, so the circular per-point queries below overlap and leave no
-        gaps - a "poor man's route search" without a real routing engine.
-        Straight lines between waypoints, not actual roads, so a route with
-        sharp bends needs waypoints placed on those bends to stay accurate.
+        """Points along the waypoint chain, one every corridor_width metres of
+        route plus its two ends, each the centre of one Blitzer.de request
+        below - a "poor man's route search" without a real routing engine.
+
+        Measured along the route, not per waypoint. A point per waypoint was
+        fine for a hand-drawn route of a dozen, but a route openrouteservice
+        worked out keeps a point on every bend - 782 from Munich to
+        Frankfurt, which would have been 782 requests per poll where 80
+        cover it. Straight lines between waypoints, not actual roads, so a
+        hand-drawn route with sharp bends needs waypoints on those bends to
+        stay accurate.
         """
         points = [(self.waypoints[0]['latitude'], self.waypoints[0]['longitude'])]
+        spacing = self.corridor_width
+        # How much of the spacing the previous segment has already used up.
+        carried = 0.0
         for start, end in zip(self.waypoints, self.waypoints[1:]):
             segment_length = location_util.distance(
                 start['latitude'], start['longitude'], end['latitude'], end['longitude']
-            )
-            steps = max(1, int(segment_length // self.corridor_width)) if segment_length else 1
-            for step in range(1, steps + 1):
-                fraction = step / steps
+            ) or 0.0
+            position = spacing - carried
+            while position <= segment_length:
+                fraction = position / segment_length
                 points.append((
                     start['latitude'] + (end['latitude'] - start['latitude']) * fraction,
                     start['longitude'] + (end['longitude'] - start['longitude']) * fraction,
                 ))
+                position += spacing
+            carried = segment_length - (position - spacing)
+        # The far end, unless the last sample already landed on it.
+        if len(self.waypoints) > 1 and carried > 1.0:
+            last = self.waypoints[-1]
+            points.append((last['latitude'], last['longitude']))
         return points
 
+    def _search_radius(self):
+        """Half the side of the box searched around each sample point.
+
+        The corridor width, but never so small that a report the tolerance
+        would keep could fall between two boxes: a point on the route is at
+        most half a spacing from a box centre, so half a spacing plus the
+        tolerance must fit inside. That only ever grows the box on a short
+        route with a wide tolerance - 450 m instead of 300 at 300 m.
+        """
+        if self.route_tolerance is None:
+            return self.corridor_width
+        return max(self.corridor_width, self.corridor_width / 2 + self.route_tolerance)
+
+    def report_distance(self, lat: float, lng: float) -> float | None:
+        """A report's own distance in metres, as its marker shows it: along
+        the route from its start, or from the area's centre - which in
+        tracker mode is wherever the tracker was at this search. None until
+        a tracker entry has a position."""
+        if self._route_line is not None:
+            return self.route_position(lat, lng)
+        location = self.location
+        if not location:
+            return None
+        return location_util.distance(
+            location["latitude"], location["longitude"], lat, lng
+        )
+
+    def route_position(self, lat: float, lng: float) -> float | None:
+        """How far along the route, in metres from its start, a report lies -
+        at the spot on the route nearest to it. None outside route mode."""
+        if self._route_line is None:
+            return None
+        return self._route_line.nearest((lat, lng))[1]
+
+    def _on_route_only(self, controls):
+        return [
+            item
+            for item in controls
+            if on_route(self._route_line, item, item_info(item), self.route_tolerance)
+        ]
+
     async def _get_route_items(self, types):
-        """Query a circle of radius corridor_width around every sample point
-        along the route and merge the results, deduplicated by id.
+        """Query a box around every sample point along the route and merge
+        the results, deduplicated by id.
         """
         controls = []
         seen_backends = set()
+        radius = self._search_radius()
         for lat, lng in self._route_sample_points():
-            for item in await self.api.getArea(latitude=lat, longitude=lng, radius=self.corridor_width, types=types):
+            for item in await self.api.getArea(latitude=lat, longitude=lng, radius=radius, types=types):
                 backend = item['backend']
                 if backend not in seen_backends:
                     seen_backends.add(backend)
                     controls.append(item)
+        if self.route_tolerance is not None:
+            # Before anything else looks at them - the count limit above all,
+            # which would otherwise be spent on reports two streets away. In
+            # the executor: pure arithmetic, but thousands of candidates on a
+            # long route are still too much of it for the event loop.
+            controls = await self.hass.async_add_executor_job(self._on_route_only, controls)
         return controls
