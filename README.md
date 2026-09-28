@@ -549,7 +549,7 @@ The integration's own card. One list answering "what is on my way right now", pe
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-actions.gif" alt="The card on a route entry being used: the NEW badge narrows it to what has just been reported, the red badge narrows it to the jams and what each of them costs, and a second click gives all the reports back - the map following the list each time" width="45%">
 
-It comes with the integration. There is nothing to download, nothing to copy into `www` and nothing to register as a dashboard resource - restart Home Assistant after installing and the card is there, under **Blitzer.de** in the card picker.
+It comes with the integration. There is nothing to download, nothing to copy into `www` and nothing to register as a dashboard resource - restart Home Assistant after installing and the card is there, under **Blitzer.de** in the card picker. The entry that shows up under **Settings → Dashboards → Resources** is the integration's own: it writes it, keeps it pointing at the version it serves, and takes it out again with the last area.
 
 Everything it draws is already in the frontend's own state. The reports are `geo_location` entities, the area names and their search mode come from the device registry, the "last updated" moment from the area's **Total count** sensor, and what still counts as new from that area's own [**Counts as new for** / **Als neu zählen für**](#area-radius--bereich-radius) windows. Nothing has to be configured a second time here.
 

@@ -36,7 +36,8 @@ from .const import (
     SERVICE_REFRESH_CONTROLS,
     SERVICE_REFRESH_HAZARDS,
 )
-from .bundle import async_install_blueprints, async_register_card
+from .bundle import CARD_RESOURCE_PATHS, async_install_blueprints, async_register_card
+from .lovelace_resource import async_unregister as async_unregister_resource
 from .ors import async_forget_key
 from .coordinator import (
     BlitzerdeAPIData,
@@ -329,15 +330,20 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     return unload_ok
 
 async def async_remove_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
-    """Forget the saved openrouteservice key along with the last entry.
+    """Forget what the last entry leaves behind.
 
     Home Assistant takes the entry off its list before calling this, so an
     empty list means nothing of the integration is left. A key saved "for
     further routes" then has nothing left to be for, and a credential should
-    not outlive what it was given to.
+    not outlive what it was given to. The card's resource entry goes the same
+    way: it points at a file this integration serves, so it is ours to take
+    back out rather than leave in somebody's resource list.
     """
-    if not hass.config_entries.async_entries(DOMAIN):
-        await async_forget_key(hass)
+    if hass.config_entries.async_entries(DOMAIN):
+        return
+
+    await async_forget_key(hass)
+    await async_unregister_resource(hass, CARD_RESOURCE_PATHS)
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):

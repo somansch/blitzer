@@ -1,8 +1,8 @@
 """What the download brings with it: the dashboard card and the blueprint.
 
 Both used to be a second installation of their own - a file copied into
-"www" and registered as a Lovelace resource, and a blueprint imported from a
-URL. Neither is a separate thing to keep up to date any more: they ship
+"www" and registered as a Lovelace resource by hand, and a blueprint imported
+from a URL. Neither is a separate thing to keep up to date any more: they ship
 inside the integration folder and are put in place here, so an installation
 has them the moment it has the integration.
 """
@@ -18,8 +18,11 @@ from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
+from homeassistant.setup import async_when_setup
 
 from .const import DOMAIN
+from .lovelace_resource import LOVELACE_DOMAIN
+from .lovelace_resource import async_register as async_register_resource
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +34,12 @@ CARD_FILE = "blitzer-card.js"
 # What Home Assistant is actually told to import. See the file itself for
 # why the card is not handed over directly.
 CARD_LOADER_FILE = "blitzer-card-loader.js"
+# The two files we serve, by name: an entry in the dashboards' resource list
+# pointing at one of them is ours to keep current - see lovelace_resource.py.
+CARD_RESOURCE_PATHS = (
+    f"{CARD_URL_BASE}/{CARD_FILE}",
+    f"{CARD_URL_BASE}/{CARD_LOADER_FILE}",
+)
 
 BLUEPRINT_DIR = "blueprints"
 
@@ -38,11 +47,13 @@ BLUEPRINT_DIR = "blueprints"
 async def async_register_card(hass: HomeAssistant) -> None:
     """Serve the card and its loader, and have every dashboard load it.
 
-    "add_extra_js_url" rather than a Lovelace resource: a resource has to be
-    written into the user's own resource list, which only exists on
-    storage-mode dashboards and which we would then have to keep tidy on
-    removal. An extra module URL is ours for as long as the integration is
-    loaded and gone with it.
+    Both ways in, under one URL: the extra module URL below, which Home
+    Assistant writes into every page it serves from now on, and an entry in the
+    dashboards' own resource list, which the frontend reads for itself after it
+    connects. The second one covers the page that was served while Home
+    Assistant was still starting, before any of this had run - see
+    lovelace_resource.py, which also explains why one URL in two places is
+    still only one card.
     """
     frontend = Path(__file__).parent / "frontend"
     card = frontend / CARD_FILE
@@ -82,7 +93,17 @@ async def async_register_card(hass: HomeAssistant) -> None:
     # over to the card's own URL.
     integration = await async_get_integration(hass, DOMAIN)
     name = CARD_LOADER_FILE if loader.is_file() else CARD_FILE
-    add_extra_js_url(hass, f"{CARD_URL_BASE}/{name}?v={integration.version}")
+    url = f"{CARD_URL_BASE}/{name}?v={integration.version}"
+    add_extra_js_url(hass, url)
+
+    # The same URL in the dashboards' own resource list. The list belongs to
+    # "lovelace", which may be set up before or after this integration, so this
+    # waits for it rather than assuming - and on an installation that has no
+    # dashboards at all it simply never runs.
+    async def _list_as_resource(hass: HomeAssistant, _component: str) -> None:
+        await async_register_resource(hass, url, CARD_RESOURCE_PATHS)
+
+    async_when_setup(hass, LOVELACE_DOMAIN, _list_as_resource)
 
 
 async def async_install_blueprints(hass: HomeAssistant) -> None:
