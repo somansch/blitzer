@@ -2,6 +2,12 @@
 
 All notable changes to this integration are documented here.
 
+## v3.3.2
+
+### Fixed
+- **An outage of one Blitzer.de server no longer stops the data.** The integration asked a single server, `cdn2.atudo.net` - the one the Blitzer.de map itself uses - and when that went down, every entry failed until it came back. Two more servers answer the same requests with the same data, so a request that fails now moves on to `cdn3.atudo.net` and then `cdn4.atudo.net`, and only fails once none of the three answered. Whichever answered last is asked first the next time, for all entries.
+- **A server that does not answer is given up on after 15 seconds.** There was no limit of its own before, so a server that swallowed the connection instead of refusing it could hold a poll for five minutes.
+
 ## v3.3.1
 
 ### Fixed

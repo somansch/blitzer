@@ -5,7 +5,7 @@ from math import cos, radians
 from random import choice, randrange
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from aiohttp import ClientError, ClientResponseError, ClientSession
+from aiohttp import ClientError, ClientResponseError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -19,6 +19,22 @@ _LOGGER = logging.getLogger(__name__)
 # longitude is this times the cosine of the latitude, which is what turns a
 # radius in meters into a box that is actually square on the ground.
 METERS_PER_DEGREE_LATITUDE = 111320.0
+
+# The servers that answer the same API. The Blitzer.de map only names the
+# first; when that one is down the others still serve the identical data, so
+# a request that fails moves on to the next instead of giving up. Whichever
+# answered last is asked first the next time, which keeps a long outage from
+# costing a failed attempt on every poll.
+API_HOSTS = ("cdn2.atudo.net", "cdn3.atudo.net", "cdn4.atudo.net")
+
+# Per host. Without one, a server that swallows the connection instead of
+# refusing it holds a poll for aiohttp's five minutes before the next host
+# gets its turn.
+REQUEST_TIMEOUT = ClientTimeout(total=15)
+
+# Shared by every entry, so one entry finding the working host spares the
+# others the failed attempt.
+_HOSTS = list(API_HOSTS)
 
 def areaExists(areas: list, match_area):
     for area in areas:
@@ -36,28 +52,42 @@ class BlitzerdeAPI:
         """Initialise."""
         self._session = async_get_clientsession(hass)
         self.connected: bool = False
+        self._hosts = _HOSTS
 
     async def _request(self, url):
         """sends an api request"""
-        async with self._session.get(url=url) as response:
+        async with self._session.get(url=url, timeout=REQUEST_TIMEOUT) as response:
             response.raise_for_status()
             if await response.text() == "":
                 raise APIConnectionError("Empty response.")
             return await response.json()
 
-    async def _requestCatched(self, url):
-        """sends an api request with handled exceptions"""
-        try:
-            return await self._request(url)
-        except ClientError as err:
-            raise APIConnectionError("Failed to request data.") from err
+    async def _requestCatched(self, path):
+        """sends an api request with handled exceptions
+
+        Tries each host in turn and only fails once none of them answered.
+        """
+        last_err = None
+        for host in list(self._hosts):
+            try:
+                data = await self._request(f"https://{host}{path}")
+            except (ClientError, TimeoutError, ValueError, APIConnectionError) as err:
+                _LOGGER.debug("%s did not answer: %r", host, err)
+                last_err = err
+                continue
+            if host != self._hosts[0]:
+                _LOGGER.info("Blitzer.de: %s is not answering, using %s", self._hosts[0], host)
+                self._hosts.remove(host)
+                self._hosts.insert(0, host)
+            return data
+        raise APIConnectionError("Failed to request data.") from last_err
 
     async def _requestPois(self, low_lat: float, low_ng: float, high_lat: float, high_lng: float, types):
         """request blitzer list"""
         pois_types = ','.join(map(str, types))
         #z=18 avoids clusters
-        url = f"https://cdn2.atudo.net/api/4.0/pois.php?type={pois_types}&box={low_lat},{low_ng},{high_lat},{high_lng}&z=18"
-        response_data = await self._requestCatched(url)
+        path = f"/api/4.0/pois.php?type={pois_types}&box={low_lat},{low_ng},{high_lat},{high_lng}&z=18"
+        response_data = await self._requestCatched(path)
         self.connected = True
         return response_data['pois']
 
