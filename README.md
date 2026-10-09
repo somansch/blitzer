@@ -1023,3 +1023,7 @@ This custom integration is not officially endorsed or supported by Blitzer.de. U
 There is no official, documented Blitzer.de API. This integration queries `cdn2.atudo.net`, the backend the Blitzer.de map application uses internally, and falls back to `cdn3.atudo.net` and `cdn4.atudo.net`, which serve the same data, when it does not answer. A number of other long-standing community projects - for Home Assistant, ioBroker, FHEM and others - do the same. It is not a sanctioned integration point.
 
 Blitzer.de's terms of use grant only a non-exclusive, non-transferrable license for private use of their apps. They explicitly prohibit reverse-engineering those apps and using their traffic data "in any way without our written consent or license". Using this integration is likely a violation of those terms in the strict sense, even though there is no indication of Blitzer.de having taken action against the existing ecosystem of similar tools. Use it at your own legal risk.
+
+---
+
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/ou4lgpvlju)
