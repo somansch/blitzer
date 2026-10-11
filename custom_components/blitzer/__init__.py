@@ -21,7 +21,14 @@ import homeassistant.helpers.config_validation as cv
 
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
+    CONF_HAZARD_UPDATE_INTERVAL,
     CONF_KINDS,
+    CONF_TRACKER,
+    CONF_TRACKER_RADIUS,
+    DEFAULT_TRACKER_RADIUS,
+    SEARCH_MODE_TRACKER,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
     CONF_ORS_DESTINATION,
     CONF_ORS_START,
     CONF_ORS_VIAS,
@@ -33,9 +40,12 @@ from .const import (
     SEARCH_MODE_ROUTE_ORS,
     DOMAIN,
     KIND_DEFAULTS,
+    SERVICE_REFRESH,
     SERVICE_REFRESH_CONTROLS,
     SERVICE_REFRESH_HAZARDS,
 )
+from .api import APIConnectionError, traffic_box
+from .route_match import traffic_along_route
 from .bundle import CARD_RESOURCE_PATHS, async_install_blueprints, async_register_card
 from .lovelace_resource import async_unregister as async_unregister_resource
 from .ors import async_forget_key
@@ -65,6 +75,8 @@ PLATFORMS: list[Platform] = [
     # sensors they govern are listed rather than only inside the options
     # dialog. See number.py.
     Platform.NUMBER,
+    # The reset for the two counters the sensor platform keeps. See button.py.
+    Platform.BUTTON,
 ]
 
 _REFRESH_SCHEMA = vol.Schema({vol.Required(ATTR_CONFIG_ENTRY_ID): str})
@@ -93,7 +105,77 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await async_register_card(hass)
     await async_install_blueprints(hass)
     websocket_api.async_register_command(hass, websocket_route)
+    websocket_api.async_register_command(hass, websocket_traffic)
     return True
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "blitzer/traffic",
+        vol.Required("config_entry_id"): str,
+        vol.Required("south"): vol.Coerce(float),
+        vol.Required("west"): vol.Coerce(float),
+        vol.Required("north"): vol.Coerce(float),
+        vol.Required("east"): vol.Coerce(float),
+        vol.Required("zoom"): vol.Coerce(float),
+        # The card's own refresh button: fetched again even if the cache
+        # still holds the view.
+        vol.Optional("force", default=False): bool,
+    }
+)
+@websocket_api.async_response
+async def websocket_traffic(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The traffic flow in the view a card shows, for the card to colour its
+    roads with - fetched on demand, never polled.
+
+    Traffic is stale within minutes, and an entry polls once an hour: an
+    hourly snapshot would be a still picture. So the card asks for its own
+    view while it is on screen, and this fetches that one box through the
+    entry's API client, where the request is counted with the entry's
+    others and kept a short while against the next card asking for the same
+    view. The box is snapped and the answer left as the endpoint sent it,
+    with the box actually asked for, which the card needs to decode it.
+
+    Answers with data set to null, and a reason, rather than an error when
+    nothing can be fetched: the card keeps what it has drawn.
+    """
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "Not a Blitzer.de entry")
+        return
+    box = traffic_box(msg["south"], msg["west"], msg["north"], msg["east"])
+    if box is None:
+        connection.send_result(msg["id"], {"data": None, "reason": "too_large"})
+        return
+    try:
+        data, zoom, age = await runtime.coordinator.api.getTraffic(box, msg["zoom"], msg["force"])
+    except APIConnectionError:
+        connection.send_result(msg["id"], {"data": None, "reason": "unreachable"})
+        return
+    # On a route entry, only the route's own roads: the view's others are
+    # not what that card is about. Geometry over hundreds of runs, so in
+    # the executor like the route filter itself.
+    narrow = runtime.coordinator.traffic_filter()
+    if narrow is not None and data is not None:
+        data = await hass.async_add_executor_job(traffic_along_route, data, box, narrow[0], narrow[1])
+    if age == 0:
+        # A request was sent: the entry's request counter has moved, and its
+        # sensor should say so now rather than at the next poll.
+        runtime.coordinator.async_update_listeners()
+    connection.send_result(
+        msg["id"],
+        {
+            "data": data,
+            "box": list(box),
+            "zoom": zoom,
+            "age": age,
+            # Cut down to a route: the card bridges holes in a road only
+            # then. On an area the picture is never complete anyway.
+            "along_route": narrow is not None,
+        },
+    )
 
 
 @websocket_api.websocket_command(
@@ -115,7 +197,10 @@ def websocket_route(
     once when it draws its map.
 
     Answers with points set to null for every other kind of entry, so the
-    card can ask about any area without first working out what it is.
+    card can ask about any area without first working out what it is - and
+    with what that entry searches instead: the circle's centre and radius,
+    or the tracker it follows and the radius around it, for the card to
+    show the area while there is nothing reported in it.
     """
     entry = hass.config_entries.async_get_entry(msg["config_entry_id"])
     if entry is None or entry.domain != DOMAIN:
@@ -125,7 +210,15 @@ def websocket_route(
     mode = data.get(CONF_SEARCH_MODE)
     waypoints = data.get(CONF_WAYPOINTS) or []
     if mode not in ROUTE_MODES or not waypoints:
-        connection.send_result(msg["id"], {"points": None})
+        area = {"points": None, "mode": mode}
+        if mode == SEARCH_MODE_TRACKER:
+            area["tracker"] = data.get(CONF_TRACKER)
+            area["radius"] = data.get(CONF_TRACKER_RADIUS, DEFAULT_TRACKER_RADIUS)
+        else:
+            location = data.get(CONF_LOCATION) or {}
+            area["center"] = [location.get("latitude"), location.get("longitude")]
+            area["radius"] = location.get("radius")
+        connection.send_result(msg["id"], area)
         return
 
     def end(value):
@@ -197,6 +290,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     for service, handler in (
         (SERVICE_REFRESH_CONTROLS, _async_handle_refresh_controls),
         (SERVICE_REFRESH_HAZARDS, _async_handle_refresh_hazards),
+        (SERVICE_REFRESH, _async_handle_refresh),
     ):
         if not hass.services.has_service(DOMAIN, service):
             hass.services.async_register(
@@ -234,6 +328,53 @@ def _coordinator_for(call: ServiceCall) -> BlitzerdeCoordinator:
     return runtime_data.coordinator
 
 
+def _controls_response(coordinator: BlitzerdeCoordinator) -> list[dict]:
+    """The controls list of a refresh response - see _async_handle_refresh_controls."""
+    controls = coordinator.data.controls if coordinator.data else []
+    return [
+        {
+            "id": item["backend"].split("-")[-1],
+            "vmax": item.get("vmax"),
+            "city": item["address"]["city"],
+            "street": item["address"]["street"],
+            "latitude": item.get("lat"),
+            "longitude": item.get("lng"),
+        }
+        for item in controls
+    ]
+
+
+def _hazards_response(coordinator: BlitzerdeCoordinator) -> list[dict]:
+    """The hazards list of a refresh response - see _async_handle_refresh_hazards."""
+    hazards = coordinator.data.hazards if coordinator.data else []
+    return [
+        {
+            "id": poi_id(item),
+            "type": hazard_key(item),
+            "reason": hazard_reason(item),
+            "city": (item.get("address") or {}).get("city", ""),
+            "street": (item.get("address") or {}).get("street") or item.get("street", ""),
+            "latitude": item.get("lat"),
+            "longitude": item.get("lng"),
+        }
+        for item in hazards
+    ]
+
+
+async def _async_handle_refresh(call: ServiceCall) -> ServiceResponse:
+    """Both halves of one area/route at once, in a single pass - for a
+    route, one request per point instead of one per point per half (see
+    coordinator.async_refresh_all). Returns both lists, each shaped as its
+    own action would shape it.
+    """
+    coordinator = _coordinator_for(call)
+    await coordinator.async_refresh_all()
+    return {
+        "controls": _controls_response(coordinator),
+        "hazards": _hazards_response(coordinator),
+    }
+
+
 async def _async_handle_refresh_controls(call: ServiceCall) -> ServiceResponse:
     """Immediately poll one area/route's controls, e.g. from an automation,
     instead of waiting for their next scheduled poll - the point of
@@ -248,21 +389,7 @@ async def _async_handle_refresh_controls(call: ServiceCall) -> ServiceResponse:
     """
     coordinator = _coordinator_for(call)
     await coordinator.async_refresh_kind("controls")
-
-    controls = coordinator.data.controls if coordinator.data else []
-    return {
-        "controls": [
-            {
-                "id": item["backend"].split("-")[-1],
-                "vmax": item.get("vmax"),
-                "city": item["address"]["city"],
-                "street": item["address"]["street"],
-                "latitude": item.get("lat"),
-                "longitude": item.get("lng"),
-            }
-            for item in controls
-        ]
-    }
+    return {"controls": _controls_response(coordinator)}
 
 
 async def _async_handle_refresh_hazards(call: ServiceCall) -> ServiceResponse:
@@ -274,22 +401,7 @@ async def _async_handle_refresh_hazards(call: ServiceCall) -> ServiceResponse:
     """
     coordinator = _coordinator_for(call)
     await coordinator.async_refresh_kind("hazards")
-
-    hazards = coordinator.data.hazards if coordinator.data else []
-    return {
-        "hazards": [
-            {
-                "id": poi_id(item),
-                "type": hazard_key(item),
-                "reason": hazard_reason(item),
-                "city": (item.get("address") or {}).get("city", ""),
-                "street": (item.get("address") or {}).get("street") or item.get("street", ""),
-                "latitude": item.get("lat"),
-                "longitude": item.get("lng"),
-            }
-            for item in hazards
-        ]
-    }
+    return {"hazards": _hazards_response(coordinator)}
 
 
 async def _async_update_listener(hass: HomeAssistant, config_entry):
@@ -472,6 +584,36 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 registry.async_remove(entry.entity_id)
 
         hass.config_entries.async_update_entry(config_entry, version=6)
+
+    if config_entry.version == 6:
+        # Version 7 is about the polling interval, once. Through v3.3.2 a
+        # new entry polled every minute; v4.0.0 makes the default an hour,
+        # which on its own only reaches entries made after it, and the ones
+        # made before would keep their minute - and keep running into
+        # Blitzer.de blocking the address that asks too often. So every entry polling faster than
+        # the default is set to it, both halves. One set to 0 (on demand
+        # only) and one already polling slower are left as they are: both
+        # are a choice, and neither is the one that gets blocked.
+        data = dict(config_entry.data)
+        changed = []
+        for key in (CONF_UPDATE_INTERVAL, CONF_HAZARD_UPDATE_INTERVAL):
+            try:
+                current = int(data.get(key, DEFAULT_UPDATE_INTERVAL))
+            except (TypeError, ValueError):
+                current = DEFAULT_UPDATE_INTERVAL
+            if 0 < current < DEFAULT_UPDATE_INTERVAL:
+                data[key] = DEFAULT_UPDATE_INTERVAL
+                changed.append(f"{key} {current} -> {DEFAULT_UPDATE_INTERVAL}")
+        if changed:
+            _LOGGER.warning(
+                "%s: polling interval set to the default of %d minutes once, by the "
+                "update to v4.0.0 (%s) - shorten it again under Configure if you must, "
+                "watching the entry's request count",
+                config_entry.title,
+                DEFAULT_UPDATE_INTERVAL,
+                ", ".join(changed),
+            )
+        hass.config_entries.async_update_entry(config_entry, data=data, version=7)
 
     _LOGGER.debug("Migration to configuration version %s successful", config_entry.version)
 

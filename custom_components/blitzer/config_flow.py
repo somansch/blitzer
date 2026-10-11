@@ -32,6 +32,7 @@ from .const import (
     CONF_WAYPOINTS,
     CONF_CORRIDOR_WIDTH,
     DEFAULT_CORRIDOR_WIDTH,
+    DEFAULT_COUNT,
     DEFAULT_HAZARD_COUNT,
     DEFAULT_NEW_MINUTES,
     DEFAULT_TRACKER_RADIUS,
@@ -198,7 +199,7 @@ def _optional_section(defaults: dict | None = None):
         vol.Schema(
             {
                 vol.Required(CONF_CONDITION, default=defaults.get(CONF_CONDITION, True)): bool,
-                vol.Required(CONF_COUNT, default=defaults.get(CONF_COUNT, 9)): int,
+                vol.Required(CONF_COUNT, default=defaults.get(CONF_COUNT, DEFAULT_COUNT)): int,
                 # 0 = no automatic polling at all - rely on the "refresh"
                 # service instead (e.g. from an automation). Any other value
                 # is minutes between polls.
@@ -447,7 +448,7 @@ def _common_data(user_input: dict) -> dict:
     return {
         CONF_TYPE: _as_flags(user_input.get(CONF_TYPE), FORM_DEFAULTS),
         CONF_KINDS: _as_flags(user_input.get(CONF_KINDS), KIND_DEFAULTS),
-        CONF_COUNT: optional.get(CONF_COUNT, 9),
+        CONF_COUNT: optional.get(CONF_COUNT, DEFAULT_COUNT),
         CONF_SELECTOR: optional.get(CONF_SELECTOR, ""),
         CONF_CONDITION: optional.get(CONF_CONDITION, True),
         CONF_UPDATE_INTERVAL: optional.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
@@ -489,6 +490,20 @@ _ORS_ERRORS = (
     (ORSLimitExceeded, "route_too_long"),
     (ORSError, "cannot_connect"),
 )
+
+
+def _same_place(a, b) -> bool:
+    """The same spot, however it was picked - a zone, a point on the map or
+    an address that resolved to it - compared to a metre or so."""
+    if not isinstance(a, dict) or not isinstance(b, dict):
+        return False
+    try:
+        return (
+            round(float(a["latitude"]), 5) == round(float(b["latitude"]), 5)
+            and round(float(a["longitude"]), 5) == round(float(b["longitude"]), 5)
+        )
+    except (KeyError, TypeError, ValueError):
+        return False
 
 
 def _ors_error_key(err: ORSError) -> str:
@@ -738,9 +753,14 @@ class _OrsRouteSteps:
         )
 
     async def _ors_accept(self, end: str, place: dict):
-        # A moved end is a different route; the stored one goes.
-        self._ors_route = None
-        self._ors_alternatives = None
+        # A moved end is a different route; the stored one goes. An end
+        # confirmed where it was keeps it, so walking "Change the route"
+        # through unchanged screens asks openrouteservice for nothing - and
+        # does not offer the alternatives a second time.
+        current = self._ors_start if end == "start" else self._ors_destination
+        if not _same_place(current, place):
+            self._ors_route = None
+            self._ors_alternatives = None
         if end == "start":
             self._ors_start = place
             return await self.async_step_ors_destination()
@@ -1045,7 +1065,7 @@ class _OrsRouteSteps:
 
 
 class BlitzerdeConfigFlow(_OrsRouteSteps, ConfigFlow, domain=DOMAIN):
-    VERSION = 6
+    VERSION = 7
 
     def __init__(self) -> None:
         """Initialize the config flow."""

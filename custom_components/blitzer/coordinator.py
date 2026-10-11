@@ -21,7 +21,7 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util import location as location_util
 
 from .api import BlitzerdeAPI, APIConnectionError
-from .route_match import RouteLine, on_route
+from .route_match import RouteLine, crosses_route, on_route
 from .const import DOMAIN
 
 from .const import (
@@ -440,6 +440,12 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
 
         # Initialise your api here
         self.api = BlitzerdeAPI(hass)
+        # Reports Blitzer.de has handed back to this area since the counter
+        # last stood at zero - every item of every search, before this
+        # area's own filters thin them out (see _query). The companion of
+        # api.request_count: the two together say what a poll costs and what
+        # it brings.
+        self.item_count: int = 0
 
     def absorb_windows(self, config_entry: ConfigEntry) -> bool:
         """Take on a changed "new" window without a reload, when that is all
@@ -491,6 +497,17 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         the other keeps whatever it last fetched and costs no request.
         """
         self._forced.add(kind)
+        await self.async_refresh()
+
+    async def async_refresh_all(self) -> None:
+        """Fetch both kinds right now, in one pass.
+
+        Backing the combined refresh action. Forcing both before the one
+        refresh is what lets a route entry take the combined path in _update
+        - one request per point for both halves - where calling the two
+        single-kind refreshes one after the other would make two passes.
+        """
+        self._forced.update(("controls", "hazards"))
         await self.async_refresh()
 
     def _is_due(self, kind: str, interval: int) -> bool:
@@ -555,6 +572,29 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             # going to fetch anything anyway.
             if fetch_controls or fetch_hazards:
                 self._resolve_centre()
+
+            # One request serves both halves when both are due on a route
+            # entry and both ask for something: the endpoint takes a mixed
+            # type list (the Blitzer.de map asks that way too), so a route's
+            # 42 points cost 42 requests instead of 84. Only here, not for a
+            # radius search: that reads one box, and a busy area's hazards
+            # would crowd its ~500-entry answer and push controls out (see
+            # _fetch_hazards) - a route point's box is far too small to come
+            # near that limit.
+            combined = (
+                fetch_controls
+                and fetch_hazards
+                and self.search_mode in ROUTE_MODES
+                and self.control_types
+                and self.hazard_types
+            )
+            if combined:
+                controls, hazards = await self._fetch_route_combined()
+                now = monotonic()
+                wall = dt_util.now()
+                self._last_fetch["controls"] = self._last_fetch["hazards"] = now
+                self.last_update["controls"] = self.last_update["hazards"] = wall
+                return BlitzerdeAPIData(controls=controls, hazards=hazards)
 
             # Whichever half isn't due keeps the list it last returned, so
             # its entities hold their state instead of blinking out between
@@ -623,19 +663,29 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             "radius": self.tracker_radius,
         }
 
+    def reset_counters(self) -> None:
+        """Both counters back to zero, and every entity redrawn so the two
+        sensors show it at once rather than after the next poll."""
+        self.api.request_count = 0
+        self.item_count = 0
+        self.async_update_listeners()
+
     async def _query(self, types):
         """One search for the given type codes, as this entry is configured:
         a circle around a fixed point, a circle around wherever the tracker
         is, or a corridor along the route.
         """
         if self.search_mode in ROUTE_MODES:
-            return await self._get_route_items(types)
-        return await self.api.getArea(
-            latitude=self.location['latitude'],
-            longitude=self.location['longitude'],
-            radius=self.location['radius'],
-            types=types,
-        )
+            items = await self._get_route_items(types)
+        else:
+            items = await self.api.getArea(
+                latitude=self.location['latitude'],
+                longitude=self.location['longitude'],
+                radius=self.location['radius'],
+                types=types,
+            )
+        self.item_count += len(items)
+        return items
 
     async def _fetch_controls(self):
         """Query and filter the controls."""
@@ -657,6 +707,12 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             # on current ones before archived ones.
             controls = controls + await self._query(self.archive_types)
 
+        return self._filter_controls(controls)
+
+    def _filter_controls(self, controls):
+        """The form/kind, whitelist, blacklist and confirmed filters, over a
+        list of raw control items - shared by _fetch_controls and the
+        route-combined path."""
         def _keep(item):
             # Both axes. Something this release has no grouping for is kept
             # rather than dropped: a category Blitzer.de adds later should
@@ -710,7 +766,11 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             return []
 
         hazards = await self._query(self.hazard_types)
+        return self._filter_hazards(hazards)
 
+    def _filter_hazards(self, hazards):
+        """The whitelist and blacklist filters, over a list of raw hazard
+        items - shared by _fetch_hazards and the route-combined path."""
         # .get() rather than indexing throughout: hazards vary far more in
         # shape than controls do. A traffic control centre report has no
         # postcode and sometimes no city, and its "backend" arrives as a
@@ -727,6 +787,22 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
                 if str(item.get('backend', '')).split("-")[-1] not in self.hazard_blacklist
             ]
         return hazards
+
+    async def _fetch_route_combined(self):
+        """One route pass that asks for the control and hazard types at once,
+        then splits the answer back apart by type code and filters each half
+        as its own fetch would. The archive keeps its own request (see
+        _fetch_controls). Only called for a route entry with both halves due
+        (see _update), so each point's box is a small corridor square whose
+        answer cannot approach the endpoint's ~500-entry limit.
+        """
+        items = await self._query(self.control_types + self.hazard_types)
+        hazard_codes = {str(code) for code in self.hazard_types}
+        raw_hazards = [i for i in items if str(i.get("type", "")) in hazard_codes]
+        raw_controls = [i for i in items if str(i.get("type", "")) not in hazard_codes]
+        if self.want_archive:
+            raw_controls = raw_controls + await self._query(self.archive_types)
+        return self._filter_controls(raw_controls), self._filter_hazards(raw_hazards)
 
     def _route_sample_points(self):
         """Points along the waypoint chain, one every corridor_width metres of
@@ -791,6 +867,25 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             location["latitude"], location["longitude"], lat, lng
         )
 
+    def traffic_filter(self):
+        """How the traffic flow is cut down for this entry: the route line and
+        the distance from it a road may lie at, or None for an area, which
+        shows the whole view.
+
+        A worked-out route runs on one carriageway, and that one is kept
+        by heading; the distance gets a few dozen metres added so a run
+        that strays onto the hard shoulder's side of the line still counts.
+        A waypoint route's straight lines leave the road on the bends, so
+        there the corridor's width is the distance - a parallel road inside
+        it, running the same way, comes along; there is nothing closer to
+        the road to measure against.
+        """
+        if self._route_line is None:
+            return None
+        if self.route_tolerance is not None:
+            return self._route_line, float(self.route_tolerance) + 40.0
+        return self._route_line, float(self.corridor_width)
+
     def route_position(self, lat: float, lng: float) -> float | None:
         """How far along the route, in metres from its start, a report lies -
         at the spot on the route nearest to it. None outside route mode."""
@@ -799,10 +894,20 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         return self._route_line.nearest((lat, lng))[1]
 
     def _on_route_only(self, controls):
+        if self.route_tolerance is not None:
+            return [
+                item
+                for item in controls
+                if on_route(self._route_line, item, item_info(item), self.route_tolerance)
+            ]
+        # A waypoint route: a point stays as the corridor's boxes found it,
+        # but a line report - roadworks, an official closure - is still
+        # asked to run along the route rather than cross it, within the
+        # corridor's width. See crosses_route.
         return [
             item
             for item in controls
-            if on_route(self._route_line, item, item_info(item), self.route_tolerance)
+            if not crosses_route(self._route_line, item, item_info(item), self.corridor_width)
         ]
 
     async def _get_route_items(self, types):
@@ -818,7 +923,7 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
                 if backend not in seen_backends:
                     seen_backends.add(backend)
                     controls.append(item)
-        if self.route_tolerance is not None:
+        if self._route_line is not None:
             # Before anything else looks at them - the count limit above all,
             # which would otherwise be spent on reports two streets away. In
             # the executor: pure arithmetic, but thousands of candidates on a

@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -7,8 +7,10 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -31,7 +33,11 @@ def _minutes_since(stamp, now):
         return None
     text = stamp.strip()
     try:
-        if ":" in text:
+        # www.blitzer.de's full stamp, "2026-10-10 09:25:30", local time -
+        # read first, since it carries a colon too.
+        if len(text) >= 16 and text[4] == "-":
+            then = datetime.strptime(text[:16], "%Y-%m-%d %H:%M").replace(tzinfo=now.tzinfo)
+        elif ":" in text:
             hour, minute = (int(part) for part in text.split(":", 1))
             then = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
             if then > now:
@@ -92,10 +98,94 @@ async def async_setup_entry(
         SensorMapTotal(coordinator),
         SensorHazardTotal(coordinator),
         SensorGrandTotal(coordinator),
+        # The two running counters, under Diagnostics: what this area has
+        # asked Blitzer.de for and what came back, since the last reset.
+        SensorRequestCount(coordinator),
+        SensorDeliveredCount(coordinator),
     ]
 
     # Create the sensors.
     async_add_entities(sensors)
+
+
+class SensorCounterBase(CoordinatorEntity, RestoreEntity, SensorEntity):
+    """A running counter of this area's traffic with Blitzer.de.
+
+    Only ever goes up, except when the area's reset button brings it to
+    zero - hence TOTAL rather than TOTAL_INCREASING, so a reset is a reset
+    and not a meter rollover. The value lives on the coordinator (the API
+    instance for requests, the coordinator itself for reports) and is
+    restored into it across a restart, so a count started before Home
+    Assistant was restarted carries on rather than starting over.
+    """
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.TOTAL
+
+    def __init__(self, coordinator: BlitzerdeCoordinator, key: str, icon: str) -> None:
+        super().__init__(coordinator)
+        self._attr_icon = icon
+        self._attr_translation_key = key
+        self._attr_unique_id = f"{DOMAIN}-{key}-{coordinator.entry_id}"
+        self._attr_device_info = coordinator.device_info
+
+    def _get(self) -> int:
+        raise NotImplementedError
+
+    def _add(self, value: int) -> None:
+        raise NotImplementedError
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        # Added, not assigned: the coordinator's first refresh ran before this
+        # entity existed, so whatever it counted since the restart is already
+        # in the counter and belongs on top of the restored value.
+        last = await self.async_get_last_state()
+        if last is not None and last.state not in (None, "unknown", "unavailable"):
+            try:
+                self._add(int(float(last.state)))
+            except (TypeError, ValueError):
+                pass
+            self.async_write_ha_state()
+
+    @property
+    def available(self) -> bool:
+        """A count is a count whether or not the last poll succeeded."""
+        return True
+
+    @property
+    def native_value(self) -> int:
+        return self._get()
+
+
+class SensorRequestCount(SensorCounterBase):
+    """Requests sent to Blitzer.de for this area since the last reset -
+    every one, cluster resolves included."""
+
+    def __init__(self, coordinator: BlitzerdeCoordinator) -> None:
+        super().__init__(coordinator, "request_count", "mdi:cloud-upload-outline")
+
+    def _get(self) -> int:
+        return self.coordinator.api.request_count
+
+    def _add(self, value: int) -> None:
+        self.coordinator.api.request_count += value
+
+
+class SensorDeliveredCount(SensorCounterBase):
+    """Reports Blitzer.de delivered for this area since the last reset,
+    before this area's filters - what the requests actually brought."""
+
+    def __init__(self, coordinator: BlitzerdeCoordinator) -> None:
+        super().__init__(coordinator, "delivered_count", "mdi:cloud-download-outline")
+
+    def _get(self) -> int:
+        return self.coordinator.item_count
+
+    def _add(self, value: int) -> None:
+        self.coordinator.item_count += value
 
 
 class SensorTotalBase(CoordinatorEntity):

@@ -63,6 +63,12 @@
             },
             "total_count": {
                 "name": "Anzahl Gesamt"
+            },
+            "request_count": {
+                "name": "Anzahl Anfragen"
+            },
+            "delivered_count": {
+                "name": "Gelieferte Meldungen"
             }
         },
         "number": {
@@ -71,6 +77,11 @@
             },
             "hazard_new_minutes": {
                 "name": "Gefahren neu für"
+            }
+        },
+        "button": {
+            "reset_counters": {
+                "name": "Zähler zurücksetzen"
             }
         }
     },
@@ -374,6 +385,16 @@
         "refresh_hazards": {
             "name": "Gefahren aktualisieren",
             "description": "Ruft sofort die aktuellen Gefahren für eine Blitzer.de-Area, -Route oder -Tracker ab, statt auf den nächsten geplanten Abruf zu warten. Gibt die gefundenen Gefahren zurück. Nur Gefahren - für Kontrollen gibt es \"Kontrollen aktualisieren\".",
+            "fields": {
+                "config_entry_id": {
+                    "name": "Bereich, Route oder Tracker",
+                    "description": "Welche Blitzer.de-Area, -Route oder -Tracker aktualisiert werden soll."
+                }
+            }
+        },
+        "refresh": {
+            "name": "Aktualisieren",
+            "description": "Ruft sofort die aktuellen Kontrollen und Gefahren für eine Blitzer.de-Area, -Route oder -Tracker in einem Durchlauf ab, statt auf den nächsten geplanten Abruf zu warten. Auf einer Route kostet das eine Anfrage pro Punkt für beides, wo \"Kontrollen aktualisieren\" und \"Gefahren aktualisieren\" nacheinander zwei kosten würden. Gibt beide Listen zurück, unter controls und hazards.",
             "fields": {
                 "config_entry_id": {
                     "name": "Bereich, Route oder Tracker",

@@ -63,6 +63,12 @@
             },
             "total_count": {
                 "name": "Total count"
+            },
+            "request_count": {
+                "name": "Request count"
+            },
+            "delivered_count": {
+                "name": "Delivered reports"
             }
         },
         "number": {
@@ -71,6 +77,11 @@
             },
             "hazard_new_minutes": {
                 "name": "Hazards new for"
+            }
+        },
+        "button": {
+            "reset_counters": {
+                "name": "Reset counters"
             }
         }
     },
@@ -374,6 +385,16 @@
         "refresh_hazards": {
             "name": "Refresh hazards",
             "description": "Immediately fetch the latest hazards for one Blitzer.de area, route or tracker, instead of waiting for its next scheduled poll. Returns the hazards found. Hazards only - \"Refresh controls\" is the counterpart for controls.",
+            "fields": {
+                "config_entry_id": {
+                    "name": "Area, route or tracker",
+                    "description": "Which Blitzer.de area, route or tracker to refresh."
+                }
+            }
+        },
+        "refresh": {
+            "name": "Refresh",
+            "description": "Immediately fetch the latest controls and hazards for one Blitzer.de area, route or tracker in a single pass, instead of waiting for its next scheduled poll. On a route this costs one request per point for both, where \"Refresh controls\" and \"Refresh hazards\" one after the other would cost two. Returns both lists, under controls and hazards.",
             "fields": {
                 "config_entry_id": {
                     "name": "Area, route or tracker",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from math import ceil
 from typing import Any
 
@@ -10,6 +11,7 @@ from homeassistant.const import UnitOfLength
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 from homeassistant.util import location as location_util
 from homeassistant.util import slugify
 
@@ -127,6 +129,67 @@ _STREET_PLACEHOLDERS = ("straßenname unbekannt", "strassenname unbekannt")
 _CITY_PLACEHOLDERS = ("unbekannt", "unknown")
 
 
+# What a road reads like in an official closure's text: a road number at
+# the start ("EBE5", "St2081", "A1", "L108"), or a street name - a line, or
+# its first word, ending the way German streets do.
+_ROAD_NUMBER = re.compile(r"^[A-Z][A-Za-z]{0,2}\s?\d+")
+_STREET_ENDINGS = (
+    "straße", "strasse", "str.", "weg", "platz", "ring", "allee", "gasse",
+    "damm", "brücke", "bruecke", "ufer", "chaussee", "tunnel", "steig", "promenade",
+)
+_COUNTY_STARTS = ("kreis ", "landkreis ", "stadt ", "kreisfreie stadt ")
+
+
+def _looks_like_road(line: str) -> bool:
+    # "Rheinbrücke Leverkusen - __Vollsperrung (Westring)": the road stands
+    # before the dash.
+    head = line.split(" - ")[0].strip()
+    if _ROAD_NUMBER.match(head):
+        return True
+    # A street name is short and starts with a capital. "für PKW, LKW,
+    # Busse ... über Esmarchstraße, Neustadtstraße" ends like one and is
+    # neither; "bis 15.12.2027 22:00 Uhr" starts like a road number and is
+    # not one either.
+    if len(head) > 60 or not head[:1].isupper():
+        return False
+    text = head.lower()
+    first = text.split(" ", 1)[0]
+    return any(text.endswith(end) or first.endswith(end) for end in _STREET_ENDINGS)
+
+
+def _closure_text_parts(item: dict) -> tuple[str, str, str]:
+    """Road, county and the rest of an official closure's text.
+
+    A closure from the Mobilithek arrives without a street or a town - its
+    address says no more than the state - and its text is laid out one of a
+    few ways: the road and section first, the closure itself, then "Kreis
+    X, <road and section>" (Bavaria); a title and the works (NRW); or the
+    works, who they affect, and the street last. So the road is whichever
+    line reads like one, the county whichever starts like one, and the rest
+    is the note. Returns ("", "", whole text) for anything else: a closure
+    that has an address, or a text in no known shape.
+    """
+    reason = hazard_reason(item)
+    address = item.get("address") or {}
+    if hazard_key(item) != "closure" or address.get("street") or address.get("city"):
+        return "", "", reason
+    lines = [line.strip() for line in reason.split("\n") if line.strip()]
+    if len(lines) < 2:
+        return "", "", reason
+    road_line = next((line for line in lines if _looks_like_road(line)), "")
+    county_line = next((line for line in lines if line.lower().startswith(_COUNTY_STARTS)), "")
+    if not road_line:
+        return "", "", reason
+    # "Rheinbrücke Leverkusen - __Vollsperrung (Westring) beide FR": the
+    # road is what stands before the dash, the rest is the closure.
+    road = road_line.split(" - ")[0].strip(" _-")
+    county = county_line.split(",")[0].strip() if county_line else ""
+    rest = [line for line in lines if line not in (road_line, county_line)]
+    if road_line != road:
+        rest.insert(0, road_line[len(road_line.split(" - ")[0]):].strip(" _-"))
+    return road, county, " ".join(part for part in rest if part)
+
+
 def _place(item: dict) -> str:
     """Street and city in one piece, for the summary line.
 
@@ -147,6 +210,9 @@ def _place(item: dict) -> str:
     city = address.get("city") or ""
     if city.strip().lower() in _CITY_PLACEHOLDERS:
         city = ""
+    if not street and not city:
+        # An official closure: its road and county, read off its text.
+        street, city, _ = _closure_text_parts(item)
     return ", ".join(part for part in (street, city) if part)
 
 
@@ -173,8 +239,14 @@ def _hazard_summary(item: dict, language: str, figures: dict) -> str:
         parts.append(f"{figures['tailback_speed']} km/h")
     if "delay_minutes" in figures:
         parts.append(f"+{figures['delay_minutes']} min")
+    # An official closure's period is not added here: its free text already
+    # says "von 21.09.2026 07:30 Uhr bis 30.11.2026 15:00 Uhr", the dates are
+    # attributes of their own, and the card reads the last segment of this
+    # line as the place - a period there would stand where the road belongs.
     parts.append(_place(item))
-    return _joined(parts, hazard_reason(item))
+    # On an official closure the text's road and county already stand as
+    # the place; the note is what is left of the text.
+    return _joined(parts, _closure_text_parts(item)[2])
 
 
 def _control_summary(item: dict, language: str) -> str:
@@ -195,8 +267,16 @@ def _control_summary(item: dict, language: str) -> str:
     # Blitzer.de still fills in the road's own limit there, and printed after
     # the name it reads as what the camera enforces - "Abstandskontrolle ·
     # 100 km/h" says the wrong thing about what is being measured.
-    if vmax not in (None, "", "/", "?") and control_kind(item) != "distance":
-        parts.append(f"{vmax} km/h")
+    # Only a limit that is one. The old endpoint left a red-light camera's
+    # vmax empty or "/"; www.blitzer.de sends "0", which read as "0 km/h".
+    # The same rule the map applies when it picks the icon: a number above
+    # zero, or nothing.
+    try:
+        limit = int(vmax)
+    except (TypeError, ValueError):
+        limit = 0
+    if limit > 0 and control_kind(item) != "distance":
+        parts.append(f"{limit} km/h")
     parts.append(_place(item))
     return _joined(parts, item_info(item).get("desc") or "")
 
@@ -312,12 +392,16 @@ async def async_setup_entry(
             "id": poi_id(item),
             "type": control_form(item),
             "kind": control_kind(item),
-            "type_name": control_label(item, language),
+            # Blitzer.de's own name, as on the entity; the installation is
+            # in "type" and in the summary, not here.
+            "type_name": code_label(item.get("type"), language),
             "summary": _control_summary(item, language),
             "vmax": item["vmax"],
-            "street": item["address"]["street"],
-            "city": item["address"]["city"],
-            "zip_code": item["address"]["zip_code"],
+            "street": (item.get("address") or {}).get("street", ""),
+            "city": (item.get("address") or {}).get("city", ""),
+            # The rebuilt blitzer.de endpoint drops zip_code from the address
+            # (country/city/street only); the old CDN sent it. Absent -> "".
+            "zip_code": (item.get("address") or {}).get("zip_code", ""),
             "latitude": item["lat"],
             "longitude": item["lng"],
             "distance": _payload_distance(item),
@@ -334,8 +418,8 @@ async def async_setup_entry(
             "type_name": code_label(item.get("type"), language),
             "summary": _hazard_summary(item, language, _tailback_figures(item)),
             "reason": hazard_reason(item),
-            "street": address.get("street") or item.get("street") or "",
-            "city": address.get("city", ""),
+            "street": address.get("street") or item.get("street") or _closure_text_parts(item)[0],
+            "city": address.get("city") or _closure_text_parts(item)[1],
             "zip_code": address.get("zip_code", ""),
             "latitude": item["lat"],
             "longitude": item["lng"],
@@ -364,6 +448,58 @@ async def async_setup_entry(
 
     coordinator.async_add_listener(_sync_entities)
     _sync_entities()
+
+
+# Where the symbols come from. The same files as under the old map's
+# map.blitzer.de/v5/images/ - every one checked byte for byte on 2026-10-10
+# - but served by the site the data itself now comes from.
+IMAGE_BASE = "https://www.blitzer.de/karte/images/"
+
+# "2026-10-10 09:25:30" - what www.blitzer.de stamps a report with.
+_FULL_STAMP = re.compile(r"^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?")
+
+
+def _short_stamp(raw):
+    """Blitzer.de's stamp the way its map always showed it: "HH:MM" for a
+    report from today, "DD.MM.YYYY" for any other day.
+
+    Through cdn2.atudo.net the endpoint sent exactly that, and everything
+    downstream reads it - the card's chips and its "new" marking, the
+    counters, the README's templates, and whatever automations people have
+    written. www.blitzer.de sends a full "YYYY-MM-DD HH:MM:SS" instead, in
+    local time (checked: the old map's "um 09:25" and the new stamp's
+    "09:25:30" are the same confirmation). It is folded back into the short
+    form here, in one place, so all of that keeps reading what it always
+    read; the full stamp is kept beside it, see _full_stamps. Empty stays
+    empty: that is what "never confirmed" is now, where the old endpoint put
+    01.01.1970.
+    """
+    if not isinstance(raw, str):
+        return raw
+    text = raw.strip()
+    match = _FULL_STAMP.match(text)
+    if not match:
+        return text
+    year, month, day, hour, minute = (int(part) for part in match.groups()[:5])
+    now = dt_util.now()
+    if (year, month, day) == (now.year, now.month, now.day):
+        return f"{hour:02d}:{minute:02d}"
+    return f"{day:02d}.{month:02d}.{year:04d}"
+
+
+def _full_stamps(item: dict) -> dict:
+    """The full stamps as ISO 8601, where the endpoint sent them: for a
+    template that wants a real datetime rather than the short form above.
+    Only the ones present - an unconfirmed report gets no empty attribute.
+    """
+    stamps = {}
+    for field, attr in (("create_date", "created_at"), ("confirm_date", "confirmed_at")):
+        raw = item.get(field)
+        match = _FULL_STAMP.match(raw.strip()) if isinstance(raw, str) else None
+        if match:
+            year, month, day, hour, minute, second = match.groups()
+            stamps[attr] = f"{year}-{month}-{day}T{hour}:{minute}:{second or '00'}"
+    return stamps
 
 
 class BlitzerdeGeoEvent(GeolocationEvent):
@@ -423,7 +559,14 @@ class BlitzerdeGeoEvent(GeolocationEvent):
     def update_from_item(self, item: dict) -> None:
         """Refresh this entity's state from newly polled data."""
         self._apply(item)
-        self.async_write_ha_state()
+        # A marker is put in the "known" map the moment its entity is built,
+        # but the entity only reaches Home Assistant when that batch finishes
+        # being added. A second poll in between - two refresh actions almost
+        # at once, say - finds it here and would write state before it has a
+        # hass, which raises. Its first state lands when it is added anyway,
+        # so skip the write until then.
+        if self.hass is not None:
+            self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self) -> None:
         """Purge the registry entry so gone markers don't linger as orphans."""
@@ -511,14 +654,14 @@ class BlitzerdeControlEvent(BlitzerdeGeoEvent):
         # "geo_location.kontrolle_...".
         # The area's name is the device's, so it is not repeated here: Home
         # Assistant renders the two together.
-        self._attr_name = f"Kontrolle {item['address']['street']}"
+        self._attr_name = f"Kontrolle {(item.get('address') or {}).get('street', '')}"
         self._attr_latitude = item["lat"]
         self._attr_longitude = item["lng"]
         form = control_form(item)
         kind = control_kind(item)
         self._attr_icon = _KIND_ICONS.get(kind) or _ICONS.get(form, "mdi:map-marker-alert")
         self._attr_entity_picture = (
-            "https://map.blitzer.de/v5/images/" + self._picture_path(item) + ".svg"
+            IMAGE_BASE + self._picture_path(item) + ".svg"
         )
         if self.hass is not None:
             self._attr_distance = self._distance_from_area_center(item["lat"], item["lng"])
@@ -544,23 +687,25 @@ class BlitzerdeControlEvent(BlitzerdeGeoEvent):
             # card can print one field instead of assembling five.
             "summary": _control_summary(item, self._language),
             # The id used in the Blitzer.de map URL
-            # (https://map.blitzer.de/v5/ID/<id>/) and for the blacklist
+            # (https://www.blitzer.de/karte/?poi=<id>) and for the blacklist
             # config option. Kept as "backend" too for compatibility with
             # dashboards/templates written against earlier versions.
             "id": control_id,
             "backend": control_id,
             "vmax": item["vmax"],
             "counter": item["counter"],
-            "city": item["address"]["city"],
-            "street": item["address"]["street"],
-            "zip_code": item["address"]["zip_code"],
-            # Blitzer.de's own stamps, exactly as it sends them: either a
-            # date or a time of day, never both. A time means today. On a
-            # fixed camera "confirmed" is usually 01.01.1970 - the epoch,
-            # standing in for "never confirmed", since fixed installations
-            # aren't community-reported in the first place.
-            "created": item.get("create_date"),
-            "confirmed": item.get("confirm_date"),
+            "city": (item.get("address") or {}).get("city", ""),
+            "street": (item.get("address") or {}).get("street", ""),
+            # Not sent by the rebuilt blitzer.de endpoint (see above) - "".
+            "zip_code": (item.get("address") or {}).get("zip_code", ""),
+            # Blitzer.de's stamps the way its map always showed them: either
+            # a date or a time of day, never both, a time meaning today -
+            # see _short_stamp for where that shape comes from now. A fixed
+            # camera's "confirmed" is empty: fixed installations aren't
+            # community-reported in the first place.
+            "created": _short_stamp(item.get("create_date")),
+            "confirmed": _short_stamp(item.get("confirm_date")),
+            **_full_stamps(item),
             # The raw "info" object. Small - under 200 bytes across a
             # sampled region - and worth having whole: "desc" carries a
             # fixed camera's written-out note ("Einbahnstr. in Rtg. Velbert,
@@ -589,6 +734,12 @@ class BlitzerdeHazardEvent(BlitzerdeGeoEvent):
         # well as in "address"; the community-reported types only in
         # "address", and for an incident on an unnamed stretch not at all.
         street = address.get("street") or item.get("street") or ""
+        city = address.get("city") or ""
+        if not street and not city:
+            # An official closure arrives without an address; its road and
+            # county are read off its text, so the entity is named after
+            # the road like any other hazard.
+            street, city, _ = _closure_text_parts(item)
         self._attr_name = f"Gefahr {street}".strip()
         self._attr_latitude = item["lat"]
         self._attr_longitude = item["lng"]
@@ -596,7 +747,7 @@ class BlitzerdeHazardEvent(BlitzerdeGeoEvent):
         # The map's own symbol for this hazard, the same way cameras use
         # theirs - here the type code doubles as the file name.
         self._attr_entity_picture = (
-            f"https://map.blitzer.de/v5/images/{item.get('type')}.svg"
+            f"{IMAGE_BASE}{item.get('type')}.svg"
         )
         if self.hass is not None:
             self._attr_distance = self._distance_from_area_center(item["lat"], item["lng"])
@@ -612,11 +763,12 @@ class BlitzerdeHazardEvent(BlitzerdeGeoEvent):
             "backend": self._poi_id,
             "reason": hazard_reason(item),
             "counter": item.get("counter"),
-            "city": address.get("city", ""),
+            "city": city,
             "street": street,
             "zip_code": address.get("zip_code", ""),
-            "created": item.get("create_date"),
-            "confirmed": item.get("confirm_date"),
+            "created": _short_stamp(item.get("create_date")),
+            "confirmed": _short_stamp(item.get("confirm_date")),
+            **_full_stamps(item),
             # As on a camera: the whole object, next to the individual
             # fields lifted out of it below.
             "info": info,
@@ -629,6 +781,32 @@ class BlitzerdeHazardEvent(BlitzerdeGeoEvent):
         for attr in ("length", "duration", "delay"):
             if info.get(attr) not in (None, ""):
                 self._extra_attrs[attr] = info[attr]
+
+        # An official road closure. Since the move to www.blitzer.de the
+        # endpoint carries these from the Mobilithek - Germany's public
+        # mobility data - alongside the community's reports: a period rather
+        # than a report time, where it came from, and the stretch of road it
+        # closes as an encoded polyline, which the card draws as a band.
+        # The polyline stays encoded: a few hundred characters the recorder
+        # stores once, against dozens of coordinate pairs it would store
+        # the same way.
+        closure = item.get("closure")
+        if isinstance(closure, dict):
+            # A closure without a known start is dated 1970-01-01 - the
+            # epoch standing in for "unknown", as the old endpoint's
+            # "confirmed" did. Empty says that; a chip reading "Since
+            # 01/01/1970" would not.
+            since = closure.get("since") or ""
+            if since.startswith("1970-01-01"):
+                since = ""
+            self._extra_attrs["closure_since"] = since
+            self._extra_attrs["closure_until"] = closure.get("until") or ""
+            self._extra_attrs["closure_open_end"] = bool(closure.get("open_end"))
+            self._extra_attrs["closure_origin"] = closure.get("origin") or ""
+            self._extra_attrs["closure_source"] = item.get("source") or ""
+        polyline = item.get("polyline")
+        if isinstance(polyline, str) and polyline:
+            self._extra_attrs["closure_polyline"] = polyline
 
         figures = _tailback_figures(item)
         self._extra_attrs.update(figures)

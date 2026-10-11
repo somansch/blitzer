@@ -39,6 +39,18 @@ JAM_FLOWS_TO_END = True
 # degrees the two are treated as crossing.
 _MAX_CROSSING_COS = 0.5
 
+# A report with a line of its own - roadworks, an official closure - is on
+# the route when it runs along it, not when it merely crosses it: a closed
+# side road passing under the motorway comes within any tolerance at the
+# bridge, and was listed on the route for that. Crossing at right angles puts
+# about twice the tolerance of the line within reach, so a run of four
+# tolerances is taken as alongside - or half the line, for one shorter than
+# that, such as a closed slip road, provided it heads the way the route does
+# there: a short closure is as likely to be the piece of a lane passing
+# under the motorway, and that one crosses.
+_ALONG_TOLERANCES = 4.0
+_ALONG_SHARE = 0.5
+
 
 def decode_polyline(encoded: str, precision: int = 5) -> list[tuple[float, float]]:
     """Google's encoded polyline format, as Blitzer.de sends roadworks in.
@@ -224,6 +236,53 @@ class RouteLine:
                 )
         return best
 
+    def length_within(self, line: list[tuple[float, float]], tolerance: float) -> tuple[float, float]:
+        """How much of another line runs within `tolerance` metres of the
+        route, and how long that line is, both in metres.
+
+        Sampled every half tolerance along the line, so one that merely
+        crosses the route scores the width of the crossing, and one running
+        alongside scores its length.
+        """
+        step = max(10.0, tolerance / 2)
+        total = near = 0.0
+        xy = [self._project(p) for p in line]
+        for (p, q), ((ax, ay), (bx, by)) in zip(zip(line, line[1:]), zip(xy, xy[1:])):
+            length = hypot(bx - ax, by - ay)
+            total += length
+            if length == 0:
+                continue
+            pieces = max(1, int(length // step))
+            piece = length / pieces
+            for k in range(pieces):
+                t = (k + 0.5) / pieces
+                sample = (p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t)
+                if self.nearest(sample, within=tolerance)[0] <= tolerance:
+                    near += piece
+        return near, total
+
+    def length_along(self, line: list[tuple[float, float]], tolerance: float) -> tuple[float, float, float]:
+        """How much of another line runs within `tolerance` metres of the
+        route, how much of that also runs the route's way, and how long the
+        line is - all in metres. Piece by piece: each straight piece of the
+        line is measured at its midpoint and compared with the heading of
+        the route segment nearest to it."""
+        total = near = along = 0.0
+        xy = [self._project(p) for p in line]
+        for (p, q), ((ax, ay), (bx, by)) in zip(zip(line, line[1:]), zip(xy, xy[1:])):
+            length = hypot(bx - ax, by - ay)
+            total += length
+            if length == 0:
+                continue
+            mid = ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)
+            dist, _, segment = self.nearest(mid, within=tolerance)
+            if dist > tolerance:
+                continue
+            near += length
+            if self.heading_cos(segment, p, q) >= _MAX_CROSSING_COS:
+                along += length
+        return near, along, total
+
     def heading_cos(self, segment: int, a: tuple[float, float], b: tuple[float, float]) -> float:
         """The cosine of the angle between route segment `segment` and a-b."""
         (sx, sy), (ex, ey) = self._xy[segment], self._xy[min(segment + 1, len(self._xy) - 1)]
@@ -262,7 +321,8 @@ def on_route(route: RouteLine, item: dict, info: dict, tolerance: float) -> bool
 
     A tailback must also run the way the route does. On a motorway the other
     carriageway is well inside any useful tolerance, and a jam there is one
-    this route never meets.
+    this route never meets. Any other line - roadworks, an official closure -
+    must run along the route rather than cross it, see _runs_along_route.
     """
     geometry = report_geometry(item, info)
     if len(geometry) == 1:
@@ -270,8 +330,110 @@ def on_route(route: RouteLine, item: dict, info: dict, tolerance: float) -> bool
     if route.distance_to_line(geometry, within=tolerance) > tolerance:
         return False
     if str(item.get("type")) != TYPE_TAILBACK:
-        return True
+        return _runs_along_route(route, geometry, tolerance)
     return _runs_with_route(route, geometry[0], geometry[-1], tolerance)
+
+
+# The traffic flow's grid: the box asked for is divided this many ways on
+# each axis, and a jump of more than TRAFFIC_GAP steps starts a new line -
+# the same reading the card gives it.
+TRAFFIC_GRID = 2000
+TRAFFIC_GAP = 800
+
+
+def _traffic_runs(line: list, box: tuple):
+    """The runs of one traffic entry: the raw grid numbers of each run, and
+    its points as (lat, lon)."""
+    south, west, north, east = box
+    raw: list = []
+    points: list = []
+    px = py = None
+    runs = []
+
+    def flush():
+        if len(points) >= 2:
+            runs.append((list(raw), list(points)))
+        raw.clear()
+        points.clear()
+
+    for k in range(0, len(line) - 1, 2):
+        try:
+            x = float(line[k])
+            y = float(line[k + 1])
+        except (TypeError, ValueError):
+            flush()
+            px = py = None
+            continue
+        if px is not None and (x - px) ** 2 + (y - py) ** 2 > TRAFFIC_GAP**2:
+            flush()
+        raw.extend((line[k], line[k + 1]))
+        points.append((south + (north - south) * y / TRAFFIC_GRID, west + (east - west) * x / TRAFFIC_GRID))
+        px, py = x, y
+    flush()
+    return runs
+
+
+def traffic_along_route(data, box: tuple, route: RouteLine, tolerance: float):
+    """The traffic flow of a box cut down to the route: of every run of road,
+    only the ones that mostly lie within `tolerance` metres of the route
+    line and mostly run the route's way. In the endpoint's own shape, so
+    the card reads it as it reads the whole box.
+
+    A run's points come in its direction of travel - measured on the A9
+    south of Berlin against the Berlin-Munich route: 55 runs on the
+    motorway ran with the route and 55 against it, one per carriageway,
+    all with the same "lane" value - so the other carriageway, and the
+    ramps of an interchange, are told apart by heading. On a route entry
+    the other carriageway's traffic is not the driver's."""
+    if not (isinstance(data, list) and len(data) == 4):
+        return data
+    lines, speeds, highways, lanes = data
+    kept: tuple = ([], [], [], [])
+    for i, line in enumerate(lines or []):
+        if not isinstance(line, list) or len(line) < 4:
+            continue
+        for raw, points in _traffic_runs(line, box):
+            near, along, total = route.length_along(points, tolerance)
+            if total > 0 and near >= 0.5 * total and along >= 0.5 * total:
+                kept[0].append(raw)
+                kept[1].append(speeds[i] if i < len(speeds) else 0)
+                kept[2].append(highways[i] if i < len(highways) else 0)
+                kept[3].append(lanes[i] if i < len(lanes) else 0)
+    return [list(part) for part in kept]
+
+
+def crosses_route(route: RouteLine, item: dict, info: dict, tolerance: float) -> bool:
+    """Whether a line report merely crosses the route - the one thing a
+    waypoint route can still tell.
+
+    A waypoint route's straight lines leave the road on every bend, so a
+    point report is left to the corridor's boxes: judged against the line it
+    would be dropped on the very bends it was placed for. A roadworks or a
+    closure with a line of its own is a different matter: one running along
+    the route stays within the corridor's width for a stretch, one crossing
+    it does not, however the road bends. A tailback is left alone too; its
+    end point is not a line of the road.
+    """
+    geometry = report_geometry(item, info)
+    if len(geometry) < 2 or str(item.get("type")) == TYPE_TAILBACK:
+        return False
+    return not _runs_along_route(route, geometry, tolerance)
+
+
+def _runs_along_route(route: RouteLine, line, tolerance: float) -> bool:
+    """Whether a line report runs along the route rather than across it."""
+    near, total = route.length_within(line, tolerance)
+    if near <= 0:
+        return False
+    if near >= _ALONG_TOLERANCES * tolerance:
+        return True
+    if near < _ALONG_SHARE * total:
+        return False
+    # Short and mostly within reach: along the route only if it also heads
+    # the route's way there - either way along it, a closure has no
+    # direction of its own.
+    segment = route.nearest(line[0], within=tolerance)[2]
+    return abs(route.heading_cos(segment, line[0], line[-1])) >= _MAX_CROSSING_COS
 
 
 def _runs_with_route(route: RouteLine, start, end, tolerance: float) -> bool:

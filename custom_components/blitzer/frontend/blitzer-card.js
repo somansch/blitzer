@@ -53,6 +53,9 @@
       confirmedOn: (v) => `Confirmed on ${v}`,
       reportedAt: (v) => `Reported at ${v}`,
       reportedOn: (v) => `Reported on ${v}`,
+      closureSince: (v) => `Since ${v}`,
+      closureUntil: (v) => `Until ${v}`,
+      closureOpenEnd: "No end date",
       count: (n) => `${n} shown`,
       countOf: (n, total) => `${n} of ${total}`,
       countView: (n) => `${n} in view`,
@@ -378,24 +381,47 @@
       edMarkerBorderHelp: "Home Assistant's own coloured ring around each marker. Off leaves the bare symbol.",
       edMapFade: "Soft edges",
       edMapFadeHelp: "Fades the map into the card on all four sides instead of cutting it off. Its buttons move inward to stay clear of the fade.",
+      edMapCluster: "Group nearby reports",
+      edMapClusterHelp: "Gathers reports that lie close together into one disc with the count on it when zoomed out; zooming in splits them again. Off draws every report on its own, however many overlap. Needs Home Assistant 2026.10 or newer - older versions always group, and the switch is greyed out on them.",
+      edClusterStyle: "Shape of a group",
+      edClusterStyleHelp: "How grouped reports are drawn from Home Assistant 2026.10 on: the map's own bubble with the first few symbols and a \"+N\", or the disc with the count on it that every version before drew. A click on either zooms in to the reports. Older versions draw the disc regardless, so the choice is greyed out on them.",
+      clusterStyleBubble: "Bubble with symbols (Home Assistant's)",
+      clusterStyleDisc: "Disc with the count (as before 2026.10)",
       edMarkerBackground: "Background behind the symbols",
       edMarkerBackgroundHelp: "The filled disc each marker sits on. Off lets the map show through.",
       edFollowMap: "List follows the map",
-      edFollowMapHelp: "The map then shows the whole area and the list shows what is inside the visible part of it - for following a route. Switched off, the map mirrors the list instead.",
+      edFollowMapHelp: "The map then shows the whole area and the list shows what is inside the visible part of it - for following a route. Switched off, the map mirrors the list instead. In the minimal format this is the pop-up's map and the list beside it.",
       edMapRoute: "Show the route on the map",
       edMapRouteHelp: "For a route entry - waypoints or start/destination - the route itself, drawn under the reports and fitted into view when the card first draws it. Its color and width are under Layout -> Map.",
+      edMapAlways: "Keep the map when nothing is reported",
+      edMapAlwaysHelp: "Shows the map even while the area has nothing to report, fitted to the area as it is set up - the circle around its centre, or around the tracker, drawn as a dashed line - or to the route. Off takes the map down until something is reported again. Worth keeping on with the traffic flow, which has something to show on an empty map.",
+      trafficLine: "Traffic flow",
+      trafficOff: "off",
+      trafficSwitch: "Show the traffic flow on the map",
+      trafficRefresh: "Fetch the traffic flow again",
+      edMapTraffic: "Show the traffic flow",
+      edMapTrafficHelp: "Colours the roads by how traffic is moving on them, from green to dark red, with the colours and speed steps of Blitzer.de's own map. Not polled: fetched for the view this map shows while the card is on screen - one request per view, one more after a pan or a zoom, a fresh one every three minutes while it stays visible, none while nobody looks. On a route entry only the route itself, in its direction of travel. The card then carries a line under its subtitle with a switch to show or hide the flow for the moment, the time of the last fetch and a refresh button. Counted on the area's request counter. Needs Home Assistant 2026.10 or newer; the switch is greyed out on older versions.",
+      edMapClosures: "Draw closures along the road",
+      edMapClosuresHelp: "An official road closure comes with the stretch of road it closes; drawn as a red band along it, the way Blitzer.de's own map draws them, under its symbol.",
+      edRowClosure: "Closure period",
       edElRoute: "Route",
       edElRouteHelp: "The line a route entry's route is drawn with. Only drawn while \"Show the route on the map\" is on under Settings -> General.",
       edRouteColor: "Line color",
       edRouteColorHelp: "The color of the route line and its end markers. Empty follows the theme's primary color.",
       edRouteWidth: "Line width",
       edRouteWidthHelp: "How thick the route line is drawn, in pixels. 4 by default.",
+      edElTraffic: "Traffic flow",
+      edElTrafficHelp: "The lines the traffic flow is drawn with. Only drawn while \"Show the traffic flow\" is on under Settings -> General.",
+      edTrafficWidth: "Line width",
+      edTrafficWidthHelp: "How thick a road's flow is drawn at the usual zoom, in pixels, decimals allowed; a motorway gets one more, and zooming in to street level widens them. 1.5 by default.",
+      edTrafficOpacity: "Opacity",
+      edTrafficOpacityHelp: "How solid the colours are drawn, in percent. 50 by default; less lets the map show through.",
       edElCluster: "Grouped reports",
-      edElClusterHelp: "The discs the map gathers nearby reports into when zoomed out, with the count on them. Zooming in splits them into the single reports again.",
-      edClusterColor: "Disc color",
-      edClusterColorHelp: "The color of the disc and of the ring around it. Empty follows the theme's primary color.",
+      edElClusterHelp: "What the map gathers nearby reports into when zoomed out: up to Home Assistant 2026.9 a disc with the count on it, from 2026.10 a bubble with the first few symbols and a \"+N\" for the rest. Zooming in splits them into the single reports again.",
+      edClusterColor: "Group color",
+      edClusterColorHelp: "The color behind the grouped reports - the disc and its ring, or the bubble and its tail. Empty follows the theme.",
       edClusterTextColor: "Number color",
-      edClusterTextColorHelp: "The color of the count on the disc. Empty follows the theme's text color for it.",
+      edClusterTextColorHelp: "The color of the count - on the disc, or the \"+N\" in the bubble. Empty follows the theme's text color for it.",
       edClusterFont: "Size and style of the number",
       edClusterFontHelp: "The count's font size - 14px, 1.2em - and whether it is bold, italic or underlined. Empty keeps the map's own size.",
     },
@@ -418,6 +444,9 @@
       confirmedOn: (v) => `Bestätigt am ${v}`,
       reportedAt: (v) => `Gemeldet um ${v}`,
       reportedOn: (v) => `Gemeldet am ${v}`,
+      closureSince: (v) => `Seit ${v}`,
+      closureUntil: (v) => `Bis ${v}`,
+      closureOpenEnd: "Ohne Enddatum",
       count: (n) => `${n} angezeigt`,
       countOf: (n, total) => `${n} von ${total}`,
       countView: (n) => `${n} im Ausschnitt`,
@@ -737,24 +766,47 @@
       edMarkerBorderHelp: "Der farbige Ring, den Home Assistant um jede Markierung zeichnet. Aus bleibt nur das Symbol.",
       edMapFade: "Weiche Ränder",
       edMapFadeHelp: "Blendet die Kartenansicht an allen vier Seiten weich in die Karte aus, statt sie abzuschneiden. Ihre Knöpfe rücken dafür nach innen.",
+      edMapCluster: "Nahe Meldungen zusammenfassen",
+      edMapClusterHelp: "Fasst herausgezoomt nahe beieinanderliegende Meldungen zu einer Scheibe mit der Anzahl darauf zusammen; Hineinzoomen teilt sie wieder auf. Aus zeichnet jede Meldung einzeln, so viele sich auch überlagern. Braucht Home Assistant 2026.10 oder neuer - ältere Versionen fassen immer zusammen, und der Schalter ist dort ausgegraut.",
+      edClusterStyle: "Form der Gruppe",
+      edClusterStyleHelp: "Wie zusammengefasste Meldungen ab Home Assistant 2026.10 gezeichnet werden: als Blase der Karte mit den ersten Symbolen und einem \"+N\", oder als Scheibe mit der Anzahl darauf, wie jede Version davor sie zeichnete. Ein Klick auf beide zoomt zu den Meldungen. Ältere Versionen zeichnen ohnehin die Scheibe, dort ist die Wahl ausgegraut.",
+      clusterStyleBubble: "Blase mit Symbolen (Home Assistant)",
+      clusterStyleDisc: "Scheibe mit Anzahl (wie bis 2026.9)",
       edMarkerBackground: "Hintergrund der Symbole",
       edMarkerBackgroundHelp: "Die gefüllte Scheibe, auf der eine Markierung sitzt. Aus scheint die Karte durch.",
       edFollowMap: "Liste folgt der Karte",
-      edFollowMapHelp: "Die Karte zeigt dann den ganzen Bereich und die Liste, was im sichtbaren Ausschnitt liegt - zum Verfolgen einer Route. Ausgeschaltet spiegelt die Karte stattdessen die Liste.",
+      edFollowMapHelp: "Die Karte zeigt dann den ganzen Bereich und die Liste, was im sichtbaren Ausschnitt liegt - zum Verfolgen einer Route. Ausgeschaltet spiegelt die Karte stattdessen die Liste. In der Minimal-Variante sind das die Karte des Pop-ups und die Liste daneben.",
       edMapRoute: "Route in der Karte einzeichnen",
       edMapRouteHelp: "Bei einem Routen-Eintrag - Wegpunkte oder Start/Ziel - die Route selbst, unter den Meldungen gezeichnet und beim ersten Aufbau der Karte ins Bild gerückt. Farbe und Breite stehen unter Layout -> Karte.",
+      edMapAlways: "Karte auch ohne Meldungen zeigen",
+      edMapAlwaysHelp: "Zeigt die Karte auch, solange der Bereich nichts zu melden hat, eingepasst auf den Bereich, wie er eingerichtet ist - der Kreis um seinen Mittelpunkt oder um den Tracker, gestrichelt eingezeichnet - oder auf die Route. Aus nimmt die Karte weg, bis wieder etwas gemeldet wird. Mit dem Verkehrsfluss lohnt sich An: der hat auch auf einer leeren Karte etwas zu zeigen.",
+      trafficLine: "Verkehrsfluss",
+      trafficOff: "aus",
+      trafficSwitch: "Verkehrsfluss auf der Karte zeigen",
+      trafficRefresh: "Verkehrsfluss neu abrufen",
+      edMapTraffic: "Verkehrsfluss anzeigen",
+      edMapTrafficHelp: "Färbt die Straßen danach, wie der Verkehr darauf fließt, von Grün bis Dunkelrot, mit den Farben und Geschwindigkeitsstufen der Karte von Blitzer.de. Wird nicht abgefragt wie die Meldungen, sondern für den Ausschnitt dieser Karte geholt, solange die Karte zu sehen ist - ein Request je Ausschnitt, einer mehr nach Verschieben oder Zoomen, alle drei Minuten ein frischer, keiner, solange niemand hinschaut. Bei einem Routen-Eintrag nur die Route selbst, in Fahrtrichtung. Die Karte bekommt dann unter dem Untertitel eine Zeile mit einem Schalter, der den Fluss vorübergehend ein- und ausblendet, der Zeit des letzten Abrufs und einem Knopf zum Neuabrufen. Zählt auf dem Anfragen-Zähler des Bereichs mit. Braucht Home Assistant 2026.10 oder neuer; auf älteren Versionen ist der Schalter ausgegraut.",
+      edMapClosures: "Sperrungen entlang der Straße einzeichnen",
+      edMapClosuresHelp: "Eine amtliche Sperrung bringt den gesperrten Straßenabschnitt mit; als rotes Band darauf gezeichnet, wie die Karte von Blitzer.de selbst es tut, unter ihrem Symbol.",
+      edRowClosure: "Sperrzeitraum",
       edElRoute: "Route",
       edElRouteHelp: "Die Linie, mit der die Route eines Routen-Eintrags gezeichnet wird. Nur solange \"Route in der Karte einzeichnen\" unter Einstellungen -> Allgemein an ist.",
       edRouteColor: "Linienfarbe",
       edRouteColorHelp: "Die Farbe der Routenlinie und ihrer Endpunkte. Leer folgt der Primärfarbe des Themes.",
       edRouteWidth: "Linienbreite",
       edRouteWidthHelp: "Wie dick die Routenlinie gezeichnet wird, in Pixeln. Standard 4.",
+      edElTraffic: "Verkehrsfluss",
+      edElTrafficHelp: "Die Linien, mit denen der Verkehrsfluss gezeichnet wird. Nur gezeichnet, solange unter Einstellungen -> Allgemein \"Verkehrsfluss anzeigen\" an ist.",
+      edTrafficWidth: "Linienbreite",
+      edTrafficWidthHelp: "Wie dick der Fluss einer Straße bei üblichem Zoom gezeichnet wird, in Pixeln, auch mit Kommastelle; eine Autobahn bekommt einen mehr, und Hineinzoomen bis auf Straßenebene verbreitert sie. Standard 1,5.",
+      edTrafficOpacity: "Deckkraft",
+      edTrafficOpacityHelp: "Wie deckend die Farben gezeichnet werden, in Prozent. Standard 50; weniger lässt die Karte durchscheinen.",
       edElCluster: "Zusammengefasste Meldungen",
-      edElClusterHelp: "Die Scheiben, in denen die Karte nahe beieinanderliegende Meldungen herausgezoomt zusammenfasst, mit der Anzahl darauf. Hineinzoomen teilt sie wieder in die einzelnen Meldungen auf.",
-      edClusterColor: "Farbe der Scheibe",
-      edClusterColorHelp: "Die Farbe der Scheibe und des Rings darum. Leer folgt der Primärfarbe des Themes.",
+      edElClusterHelp: "Worin die Karte nahe beieinanderliegende Meldungen herausgezoomt zusammenfasst: bis Home Assistant 2026.9 eine Scheibe mit der Anzahl darauf, ab 2026.10 eine Blase mit den ersten Symbolen und einem \"+N\" für den Rest. Hineinzoomen teilt sie wieder in die einzelnen Meldungen auf.",
+      edClusterColor: "Farbe der Gruppe",
+      edClusterColorHelp: "Die Farbe hinter den zusammengefassten Meldungen - Scheibe samt Ring oder Blase samt Spitze. Leer folgt dem Theme.",
       edClusterTextColor: "Farbe der Zahl",
-      edClusterTextColorHelp: "Die Farbe der Anzahl auf der Scheibe. Leer folgt der Textfarbe, die das Theme dafür vorsieht.",
+      edClusterTextColorHelp: "Die Farbe der Anzahl - auf der Scheibe oder als \"+N\" in der Blase. Leer folgt der Textfarbe, die das Theme dafür vorsieht.",
       edClusterFont: "Größe und Stil der Zahl",
       edClusterFontHelp: "Schriftgröße der Anzahl - 14px, 1.2em - und ob sie fett, kursiv oder unterstrichen ist. Leer behält die Größe der Karte.",
     },
@@ -1008,8 +1060,24 @@
     // the map. Its colour follows the theme's primary colour until one is
     // picked; the width is in pixels.
     map_route: true,
+    // An official closure's stretch of road, as a band on the map.
+    map_closures: true,
+    map_always: true,
+    map_traffic: false,
+    traffic_width: 1.5,
+    traffic_opacity: 50,
     route_color: "",
     route_width: 4,
+    // Whether Home Assistant's map gathers nearby reports into discs at all.
+    // On, as the map itself defaults to; off is handed to the map as its
+    // "cluster" option, which versions before 2026.10 do not know and
+    // ignore - they group regardless.
+    map_cluster: true,
+    // What a group looks like from 2026.10 on: the map's bubble with the
+    // first few symbols ("bubble"), or the disc with the count that every
+    // version before drew ("disc") - redrawn by the card over the bubble.
+    // Moot before 2026.10, where the disc is all there is.
+    cluster_style: "bubble",
     // The discs Home Assistant's map gathers nearby reports into, with the
     // count on them: the disc's colour and the count's. Empty leaves the
     // theme's primary colour and its text colour on it.
@@ -1050,6 +1118,8 @@
     show_row_extra: true,
     show_row_reported: true,
     show_row_confirmed: true,
+    // "Since ..." and "Until ..." on an official closure.
+    show_row_closure: true,
     show_row_stars: true,
     stars_size: "",
     stars_color: "",
@@ -1181,49 +1251,600 @@
     }
   }
 
-  function drawRoute(L, leaflet, points, color, vias, weight) {
-    const width = Number.isFinite(Number(weight)) && Number(weight) > 0 ? Number(weight) : 4;
-    const line = L.polyline(points, { color, weight: width, opacity: 0.85, interactive: false });
-    // Start hollow, destination filled: which way round it runs, without a
-    // legend.
-    const end = (point, filled) =>
-      L.circleMarker(point, {
-        radius: 5,
-        color: "#fff",
-        weight: 2,
-        fillColor: color,
-        fillOpacity: filled ? 1 : 0.35,
-        interactive: false,
-      });
-    const layers = [line, end(points[0], false), end(points[points.length - 1], true)];
-    // The via points too, smaller: a route that bends away from where it
-    // seems to be going is almost always following one, and without it on
-    // the map there is nothing to say why.
-    for (const via of Array.isArray(vias) ? vias : []) {
-      layers.push(
-        L.circleMarker(via, {
-          radius: 4,
+  // ---- the map's handles, by Home Assistant version
+  //
+  // Through 2026.9, ha-map carried Leaflet itself: the namespace as
+  // `Leaflet`, the instance as `leafletMap`. From 2026.10 it drives an
+  // engine instead - MapLibre GL, or Leaflet as the fallback without
+  // WebGL2 - keeps that engine to itself, and offers fitBounds,
+  // containsLocation, getView and setView of its own. Neither shape is a
+  // documented interface, so everything here is found by feel and guarded:
+  // a map that offers neither simply gets no route drawn and no viewport
+  // read, as the card has always behaved when it could not reach in.
+  //
+  // What comes back is one small vocabulary the rest of the card speaks
+  // whatever the version: events, the centre and the viewport, a jump to a
+  // point, and the three things a route is drawn with - a line, a dot and a
+  // numbered label - plus a fit to a set of points.
+  function mapHandles(haMap) {
+    if (!haMap) return null;
+
+    const leafletHandles = (L, leaflet) => ({
+      kind: "leaflet",
+      on: (name, fn) => leaflet.on(name, fn),
+      off: (name, fn) => leaflet.off(name, fn),
+      container: () => (typeof leaflet.getContainer === "function" ? leaflet.getContainer() : null),
+      centre: () => {
+        const c = leaflet.getCenter();
+        return { lat: c.lat, lon: c.lng };
+      },
+      contains: (lat, lon) => leaflet.getBounds().contains([lat, lon]),
+      bounds: () => {
+        const b = leaflet.getBounds();
+        return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() };
+      },
+      traffic: () => trafficLeafletLayer(L, leaflet),
+      zoom: () => leaflet.getZoom(),
+      zoomTo: (lat, lon, minZoom) =>
+        leaflet.setView([lat, lon], Math.max(leaflet.getZoom() || 0, minZoom)),
+      line: (points, o) => {
+        const line = L.polyline(points, {
+          color: o.color,
+          weight: o.width,
+          opacity: o.opacity,
+          dashArray: o.dashed ? "8 6" : null,
+          interactive: false,
+        });
+        line.addTo(leaflet);
+        return { remove: () => line.remove() };
+      },
+      dot: (point, o) => {
+        const dot = L.circleMarker(point, {
+          radius: o.radius,
           color: "#fff",
           weight: 2,
-          fillColor: color,
-          fillOpacity: 0.7,
+          fillColor: o.color,
+          fillOpacity: o.fill,
           interactive: false,
-        })
-      );
+        });
+        dot.addTo(leaflet);
+        return { remove: () => dot.remove() };
+      },
+      label: (point, text, color) => {
+        const marker = L.marker(point, {
+          interactive: false,
+          icon: L.divIcon({
+            className: "",
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+            html: routeLabelHtml(text, color),
+          }),
+        });
+        marker.addTo(leaflet);
+        return { remove: () => marker.remove() };
+      },
+      fit: (points, o = {}) => fitRoute(leaflet, L.latLngBounds(points), o.maxZoom),
+      inView: (points) => leaflet.getBounds().contains(L.latLngBounds(points)),
+    });
+
+    // Through 2026.9.
+    if (haMap.leafletMap && haMap.Leaflet && typeof haMap.leafletMap.getBounds === "function") {
+      return leafletHandles(haMap.Leaflet, haMap.leafletMap);
     }
-    layers.forEach((layer) => layer.addTo(leaflet));
-    return { layers, bounds: line.getBounds() };
+
+    const engine = haMap._engine;
+    if (!engine) return null;
+    // 2026.10's Leaflet fallback: the same Leaflet, one level down.
+    if (engine.leafletMap && engine.Leaflet && typeof engine.leafletMap.getBounds === "function") {
+      return leafletHandles(engine.Leaflet, engine.leafletMap);
+    }
+    // 2026.10's MapLibre engine. The route goes on as one of the engine's
+    // own paths - the kind it draws history trails with, which it also
+    // carries across a change of map style - and the dots and labels as
+    // markers, which is what the engine places any element with.
+    const inner = engine._map;
+    if (
+      !inner || typeof inner.on !== "function" ||
+      typeof engine.addPath !== "function" || typeof engine.addMarker !== "function" ||
+      typeof haMap.fitBounds !== "function" || typeof haMap.containsLocation !== "function" ||
+      typeof haMap.getView !== "function"
+    ) {
+      return null;
+    }
+    const element = (cssText) => {
+      const el = document.createElement("div");
+      el.style.cssText = cssText;
+      return el;
+    };
+    return {
+      kind: "engine",
+      on: (name, fn) => inner.on(name, fn),
+      off: (name, fn) => inner.off(name, fn),
+      container: () => (typeof inner.getContainer === "function" ? inner.getContainer() : null),
+      centre: () => {
+        const view = haMap.getView();
+        return view && view.center ? { lat: view.center[0], lon: view.center[1] } : undefined;
+      },
+      contains: (lat, lon) => haMap.containsLocation([lat, lon]),
+      bounds: () => {
+        const b = inner.getBounds();
+        return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() };
+      },
+      traffic: () => trafficEngineLayer(inner),
+      zoom: () => {
+        const view = haMap.getView();
+        return view ? view.zoom : undefined;
+      },
+      zoomTo: (lat, lon, minZoom) => {
+        const view = haMap.getView();
+        haMap.setView([lat, lon], Math.max((view && view.zoom) || 0, minZoom));
+      },
+      line: (points, o) => {
+        // The engine numbers its paths; the one just added is the last
+        // number handed out. Its line is drawn 3px wide whatever is asked,
+        // so the width is set on the layer afterwards - and again whenever
+        // the style is rebuilt, since the engine re-adds the layer as it
+        // first made it.
+        const handle = engine.addPath({
+          color: o.color,
+          segments: [{ points, opacity: o.opacity }],
+          markers: [],
+        });
+        const id = Number.isFinite(engine._idCounter)
+          ? "ha-map-path-" + (engine._idCounter - 1) + "-lines"
+          : null;
+        const apply = () => {
+          if (!id) return;
+          try {
+            if (!inner.getLayer(id)) return;
+            if (inner.getPaintProperty(id, "line-width") !== o.width) {
+              inner.setPaintProperty(id, "line-width", o.width);
+            }
+            if (o.dashed && !inner.getPaintProperty(id, "line-dasharray")) {
+              inner.setPaintProperty(id, "line-dasharray", [2, 1.5]);
+            }
+          } catch (err) {
+            // The style is still loading, or the layer went with it.
+          }
+        };
+        apply();
+        inner.on("styledata", apply);
+        return {
+          remove: () => {
+            try {
+              inner.off("styledata", apply);
+            } catch (err) {
+              // The map went first.
+            }
+            handle.remove();
+          },
+        };
+      },
+      dot: (point, o) => {
+        const size = o.radius * 2 + 4;
+        const el = element(
+          "box-sizing:border-box;width:" + size + "px;height:" + size + "px;border-radius:50%;" +
+          "border:2px solid #fff;background:color-mix(in srgb, " + o.color + " " +
+          Math.round(o.fill * 100) + "%, transparent);pointer-events:none"
+        );
+        const handle = engine.addMarker(el, point, { size: [size, size], interactive: false });
+        return { remove: () => handle.remove() };
+      },
+      label: (point, text, color) => {
+        const el = element("pointer-events:none");
+        el.innerHTML = routeLabelHtml(text, color);
+        const handle = engine.addMarker(el, point, { size: [22, 22], interactive: false });
+        return { remove: () => handle.remove() };
+      },
+      // ha-map's own fit: it pauses the map's auto-fit for good, so nothing
+      // of Home Assistant's undoes it later. Its zoom is a ceiling, and the
+      // map's default of 14 is too far out for a short commute.
+      fit: (points, o = {}) => haMap.fitBounds(points, {
+        zoom: o.maxZoom || 17,
+        pad: 0.05,
+        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+      }),
+      inView: (points) => {
+        const lats = points.map((pt) => pt[0]);
+        const lons = points.map((pt) => pt[1]);
+        return (
+          haMap.containsLocation([Math.min(...lats), Math.min(...lons)]) &&
+          haMap.containsLocation([Math.max(...lats), Math.max(...lons)])
+        );
+      },
+    };
+  }
+
+  // ---- The traffic flow, as Blitzer.de's map draws it ----------------------
+  //
+  // The integration hands over what the endpoint sends, four arrays side by
+  // side - each road's points on a 2000-step grid laid over the box asked
+  // for, its speed, whether it is a motorway, and its carriageway - and the
+  // box itself. Decoded here the way the map's own code does it: a jump of
+  // more than 800 grid steps starts a new line, a non-number ends one.
+  const TRAFFIC_GRID = 2000;
+  const TRAFFIC_GAP = 800;
+  // The map's speed steps and colours: grey for "no data", then dark red to
+  // green. Motorways are judged against the first set, every other road
+  // against the second.
+  const TRAFFIC_HIGHWAY_STEPS = [-1, 0, 30, 50, 70, 90, 110];
+  const TRAFFIC_ROAD_STEPS = [-1, 0, 5, 15, 25, 40, 60];
+  const TRAFFIC_COLORS = ["#c0c0c0", "#850000", "#850000", "#cd0000", "#f5c800", "#acd739", "#00aa00"];
+  // How long a fetched view stays before the card asks again while it is
+  // on screen, and how long a pan or a zoom is given to settle first.
+  const TRAFFIC_REFRESH_MS = 180000;
+  const TRAFFIC_DEBOUNCE_MS = 900;
+
+  function trafficSegments(data, box) {
+    if (!Array.isArray(data) || data.length !== 4 || !Array.isArray(box) || box.length !== 4) return [];
+    const [lines, speeds, highways, lanes] = data;
+    const [south, west, north, east] = box.map(Number);
+    const out = [];
+    for (let i = 0; i < (lines || []).length; i++) {
+      const line = lines[i];
+      if (!Array.isArray(line) || line.length < 4) continue;
+      const speed = Number((speeds || [])[i] ?? 0);
+      const highway = !!(highways || [])[i];
+      const lane = Number((lanes || [])[i] ?? 0);
+      let points = [];
+      let px = null;
+      let py = null;
+      const flush = () => {
+        if (points.length >= 2) out.push({ coordinates: points, speed, highway, lane });
+        points = [];
+      };
+      for (let k = 0; k + 1 < line.length; k += 2) {
+        const x = Number(line[k]);
+        const y = Number(line[k + 1]);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          flush();
+          px = null;
+          py = null;
+          continue;
+        }
+        if (px !== null && (x - px) * (x - px) + (y - py) * (y - py) > TRAFFIC_GAP * TRAFFIC_GAP) flush();
+        points.push([south + ((north - south) * y) / TRAFFIC_GRID, west + ((east - west) * x) / TRAFFIC_GRID]);
+        px = x;
+        py = y;
+      }
+      flush();
+    }
+    return out;
+  }
+
+  // The colour of a stretch: the step nearest its speed.
+  function trafficColor(segment) {
+    const steps = segment.highway ? TRAFFIC_HIGHWAY_STEPS : TRAFFIC_ROAD_STEPS;
+    let best = 0;
+    let gap = Infinity;
+    for (let i = 0; i < steps.length; i++) {
+      const d = Math.abs(segment.speed - steps[i]);
+      if (d < gap) {
+        gap = d;
+        best = i;
+      }
+    }
+    return TRAFFIC_COLORS[best] || TRAFFIC_COLORS[TRAFFIC_COLORS.length - 1];
+  }
+
+  // The width from the card's own setting, a motorway one wider, and both
+  // wider at street level the way the map's own are; the band is set off to
+  // the right of the direction of travel by as much, so the two carriageways
+  // sit side by side rather than on top of each other.
+  function trafficWidth(highway, zoom, base) {
+    const factor = zoom >= 18 ? 2 : zoom >= 16 ? 1.5 : 1;
+    const width = Math.max(0.5, Math.round((Number(base) || 1.5) * factor * 10) / 10);
+    return highway ? width + 1 : width;
+  }
+
+  // How far apart two pieces of one road may lie and still be joined. The
+  // endpoint delivers a road in pieces with holes between them, and the
+  // holes grow with the zoom it is asked at: 80-150 m between pieces of
+  // 110-150 m at z=16 on the St 2580, 150-300 m between pieces of 250 m at
+  // z=13. The integration asks for more detail than the map shows, and
+  // what holes are left are bridged up to this - along the road's own
+  // direction only, so a junction does not get a bridge across it.
+  const TRAFFIC_BRIDGE_M = 400;
+  const TRAFFIC_CELL = 0.002;
+
+  function trafficMetres(a, b) {
+    const k = Math.cos((a[0] * Math.PI) / 180);
+    return Math.hypot((a[0] - b[0]) * 111320, (a[1] - b[1]) * 111320 * k);
+  }
+
+  // The cosine of the angle between the way a piece ends and the way the
+  // next begins - for telling the continuation of a road from a side road
+  // that happens to start nearby.
+  function trafficAligned(tail, nextStart, nextSecond) {
+    const k = Math.cos((tail[1][0] * Math.PI) / 180);
+    const ax = (tail[1][1] - tail[0][1]) * k;
+    const ay = tail[1][0] - tail[0][0];
+    const bx = (nextSecond[1] - nextStart[1]) * k;
+    const by = nextSecond[0] - nextStart[0];
+    const gx = (nextStart[1] - tail[1][1]) * k;
+    const gy = nextStart[0] - tail[1][0];
+    const cosine = (p, q, r, t) => {
+      const n = Math.hypot(p, q) * Math.hypot(r, t);
+      return n ? (p * r + q * t) / n : 1;
+    };
+    return cosine(ax, ay, bx, by) >= 0.3 && cosine(ax, ay, gx, gy) >= 0.3;
+  }
+
+  // Blitzer.de delivers a road in pieces, and with the band set off
+  // sideways two pieces meeting at a bend no longer overlap - a wedge of
+  // map shows between them. Pieces that meet end to end in the same colour
+  // are joined into one line first, which the renderer then bends properly.
+  function trafficChain(segments, bridge) {
+    // Starts filed by cell, so the pieces near an end are found without
+    // measuring every one.
+    const cell = (pt) => Math.floor(pt[0] / TRAFFIC_CELL) + "," + Math.floor(pt[1] / TRAFFIC_CELL);
+    const byCell = new Map();
+    segments.forEach((seg, i) => {
+      const k = cell(seg.coordinates[0]);
+      if (!byCell.has(k)) byCell.set(k, []);
+      byCell.get(k).push(i);
+    });
+    const near = (pt) => {
+      const r = Math.floor(pt[0] / TRAFFIC_CELL);
+      const c = Math.floor(pt[1] / TRAFFIC_CELL);
+      const found = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) found.push(...(byCell.get(r + dr + "," + (c + dc)) || []));
+      }
+      return found;
+    };
+    const used = new Array(segments.length).fill(false);
+    const out = [];
+    for (let i = 0; i < segments.length; i++) {
+      if (used[i]) continue;
+      used[i] = true;
+      const head = segments[i];
+      const coordinates = head.coordinates.slice();
+      for (let guard = 0; guard < 5000; guard++) {
+        const end = coordinates[coordinates.length - 1];
+        const tail = [coordinates[coordinates.length - 2], end];
+        let best = -1;
+        let bestGap = Infinity;
+        for (const j of near(end)) {
+          if (used[j] || segments[j].color !== head.color || segments[j].highway !== head.highway) continue;
+          const start = segments[j].coordinates[0];
+          const gap = trafficMetres(end, start);
+          if (gap >= bestGap || gap > (bridge ? TRAFFIC_BRIDGE_M : 1)) continue;
+          // Touching pieces join whatever the angle - a bend is a bend;
+          // a hole is only bridged along the road's own direction, and
+          // only on a route: an area's view is never complete anyway.
+          if (gap > 1 && !trafficAligned(tail, start, segments[j].coordinates[1])) continue;
+          best = j;
+          bestGap = gap;
+        }
+        if (best < 0) break;
+        used[best] = true;
+        const piece = segments[best].coordinates;
+        coordinates.push(...(bestGap <= 1 ? piece.slice(1) : piece));
+      }
+      out.push({ ...head, coordinates });
+    }
+    // A hole before a piece of another colour is bridged too, with a short
+    // connector in the colour of the line before it: the road is the same
+    // road, only its speed changes across the hole. A line whose end a
+    // piece already starts at, or that ends where no piece follows in its
+    // direction, gets none.
+    if (!bridge) return out;
+    for (const line of out.slice()) {
+      const end = line.coordinates[line.coordinates.length - 1];
+      const tail = [line.coordinates[line.coordinates.length - 2], end];
+      let best = null;
+      let bestGap = Infinity;
+      for (const j of near(end)) {
+        const seg = segments[j];
+        if (seg.highway !== line.highway || seg.coordinates[0] === line.coordinates[0]) continue;
+        const start = seg.coordinates[0];
+        const gap = trafficMetres(end, start);
+        if (gap <= 1) {
+          best = null;
+          break;
+        }
+        if (gap >= bestGap || gap > TRAFFIC_BRIDGE_M) continue;
+        if (!trafficAligned(tail, start, seg.coordinates[1])) continue;
+        best = start;
+        bestGap = gap;
+      }
+      if (best) out.push({ ...line, coordinates: [end, best], bridge: true });
+    }
+    return out;
+  }
+
+  let trafficLayerCount = 0;
+
+  // On 2026.10's MapLibre engine: one GeoJSON source and two line layers -
+  // a white casing and the coloured flow - on top of the engine's own
+  // paths: a route's line lies under the flow, since on a route entry the
+  // flow is drawn on the route itself, and a thin flow under a thick route
+  // line would never show. The engine rebuilds its style now and then and
+  // loses what was added to it, and adds a path of its own on top whenever
+  // the route is repainted; the layers are put back, and back on top,
+  // whenever the style comes up without them there.
+  function trafficEngineLayer(inner) {
+    const id = "blitzer-traffic-" + (++trafficLayerCount);
+    let features = [];
+    const collection = () => ({ type: "FeatureCollection", features });
+    const topmost = () => {
+      try {
+        const layers = (inner.getStyle() && inner.getStyle().layers) || [];
+        return layers.length > 0 && layers[layers.length - 1].id === id + "-flow";
+      } catch (err) {
+        return true;
+      }
+    };
+    const raise = () => {
+      try {
+        inner.moveLayer(id + "-casing");
+        inner.moveLayer(id + "-flow");
+      } catch (err) {
+        // Not there to move.
+      }
+    };
+    const layout = { "line-cap": "round", "line-join": "round" };
+    const add = () => {
+      try {
+        const source = inner.getSource(id);
+        if (source && inner.getLayer(id + "-flow")) {
+          source.setData(collection());
+          if (!topmost()) raise();
+          return;
+        }
+        if (!source) inner.addSource(id, { type: "geojson", data: collection() });
+        const before = undefined;
+        if (!inner.getLayer(id + "-casing")) {
+          inner.addLayer(
+            {
+              id: id + "-casing",
+              type: "line",
+              source: id,
+              layout,
+              paint: {
+                "line-color": "#ffffff",
+                "line-width": ["+", ["get", "weight"], 2],
+                "line-offset": ["get", "offset"],
+                "line-opacity": ["get", "opacity"],
+              },
+            },
+            before
+          );
+        }
+        if (!inner.getLayer(id + "-flow")) {
+          inner.addLayer(
+            {
+              id: id + "-flow",
+              type: "line",
+              source: id,
+              layout,
+              paint: {
+                "line-color": ["get", "color"],
+                "line-width": ["get", "weight"],
+                "line-offset": ["get", "offset"],
+                "line-opacity": ["get", "opacity"],
+              },
+            },
+            before
+          );
+        }
+      } catch (err) {
+        // The style is still loading; styledata brings this back.
+      }
+    };
+    const onStyle = () => {
+      if (!features.length) return;
+      try {
+        if (!inner.getSource(id) || !inner.getLayer(id + "-flow")) add();
+        else if (!topmost()) raise();
+      } catch (err) {
+        // Not yet.
+      }
+    };
+    inner.on("styledata", onStyle);
+    return {
+      set: (segments, zoom, style) => {
+        features = trafficChain(segments.map((seg) => ({ ...seg, color: trafficColor(seg) })), style.bridge).map((seg) => {
+          const weight = trafficWidth(seg.highway, zoom, style.width);
+          return {
+            type: "Feature",
+            properties: { color: seg.color, weight, offset: weight, opacity: style.opacity },
+            geometry: { type: "LineString", coordinates: seg.coordinates.map((pt) => [pt[1], pt[0]]) },
+          };
+        });
+        add();
+      },
+      remove: () => {
+        try {
+          inner.off("styledata", onStyle);
+        } catch (err) {
+          // The map went first.
+        }
+        try {
+          [id + "-flow", id + "-casing"].forEach((layer) => {
+            if (inner.getLayer(layer)) inner.removeLayer(layer);
+          });
+          if (inner.getSource(id)) inner.removeSource(id);
+        } catch (err) {
+          // Gone with the map.
+        }
+      },
+    };
+  }
+
+  // On Leaflet - the fallback without WebGL - plain polylines in a group,
+  // casing under flow, without the sideways offset.
+  function trafficLeafletLayer(L, leaflet) {
+    const group = L.layerGroup();
+    group.addTo(leaflet);
+    return {
+      set: (segments, zoom, style) => {
+        group.clearLayers();
+        try {
+          if (typeof group.bringToFront === "function") group.bringToFront();
+        } catch (err) {
+          // Older Leaflet.
+        }
+        for (const seg of trafficChain(segments.map((item) => ({ ...item, color: trafficColor(item) })), style.bridge)) {
+          const weight = trafficWidth(seg.highway, zoom, style.width);
+          group.addLayer(
+            L.polyline(seg.coordinates, { color: "#ffffff", weight: weight + 2, opacity: style.opacity, lineCap: "round", interactive: false })
+          );
+          group.addLayer(
+            L.polyline(seg.coordinates, { color: seg.color, weight, opacity: style.opacity, lineCap: "round", interactive: false })
+          );
+        }
+      },
+      remove: () => {
+        try {
+          group.clearLayers();
+          group.remove();
+        } catch (err) {
+          // Gone with the map.
+        }
+      },
+    };
+  }
+
+  // A number on a route, for telling alternatives apart: a small disc in
+  // the line's colour.
+  function routeLabelHtml(text, color) {
+    return (
+      '<div style="width:22px;height:22px;border-radius:50%;background:' + color + ";" +
+      'color:#fff;font:700 13px/22px sans-serif;text-align:center;' +
+      'box-shadow:0 0 0 2px #fff">' + escapeHtml(String(text)) + "</div>"
+    );
+  }
+
+  // The route as drawn on any map: the line, a hollow dot at its start and a
+  // filled one at its destination - which way round it runs, without a
+  // legend - and the via points smaller between them: a route that bends
+  // away from where it seems to be going is almost always following one.
+  function drawRouteWith(h, points, color, vias, weight) {
+    const width = Number.isFinite(Number(weight)) && Number(weight) > 0 ? Number(weight) : 4;
+    const items = [h.line(points, { color, width, opacity: 0.85 })];
+    items.push(h.dot(points[0], { color, fill: 0.35, radius: 5 }));
+    items.push(h.dot(points[points.length - 1], { color, fill: 1, radius: 5 }));
+    for (const via of Array.isArray(vias) ? vias : []) {
+      items.push(h.dot(via, { color, fill: 0.7, radius: 4 }));
+    }
+    return {
+      points,
+      remove: () => {
+        for (const item of items) {
+          try {
+            item.remove();
+          } catch (err) {
+            // Its map is already gone.
+          }
+        }
+      },
+    };
   }
 
   function removeRoute(drawn) {
-    if (!drawn) return;
-    for (const layer of drawn.layers) {
-      try {
-        layer.remove();
-      } catch (err) {
-        // Its map is already gone.
-      }
-    }
+    if (drawn) drawn.remove();
   }
 
   // Since 2026.9 the streets under ha-map are a MapLibre GL layer, and it
@@ -1245,10 +1866,14 @@
 
   // Without animation: an animated fit is exactly what leaves the stretched
   // frame behind.
-  function fitRoute(leaflet, bounds) {
+  function fitRoute(leaflet, bounds, maxZoom) {
     try {
       leaflet.invalidateSize(false);
-      leaflet.fitBounds(bounds, { padding: [20, 20], animate: false });
+      leaflet.fitBounds(bounds, {
+        padding: [20, 20],
+        animate: false,
+        ...(maxZoom ? { maxZoom } : {}),
+      });
     } catch (err) {
       return;
     }
@@ -1268,16 +1893,33 @@
   // route's own fit comes to rest with the route in view, so it does not set
   // itself off again. The first touch - a drag, a pinch, the wheel, a key -
   // ends it for good: where someone put the view is where it stays.
-  function fitRouteSettled(leaflet, bounds) {
-    fitRoute(leaflet, bounds);
-    const container = typeof leaflet.getContainer === "function" ? leaflet.getContainer() : null;
+  // Returns the function that ends the watch early - for whoever moves the
+  // map on purpose before the minute is up, so the watch does not pull it
+  // back to the route.
+  function fitRouteSettled(h, points) {
+    h.fit(points);
+    const container = h.container();
     const events = ["mousedown", "touchstart", "wheel", "keydown"];
     let done = false;
+    // 2026.10's MapLibre fires moveend from a resize, moved or not, and
+    // fitting the map is what resizes it - so a fit from here fires the very
+    // event that called here, synchronously. Guarded twice: nothing while a
+    // fit is under way, and nothing for a view that did not change.
+    let busy = false;
+    let lastView = "";
+    const viewOf = () => {
+      try {
+        const c = h.centre();
+        return c ? `${c.lat.toFixed(5)},${c.lon.toFixed(5)},${h.zoom()}` : "";
+      } catch (err) {
+        return "";
+      }
+    };
     const cleanup = () => {
       if (done) return;
       done = true;
       try {
-        leaflet.off("moveend", onRest);
+        h.off("moveend", onRest);
       } catch (err) {
         // The map went first.
       }
@@ -1286,22 +1928,28 @@
       }
     };
     const onRest = () => {
-      let inView = true;
+      if (busy || done) return;
+      const view = viewOf();
+      if (view === lastView) return;
+      lastView = view;
+      busy = true;
       try {
-        inView = leaflet.getBounds().contains(bounds);
+        if (!h.inView(points)) h.fit(points);
       } catch (err) {
         cleanup();
-        return;
+      } finally {
+        busy = false;
       }
-      if (!inView) fitRoute(leaflet, bounds);
     };
-    leaflet.on("moveend", onRest);
+    lastView = viewOf();
+    h.on("moveend", onRest);
     if (container) {
       events.forEach((name) => container.addEventListener(name, cleanup, { passive: true }));
     }
     // Long enough for the slowest first load measured, and not forever: a
     // map left alone for a minute has settled.
     window.setTimeout(cleanup, 60000);
+    return cleanup;
   }
 
   // ---------------------------------------------------------- setup dialog
@@ -1341,23 +1989,6 @@
     });
   }
 
-  // A number on a route, for telling alternatives apart: a small disc at
-  // the route's middle point, in the line's colour.
-  function routeLabel(L, points, text, color) {
-    const middle = points[Math.floor(points.length / 2)];
-    return L.marker(middle, {
-      interactive: false,
-      icon: L.divIcon({
-        className: "",
-        iconSize: [22, 22],
-        iconAnchor: [11, 11],
-        html:
-          `<div style="width:22px;height:22px;border-radius:50%;background:${color};` +
-          `color:#fff;font:700 13px/22px sans-serif;text-align:center;` +
-          `box-shadow:0 0 0 2px #fff">${text}</div>`,
-      }),
-    });
-  }
 
   // Where several routes are on offer, the fastest is drawn as the route
   // and the others beside it in their own colours, each numbered the way
@@ -1365,29 +1996,28 @@
   const ALTERNATIVE_COLORS = ["#ff9800", "#9c27b0"];
 
   function drawFlowRoute(map, points, vias, attempt, alternatives) {
-    const leaflet = map.leafletMap;
-    const L = map.Leaflet;
-    if (!leaflet || !L) {
+    const h = mapHandles(map);
+    if (!h) {
       if (attempt < 40) {
         window.setTimeout(() => drawFlowRoute(map, points, vias, attempt + 1, alternatives), 250);
       }
       return;
     }
     const color = routeColor(map);
-    let bounds = null;
+    const all = [...points];
     (alternatives || []).forEach((route, i) => {
       const tint = ALTERNATIVE_COLORS[i % ALTERNATIVE_COLORS.length];
-      const line = L.polyline(route, { color: tint, weight: 4, opacity: 0.8, dashArray: "8 6", interactive: false });
-      line.addTo(leaflet);
-      routeLabel(L, route, String(i + 2), tint).addTo(leaflet);
-      bounds = bounds ? bounds.extend(line.getBounds()) : line.getBounds();
+      h.line(route, { color: tint, width: 4, opacity: 0.8, dashed: true });
+      h.label(route[Math.floor(route.length / 2)], String(i + 2), tint);
+      all.push(...route);
     });
-    const drawn = drawRoute(L, leaflet, points, color, vias);
-    if (alternatives && alternatives.length) routeLabel(L, points, "1", color).addTo(leaflet);
-    bounds = bounds ? bounds.extend(drawn.bounds) : drawn.bounds;
-    fitRoute(leaflet, bounds);
+    drawRouteWith(h, points, color, vias);
+    if (alternatives && alternatives.length) {
+      h.label(points[Math.floor(points.length / 2)], "1", color);
+    }
+    h.fit(all);
     // The dialog grows into its size while it opens; fit once more after.
-    window.setTimeout(() => fitRoute(leaflet, bounds), 500);
+    window.setTimeout(() => h.fit(all), 500);
   }
 
   async function addFlowMap(form, points, vias, attempt, alternatives) {
@@ -1633,8 +2263,20 @@
   // A date always answers "older than today", which is what it means - the
   // only thing lost is the few minutes after midnight, when a report from
   // 23:5x has already been re-dated.
+  // "2026-10-10 09:25:30", as www.blitzer.de stamps a report. The
+  // integration folds it into the short form below before the card sees
+  // it; this is for a card running against an older integration.
+  const FULL_STAMP = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/;
+
   function minutesSince(created, now) {
     if (typeof created !== "string") return null;
+    const full = created.match(FULL_STAMP);
+    if (full) {
+      const then = new Date(
+        Number(full[1]), Number(full[2]) - 1, Number(full[3]), Number(full[4]), Number(full[5])
+      );
+      return Math.max(0, Math.round((now - then) / 60000));
+    }
     const time = created.match(/^(\d{1,2}):(\d{2})$/);
     if (time) {
       const then = new Date(now);
@@ -1662,16 +2304,89 @@
     return age !== null && age < minutes;
   }
 
+  // A full stamp shown the short way: the time for today, the date for
+  // any other day - what the chips have always read.
+  function shortStamp(value) {
+    const full = typeof value === "string" && value.match(FULL_STAMP);
+    if (!full) return value;
+    const now = new Date();
+    if (
+      Number(full[1]) === now.getFullYear() &&
+      Number(full[2]) === now.getMonth() + 1 &&
+      Number(full[3]) === now.getDate()
+    ) {
+      return `${full[4]}:${full[5]}`;
+    }
+    return `${full[3]}.${full[2]}.${full[1]}`;
+  }
+
   function reportedText(str, created) {
+    created = shortStamp(created);
     if (!created) return "";
     return created.includes(".") ? str.reportedOn(created) : str.reportedAt(created);
   }
+
+  // An official closure's period, as chips: since when, and until when or
+  // that it has no end yet. The dates arrive as ISO days and are shown the
+  // way the page's language writes a date.
+  function closureChips(str, attrs) {
+    if (!attrs || (!attrs.closure_since && !attrs.closure_until && !attrs.closure_open_end)) {
+      return [];
+    }
+    // Written the way the reported and confirmed chips are - "21.09.2026",
+    // Blitzer.de's own form - rather than after the browser's language, so
+    // the chips of one entry do not read two ways.
+    const day = (iso) => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+      return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
+    };
+    const chips = [];
+    const since = day(attrs.closure_since);
+    if (since) chips.push(str.closureSince(since));
+    if (attrs.closure_open_end) chips.push(str.closureOpenEnd);
+    else {
+      const until = day(attrs.closure_until);
+      if (until) chips.push(str.closureUntil(until));
+    }
+    return chips;
+  }
+
+  // The stretch of road a closure closes comes as a Google-encoded polyline
+  // (five decimals), the way the endpoint sends it.
+  function decodePolyline(encoded) {
+    const points = [];
+    let index = 0;
+    let lat = 0;
+    let lng = 0;
+    while (index < encoded.length) {
+      for (const which of [0, 1]) {
+        let shift = 0;
+        let result = 0;
+        let byte;
+        do {
+          byte = encoded.charCodeAt(index++) - 63;
+          result |= (byte & 0x1f) << shift;
+          shift += 5;
+        } while (byte >= 0x20);
+        const delta = result & 1 ? ~(result >> 1) : result >> 1;
+        if (which === 0) lat += delta;
+        else lng += delta;
+      }
+      points.push([lat / 1e5, lng / 1e5]);
+    }
+    return points;
+  }
+
+  // The band's colours: Blitzer.de's own dark red for a closure, with a
+  // white dashed centre the way its map stripes them.
+  const CLOSURE_COLOR = "#b71c1c";
 
   // Blitzer.de dates a confirmation the same way it dates a report: a bare
   // time while it is from today, a date once it is not. "01.01.1970" is what
   // it puts on something that was never community-confirmed at all - a fixed
   // installation, say - and means "no confirmation" rather than a date.
   function confirmedText(str, confirmed) {
+    confirmed = shortStamp(confirmed);
     if (!confirmed || confirmed === NEVER_CONFIRMED) return "";
     return confirmed.includes(".") ? str.confirmedOn(confirmed) : str.confirmedAt(confirmed);
   }
@@ -1812,7 +2527,71 @@
     "  justify-content: center !important;",
     "}",
     ".marker-cluster span { line-height: 1 !important; }",
+    // From 2026.10 a cluster is a bubble - the first few symbols in a
+    // rounded box on a tail, and a "+N" for the rest - rather than a disc
+    // with the count. The same properties dress it: the colour lands on the
+    // box and its tail, where the disc's used to land, and the count's
+    // colour and font on the "+N". Every fallback is again the map's own.
+    ".cluster-bubble, .cluster-bubble-tail {",
+    "  background: var(--blitzer-cluster-background, var(--card-background-color, #fff)) !important;",
+    "}",
+    ".cluster-bubble .more {",
+    "  color: var(--blitzer-cluster-color, var(--primary-text-color, #212121)) !important;",
+    "  font-size: var(--blitzer-cluster-font-size, var(--ha-font-size-s)) !important;",
+    "  font-weight: var(--blitzer-cluster-font-weight, var(--ha-font-weight-medium)) !important;",
+    "  font-style: var(--blitzer-cluster-font-style, normal) !important;",
+    "  text-decoration: var(--blitzer-cluster-text-decoration, none) !important;",
+    "}",
+    // The disc drawn over a bubble when "Shape of a group" says so - see
+    // _styleClusters. Centred on the bubble's anchor: the box's bottom
+    // middle plus the 9px the map lifts a floating marker by, which is the
+    // cluster's own position. Sized and ringed like the disc the map drew
+    // through 2026.9, and dressed by the same properties as that one.
+    ".cluster-marker.blitzer-disc { position: relative; filter: none !important; }",
+    ".cluster-marker.blitzer-disc .cluster-bubble,",
+    ".cluster-marker.blitzer-disc .cluster-bubble-tail { display: none !important; }",
+    ".cluster-marker.blitzer-disc::after {",
+    "  content: attr(data-blitzer-count);",
+    "  position: absolute;",
+    "  left: 50%;",
+    "  top: 100%;",
+    "  transform: translate(-50%, calc(-50% + 9px));",
+    "  box-sizing: border-box;",
+    "  width: 36px;",
+    "  height: 36px;",
+    "  border-radius: 50%;",
+    "  display: flex;",
+    "  align-items: center;",
+    "  justify-content: center;",
+    "  background: var(--blitzer-cluster-background, var(--primary-color));",
+    "  box-shadow: 0 0 0 5px color-mix(in srgb, var(--blitzer-cluster-background, var(--primary-color)) 20%, transparent);",
+    "  color: var(--blitzer-cluster-color, var(--text-primary-color));",
+    "  font-size: var(--blitzer-cluster-font-size, var(--ha-font-size-m));",
+    "  font-weight: var(--blitzer-cluster-font-weight, normal);",
+    "  font-style: var(--blitzer-cluster-font-style, normal);",
+    "  text-decoration: var(--blitzer-cluster-text-decoration, none);",
+    "  line-height: 1;",
+    "  cursor: pointer;",
+    "}",
   ].join("\n");
+
+  // Whether this Home Assistant's map card knows the "cluster" option -
+  // 2026.10 is where it arrived. A version that cannot be read (an odd build,
+  // a missing field) counts as new enough: better a switch that may do
+  // nothing than one greyed out for no reason anyone can check.
+  function mapClusterSwitchable(hass) {
+    return haAtLeast(hass, 2026, 10);
+  }
+
+  // Whether this Home Assistant is the given release or later. A version
+  // that cannot be read counts as new.
+  function haAtLeast(hass, year, month) {
+    const m = /^(\d+)\.(\d+)/.exec(String((hass && hass.config && hass.config.version) || ""));
+    if (!m) return true;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    return y > year || (y === year && mo >= month);
+  }
 
   // What the editor's cluster settings put into those properties. Only the
   // ones set: an unset one is removed again, so a theme's value shows
@@ -2100,6 +2879,7 @@
               <span class="pop-title"></span>
               <button type="button" class="pop-close">✕</button>
             </div>
+            <div class="pop-traffic"></div>
             <div class="pop-body">
               <div class="pop-map"></div>
               <div class="pop-list"></div>
@@ -2186,10 +2966,13 @@
     // false when there is no map to aim, so the click can fall back to the
     // details dialog.
     _focusMap(row) {
-      if (!row || !this._leaflet) return false;
+      if (!row || !this._handles) return false;
       if (!Number.isFinite(row.lat) || !Number.isFinite(row.lon)) return false;
       try {
-        this._leaflet.setView([row.lat, row.lon], Math.max(this._leaflet.getZoom() || 0, FOCUS_ZOOM));
+        // Aimed on purpose: the watch that keeps the route in view after its
+        // first fit must not pull the map straight back.
+        this._endRouteWatch("_routeSettle");
+        this._handles.zoomTo(row.lat, row.lon, FOCUS_ZOOM);
       } catch (err) {
         return false;
       }
@@ -2353,8 +3136,10 @@
       // being a button.
       // A half counting nothing normally leads nowhere and stops being a
       // button. With a tap action set it leads somewhere regardless of the
-      // count, so it stays one.
-      const dead = (value) => !value && !this._miniTapAction;
+      // count, so it stays one - and so does the total while the pop-up has
+      // a map to show on its own, with the area drawn on it.
+      const dead = (value, scope) =>
+        !value && !this._miniTapAction && !(scope === "all" && this._popHasEmptyMap());
       // What is written is not always what decides whether there is anything
       // there: the delay part says "+22 min", and a string is never nought.
       const half = (what, scope, prefix, value, label, count = value) => {
@@ -2380,8 +3165,8 @@
           .split("; ")
           .filter((part) => !part.startsWith("font-size:"))
           .join("; ");
-        return `<button type="button" class="mini-half ${what}${dead(count) ? " empty" : ""}"
-                 data-scope="${scope}"${dead(count) ? " disabled" : ""}
+        return `<button type="button" class="mini-half ${what}${dead(count, scope) ? " empty" : ""}"
+                 data-scope="${scope}"${dead(count, scope) ? " disabled" : ""}
                  style="${escapeHtml(fill.join("; "))}">
           ${miniIconHtml(this._config, prefix)}
           <span class="mini-value" style="${escapeHtml(style)}">${escapeHtml(
@@ -2478,7 +3263,9 @@
 
     // Fetch this area again, now. Which half is fetched follows the filter:
     // a card showing only hazards has no business spending a request on
-    // cameras, and each half costs one of its own.
+    // cameras, and each half costs one of its own. Both at once go through
+    // the combined action, which fetches them in one pass - on a route, one
+    // request per point rather than one per point per half.
     //
     // The action is addressed to the config entry rather than to the device,
     // because that is what the integration registered it for. The device
@@ -2487,18 +3274,16 @@
       const device = this._hass && this._hass.devices && this._hass.devices[areaId];
       const entry = device && (device.config_entries || [])[0];
       if (!entry || button.disabled) return;
-      const wanted =
+      const service =
         this._filter === "controls"
-          ? ["refresh_controls"]
+          ? "refresh_controls"
           : this._filter === "hazards"
-            ? ["refresh_hazards"]
-            : ["refresh_controls", "refresh_hazards"];
+            ? "refresh_hazards"
+            : "refresh";
       button.disabled = true;
       button.classList.add("spinning");
       try {
-        for (const service of wanted) {
-          await this._hass.callService(DOMAIN, service, { config_entry_id: entry });
-        }
+        await this._hass.callService(DOMAIN, service, { config_entry_id: entry });
       } catch (err) {
         console.error("blitzer-card: refresh failed", err);
       } finally {
@@ -2533,6 +3318,7 @@
     _fillPop(str) {
       const rows = this._popRows();
       this._popRowsCache = rows;
+      this._popListShown = undefined;
       // The card's own title, and the card's own "Hide" with it: this is the
       // same title shown somewhere else, not a second one.
       const popTitle = this._popEl.querySelector(".pop-title");
@@ -2547,6 +3333,7 @@
       const wantsMap = this._config.show_map !== false;
       const wantsList = this._config.show_list !== false;
       this._popEl.querySelector(".pop-body").classList.toggle("solo", wantsMap !== wantsList);
+      this._fillPopTrafficLine();
       this._fillPopList(str);
       this._syncPopMap(rows);
     }
@@ -2554,8 +3341,16 @@
     // The list on its own, so a highlight can redraw it without rebuilding the
     // map beside it.
     _fillPopList(str) {
-      const rows = this._popRowsCache || [];
+      // With "List follows the map" on, only what the pop-up's map shows -
+      // the same rule as in the card, against this map's viewport.
+      const following = !!this._config.follow_map && this._popBounds;
+      const rows = (this._popRowsCache || []).filter((row) => !following || this._popInBounds(row));
       const list = this._popEl.querySelector(".pop-list");
+      // A move that changed nothing in view redraws nothing: the map's
+      // resize echoes as a move too.
+      const shown = rows.map((r) => r.entityId).join(",") + "|" + (following ? "f" : "") + "|" + this._highlight;
+      if (shown === this._popListShown && list.children.length) return;
+      this._popListShown = shown;
       // The card's own list switch answers for this one too - in the minimal
       // format it is the only list there is.
       list.hidden = this._config.show_list === false;
@@ -2573,11 +3368,13 @@
             .join("")}</div>`
         : `<div class="empty" style="${escapeHtml(elementStyle(this._config, "no_reports"))}">${escapeHtml(
             this._config.no_reports_text ||
-              (this._popScope === "all"
-                ? str.nothing
-                : this._popScope === "delay"
-                  ? str.noDelay
-                  : str.noNew)
+              (following && (this._popRowsCache || []).length
+                ? str.nothingInView
+                : this._popScope === "all"
+                  ? str.nothing
+                  : this._popScope === "delay"
+                    ? str.noDelay
+                    : str.noNew)
           )}</div>`;
       this._fitIcons();
       // The same click as in the card: it aims the map at the report, and
@@ -2598,13 +3395,11 @@
     }
 
     _focusPopMap(row) {
-      if (!row || !this._popLeaflet) return false;
+      if (!row || !this._popHandles) return false;
       if (!Number.isFinite(row.lat) || !Number.isFinite(row.lon)) return false;
       try {
-        this._popLeaflet.setView(
-          [row.lat, row.lon],
-          Math.max(this._popLeaflet.getZoom() || 0, FOCUS_ZOOM)
-        );
+        this._endRouteWatch("_popRouteSettle");
+        this._popHandles.zoomTo(row.lat, row.lon, FOCUS_ZOOM);
       } catch (err) {
         return false;
       }
@@ -2618,8 +3413,8 @@
       const wanted = this._config.show_map !== false;
       wrap.hidden = !wanted;
       const ids = wanted ? rows.map((r) => r.entityId).sort() : [];
-      const key = ids.join(",");
-      if (!ids.length) {
+      const key = ids.join(",") + "|" + (this._config.map_cluster !== false) + "|" + (this._config.map_always !== false);
+      if (!wanted || (!ids.length && this._config.map_always === false)) {
         wrap.innerHTML = "";
         this._popMap = undefined;
         this._popMapKey = key;
@@ -2634,7 +3429,12 @@
       const helpers = await window.loadCardHelpers();
       if (this._popMapKey !== key) return;
       // No ratio: the map fills its half of the pop-up.
-      const card = await helpers.createCardElement({ type: "map", entities: ids, auto_fit: true });
+      const card = await helpers.createCardElement({
+        type: "map",
+        ...(ids.length ? { entities: ids } : { geo_location_sources: [] }),
+        auto_fit: true,
+        ...(this._config.map_cluster === false ? { cluster: false } : {}),
+      });
       if (this._popMapKey !== key) return;
       card.hass = this._hass;
       wrap.innerHTML = "";
@@ -2651,19 +3451,36 @@
       const tryAttach = (attempt) => {
         if (this._popMap !== card) return;
         const haMap = card.shadowRoot ? card.shadowRoot.querySelector("ha-map") : null;
-        const leaflet = haMap && haMap.leafletMap;
-        if (!leaflet || typeof leaflet.on !== "function") {
-          if (attempt < 10) window.setTimeout(() => tryAttach(attempt + 1), 300);
+        const h = mapHandles(haMap);
+        if (!h) {
+          window.setTimeout(() => tryAttach(attempt + 1), attempt < 40 ? 300 : 2000);
           return;
         }
-        this._popLeaflet = leaflet;
+        this._popHandles = h;
         this._popHaMap = haMap;
         this._paintPopRoute();
+        this._paintArea(h, this._popRowsCache, "_popAreaDrawn", "_popAreaSettle");
+        this._paintClosures(h, this._popRowsCache, "_popClosuresDrawn");
+        this._onPopMove = () => {
+          this._scheduleTraffic("pop");
+          // The list beside the map follows what the map shows.
+          try {
+            this._popBounds = { contains: (point) => h.contains(point[0], point[1]) };
+          } catch (err) {
+            this._popBounds = undefined;
+          }
+          if (this._config.follow_map && this._hass) this._fillPopList(t(this._hass));
+        };
+        h.on("moveend", this._onPopMove);
+        h.on("zoomend", this._onPopMove);
+        this._scheduleTraffic("pop");
         this._onPopMarkerClick = (ev) => {
           if (this._config.map_highlight === false) return;
           const marker = ev.composedPath().find((n) => n && n.tagName === "HA-ENTITY-MARKER");
           const id = marker && (marker.entityId || marker.getAttribute("entity-id"));
           if (!id || !(this._popRowsCache || []).some((r) => r.entityId === id)) return;
+          const bubble = marker.closest && marker.closest(".cluster-marker");
+          if (bubble && bubble.getAttribute("role") !== "group") return;
           ev.stopPropagation();
           ev.preventDefault();
           this._highlight = this._highlight === id ? null : id;
@@ -2679,7 +3496,8 @@
           this._highlight = null;
           this._fillPopList(t(this._hass));
         };
-        leaflet.on("click", this._onPopMapClick);
+        if (h.kind === "leaflet") h.on("click", this._onPopMapClick);
+        else haMap.addEventListener("map-clicked", this._onPopMapClick);
       };
       tryAttach(0);
     }
@@ -2693,9 +3511,11 @@
         }
         this._popObserver = undefined;
       }
-      if (this._popLeaflet && this._onPopMapClick) {
+      const h = this._popHandles;
+      if (h && this._onPopMapClick) {
         try {
-          this._popLeaflet.off("click", this._onPopMapClick);
+          if (h.kind === "leaflet") h.off("click", this._onPopMapClick);
+          else if (this._popHaMap) this._popHaMap.removeEventListener("map-clicked", this._onPopMapClick);
         } catch (err) {
           // The instance went with the map.
         }
@@ -2707,9 +3527,26 @@
           // Its shadow root went with it.
         }
       }
+      if (h && this._onPopMove) {
+        try {
+          h.off("moveend", this._onPopMove);
+          h.off("zoomend", this._onPopMove);
+        } catch (err) {
+          // The instance went with the map.
+        }
+      }
+      this._onPopMove = undefined;
+      this._popBounds = undefined;
+      this._popListShown = undefined;
+      this._popTrafficAt = undefined;
+      this._popTrafficOn = undefined;
+      this._endRouteWatch("_popRouteSettle");
       removeRoute(this._popRouteDrawn);
       this._popRouteDrawn = undefined;
-      this._popLeaflet = undefined;
+      this._removeArea("_popAreaDrawn", "_popAreaSettle");
+      this._removeClosures("_popClosuresDrawn");
+      this._clearTraffic("pop");
+      this._popHandles = undefined;
       this._popHaMap = undefined;
       this._onPopMapClick = undefined;
       this._onPopMarkerClick = undefined;
@@ -2732,12 +3569,30 @@
           : wanted === "delay"
             ? this._delayReports()
             : this._newReports();
-      if (!rows.length) return;
+      if (!rows.length && !(wanted === "all" && this._popHasEmptyMap())) return;
       if (this._config.show_map === false && this._config.show_list === false) return;
       this._popScope = wanted;
       this._highlight = null;
       this._fillPop(t(this._hass));
       this._popEl.showModal();
+    }
+
+    // Whether the pop-up shows a map even with nothing reported: the map
+    // switch on, and the map set to stay - see map_always.
+    _popHasEmptyMap() {
+      return this._config.show_map !== false && this._config.map_always !== false;
+    }
+
+    // The pop-up list's counterpart of _inBounds, against the pop-up's own
+    // map.
+    _popInBounds(row) {
+      if (!this._popBounds) return true;
+      if (!Number.isFinite(row.lat) || !Number.isFinite(row.lon)) return false;
+      try {
+        return this._popBounds.contains([row.lat, row.lon]);
+      } catch (err) {
+        return true;
+      }
     }
 
     _inBounds(row) {
@@ -2818,6 +3673,7 @@
                 leadIconHtml(this._config, "sub")
               }<span>${escapeHtml(subText)}</span>${refresh}</div>`
             : ""}
+          ${this._trafficLineHtml(str)}
         </div>
         <div class="pickers">
           ${this._config.show_area_picker
@@ -2837,6 +3693,10 @@
       if (refreshButton) {
         refreshButton.addEventListener("click", () => this._refresh(refreshButton, areaId));
       }
+
+      // The traffic flow's own switch and refresh. The switch is for the
+      // moment - the option under Settings is what offers it at all.
+      this._bindTrafficLine(this._headEl, "main");
 
       const newButton = this._headEl.querySelector('[data-what="new-filter"]');
       if (newButton) {
@@ -2983,25 +3843,41 @@
       const routeStyle = `${this._config.route_color}|${this._config.route_width}`;
       const restyle = this._routeStyle !== routeStyle;
       this._routeStyle = routeStyle;
+      const trafficStyle = `${this._config.traffic_width}|${this._config.traffic_opacity}`;
+      if (this._trafficStyleSig !== trafficStyle) {
+        this._trafficStyleSig = trafficStyle;
+        this._restyleTraffic();
+      }
 
       const shown = this._mapRows;
       const ids = (shown || []).map((r) => r.entityId).sort();
       const key =
         `${areaId}|${ids.join(",")}|${this._config.map_aspect_ratio}` +
-        `|${this._following}|${this._watchesMap}|${this._layout}|${routeSig(route)}`;
+        `|${this._following}|${this._watchesMap}|${this._layout}|${routeSig(route)}` +
+        `|${this._config.map_cluster !== false}|${this._config.map_always !== false}`;
       if (key === this._mapKey && this._map) {
         this._map.hass = this._hass;
         // Hooks can be missing here for reasons other than a view switch -
         // the map card rebuilding its own insides, say. Both of these do
         // nothing when they are already in place.
-        if (!this._leaflet) this._attachMap();
-        else if (restyle) this._paintRoute();
+        if (!this._handles) this._attachMap();
+        else if (restyle) {
+          this._paintRoute();
+          this._paintArea();
+        }
         this._watchMarkers();
         this._styleMap();
+        this._fitScope();
+        this._syncTrafficSwitch();
         return;
       }
 
-      if (!ids.length) {
+      // Nothing to mark and no route to draw: no map - unless the map is
+      // to stay regardless, which it does by default, showing the area as
+      // it is set up. A route is a reason of its own either way - a short
+      // commute is empty most of the day, and the map is what shows the
+      // route (#3).
+      if (!ids.length && !route && this._config.map_always === false) {
         this._detachMap();
         this._unwatchMarkers();
         this._mapEl.innerHTML = "";
@@ -3012,7 +3888,16 @@
 
       const mapConfig = {
         type: "map",
-        entities: ids,
+        // Home Assistant's map card refuses an empty entity list but takes a
+        // list of geo_location sources, and an empty one of those is a map
+        // of nothing - the base the route is painted on. Not this area's
+        // own sources: the list is empty because of what the card is set to
+        // show ("only new", say, or one half), and the area's markers would
+        // reappear on the map regardless of that.
+        ...(ids.length ? { entities: ids } : { geo_location_sources: [] }),
+        // Only ever said when it is off: the map groups by default, and a
+        // version from before the option simply does not see the key.
+        ...(this._config.map_cluster === false ? { cluster: false } : {}),
         // While the card is listening to the map - following it, or measuring
         // from its centre - refitting on every data update would undo the pan
         // the person just made. It fits once, when the map first appears.
@@ -3033,6 +3918,7 @@
           this._mapFitted = true;
           this._attachMap();
           this._styleMap();
+          this._fitScope();
           return;
         } catch (err) {
           // Fall through and build a fresh one.
@@ -3052,6 +3938,9 @@
       this._mapEl.appendChild(card);
       this._map = card;
       this._mapFitted = true;
+      // A fresh map is fitted by Home Assistant, or to its route; a badge
+      // already narrowing the card is picked up once the map is attached.
+      this._fittedScope = "";
       this._attachMap();
       this._watchMarkers();
     }
@@ -3073,6 +3962,7 @@
     _styleMap(card = this._map) {
       this._styleMapChrome(card);
       this._styleMarkers(card);
+      this._styleClusters(card);
     }
 
     // The map's own furniture: the credit line OpenStreetMap and CARTO ask
@@ -3133,6 +4023,21 @@
           "  background: rgba(90, 90, 90, 0.85) !important;",
           "}",
           ".leaflet-control-attribution.blitzer-open::before { content: none; }",
+          // 2026.10's MapLibre puts its markers inside the canvas container,
+          // whose cursor is the map's own grabbing hand; Leaflet gave a
+          // marker the pointing one, and a report one can click should keep
+          // it. The host passes the cursor down into the marker's shadow.
+          ".maplibregl-marker, .maplibregl-marker ha-entity-marker { cursor: pointer !important; }",
+          // A click on a bubble zooms the map in to the reports in it - the
+          // map's own doing, and what the discs did before 2026.10. The map
+          // listens for it on the bubble, but each symbol in the bubble is
+          // a marker with a click of its own, which opens that report's
+          // details and goes no further - so a tap that lands on a symbol,
+          // which is most of a bubble, never zoomed. While the bubble is
+          // closed (the map marks it as a button) its symbols let the click
+          // through to it; once the map has opened it into a group, because
+          // zooming could not part them, each symbol is a target again.
+          '.cluster-marker[role="button"] .cluster-bubble ha-entity-marker { pointer-events: none !important; }',
           CLUSTER_CSS,
           // The soft edge, drawn inside the map itself. Leaflet stacks its
           // drawing panes up to 700 and puts its buttons at 1000, so a layer
@@ -3144,7 +4049,11 @@
           this._config.map_fade === false
             ? ""
             : [
-                ".leaflet-container::after {",
+                // Leaflet stacks its buttons at 1000; MapLibre puts its
+                // controls at 2 and everything it draws below, so the frame
+                // goes to 1 there - over the map and the markers, under the
+                // buttons, the same place as on Leaflet.
+                ".leaflet-container::after, #map.maplibregl-map::after {",
                 '  content: "";',
                 "  position: absolute;",
                 "  inset: 0;",
@@ -3156,6 +4065,7 @@
                 "    linear-gradient(to right, " + FADE + " 0, transparent 20px,",
                 "      transparent calc(100% - 20px), " + FADE + " 100%);",
                 "}",
+                "#map.maplibregl-map::after { z-index: 1; }",
               ].join("\n"),
         ].join("\n");
         if (sheet.textContent !== css) sheet.textContent = css;
@@ -3233,6 +4143,42 @@
       }
     }
 
+    // The disc in place of 2026.10's bubble, when asked for. The bubble
+    // stays the map's element - its click still zooms - and is only drawn
+    // differently: its symbols and tail hidden, and the count put on it as
+    // generated content, from a number worked out here. The map writes the
+    // bubble's size and anchor for the symbols it holds, so the disc is
+    // placed on the anchor point itself, not in the box - see CLUSTER_CSS.
+    // Only a closed bubble: one the map has opened into a group, because
+    // zooming could not part its reports, lists them, and that is what it
+    // is for.
+    _styleClusters(card = this._map) {
+      try {
+        const haMap = card && card.shadowRoot
+          ? card.shadowRoot.querySelector("ha-map")
+          : null;
+        if (!haMap || !haMap.shadowRoot) return;
+        const disc = this._config.cluster_style === "disc";
+        for (const bubble of haMap.shadowRoot.querySelectorAll(".cluster-marker")) {
+          const closed = bubble.getAttribute("role") !== "group";
+          if (!disc || !closed) {
+            bubble.classList.remove("blitzer-disc");
+            delete bubble.dataset.blitzerCount;
+            continue;
+          }
+          const shown = bubble.querySelectorAll("ha-entity-marker").length;
+          const more = bubble.querySelector(".more");
+          // "+N" for the rest, or "99+" once the map stops counting.
+          const rest = more ? parseInt(more.textContent.replace(/[^0-9]/g, ""), 10) || 0 : 0;
+          const capped = !!more && /\+$/.test(more.textContent.trim());
+          bubble.dataset.blitzerCount = String(shown + rest) + (capped ? "+" : "");
+          bubble.classList.add("blitzer-disc");
+        }
+      } catch (err) {
+        // The map's internals are not ours to rely on.
+      }
+    }
+
     // Markers are rebuilt whenever the map pans, zooms or reclusters, so the
     // styling has to follow rather than being applied once.
     _watchMarkers(card = this._map, slot = "_markerObserver", attempt = 0) {
@@ -3272,28 +4218,44 @@
     _attachMap() {
       if (!this._wantsMap || !this._map) return;
       this._detachMap();
+      const map = this._map;
       const tryAttach = (attempt) => {
-        const haMap = this._map && this._map.shadowRoot
-          ? this._map.shadowRoot.querySelector("ha-map")
-          : null;
-        const leaflet = haMap && haMap.leafletMap;
-        if (!leaflet || typeof leaflet.getBounds !== "function") {
-          if (attempt < 10) window.setTimeout(() => tryAttach(attempt + 1), 300);
+        // The map this was started for may have been replaced meanwhile.
+        if (this._map !== map || this._handles) return;
+        const haMap = map.shadowRoot ? map.shadowRoot.querySelector("ha-map") : null;
+        const h = mapHandles(haMap);
+        if (!h) {
+          // 2026.10 loads its engine in a chunk of its own, after the map
+          // element is there - a dozen seconds on a slow box, and longer
+          // right after a restart. Quick for the first dozen seconds, then
+          // every two, for as long as this map stands: nothing else asks
+          // again, since the card only redraws when its data changes.
+          window.setTimeout(() => tryAttach(attempt + 1), attempt < 40 ? 300 : 2000);
           return;
         }
-        this._leaflet = leaflet;
+        this._handles = h;
         this._haMap = haMap;
         this._paintRoute();
+        this._paintArea();
+        this._paintClosures();
+        this._fitScope();
+        this._scheduleTraffic("main");
 
         // A click on a report picks its entry out of the list. The marker's
         // own handler opens Home Assistant's details dialog, which would
         // cover the very list the highlight is in, so for our own reports
-        // the click is caught on the way down and stopped there.
+        // the click is caught on the way down and stopped there. Not inside
+        // one of 2026.10's closed cluster bubbles, though: a tap there zooms
+        // the map in, and that is the map's to handle (its symbols pass the
+        // click on - see the stylesheet). In a bubble the map has opened
+        // into a group, each symbol is a report of ours again.
         this._onMarkerClick = (ev) => {
           if (this._config.map_highlight === false) return;
           const marker = ev.composedPath().find((n) => n && n.tagName === "HA-ENTITY-MARKER");
           const id = marker && (marker.entityId || marker.getAttribute("entity-id"));
           if (!id || !(this._allRows || []).some((r) => r.entityId === id)) return;
+          const bubble = marker.closest && marker.closest(".cluster-marker");
+          if (bubble && bubble.getAttribute("role") !== "group") return;
           ev.stopPropagation();
           ev.preventDefault();
           this._highlight = this._highlight === id ? null : id;
@@ -3304,31 +4266,51 @@
         } catch (err) {
           this._onMarkerClick = undefined;
         }
-        // Leaflet keeps a marker's click to itself, so this one only ever
-        // means "somewhere else" - which is what lets the highlight go.
+        // A click on the bare map only ever means "somewhere else" - which
+        // is what lets the highlight go. Leaflet keeps a marker's click to
+        // itself; 2026.10's ha-map says so itself, as map-clicked.
         this._onMapClick = () => {
           if (!this._highlight) return;
           this._highlight = null;
           this._render();
         };
-        leaflet.on("click", this._onMapClick);
+        if (h.kind === "leaflet") h.on("click", this._onMapClick);
+        else haMap.addEventListener("map-clicked", this._onMapClick);
 
         // The viewport itself is only listened to when something reads it:
         // the list following the map, or distances measured from its centre.
         if (!this._watchesMap) return;
+        // MapLibre's resize() fires moveend synchronously, moved or not
+        // (Leaflet's invalidateSize never did), and a redraw of this card
+        // can resize the map - the head gaining a badge is enough. Redrawn
+        // straight from here, that was a loop: redraw -> resize -> moveend
+        // -> redraw, until the stack ran out. So only a view that actually
+        // changed counts, and the redraw it earns runs on its own turn.
         this._onMove = () => {
+          let sig = "";
           try {
-            this._bounds = leaflet.getBounds();
-            const centre = leaflet.getCenter();
-            this._mapCentre = { lat: centre.lat, lon: centre.lng };
+            // What _inBounds asks of it, answered by whichever map this is.
+            this._bounds = { contains: (point) => h.contains(point[0], point[1]) };
+            this._mapCentre = h.centre();
+            const zoom = h.zoom();
+            sig = this._mapCentre
+              ? `${this._mapCentre.lat.toFixed(5)},${this._mapCentre.lon.toFixed(5)},${zoom}`
+              : "";
           } catch (err) {
             this._bounds = undefined;
             this._mapCentre = undefined;
           }
-          this._render();
+          if (sig === this._viewSig) return;
+          this._viewSig = sig;
+          this._scheduleTraffic("main");
+          if (this._moveRender) return;
+          this._moveRender = window.setTimeout(() => {
+            this._moveRender = undefined;
+            this._render();
+          }, 0);
         };
-        leaflet.on("moveend", this._onMove);
-        leaflet.on("zoomend", this._onMove);
+        h.on("moveend", this._onMove);
+        h.on("zoomend", this._onMove);
         this._onMove();
       };
       tryAttach(0);
@@ -3348,58 +4330,485 @@
         this._routePromise = this._hass
           .callWS({ type: "blitzer/route", config_entry_id: entryId })
           .then(
-            (answer) => (answer && routeSig(answer) ? answer : null),
+            (answer) => {
+              // What an area entry searches instead of a route: its circle,
+              // or the tracker it follows - for a map with nothing on it.
+              this._areaShape = answer && !routeSig(answer) && answer.radius ? answer : null;
+              return answer && routeSig(answer) ? answer : null;
+            },
             // An older integration without the command, or no connection.
-            () => null
+            () => {
+              this._areaShape = null;
+              return null;
+            }
           );
       }
       return this._routePromise;
+    }
+
+    _entryIdFor(areaId) {
+      const device = this._hass && this._hass.devices && this._hass.devices[areaId];
+      return device ? (device.config_entries || [])[0] : undefined;
+    }
+
+    // ---- the traffic flow, fetched for the view while it is on screen -----
+    //
+    // Two maps can show it, the card's own and the pop-up's, each with a
+    // layer, a timer and a memory of what it last asked for; "slot" names
+    // which. Nothing here polls: a view is asked for once it has settled
+    // after a move, again every few minutes while the card stays visible,
+    // and not at all while the tab is hidden or the card is off the page.
+    // Per map: the card's own, or the pop-up's - the minimal format has no
+    // map of its own, and its pop-up's must not be judged by that.
+    _trafficWanted(slot = "main") {
+      return this._trafficOffered(slot) && this._trafficShown !== false;
+    }
+
+    // Whether the traffic flow is on offer at all: the option on, and a map
+    // that can draw it. The line under the subtitle is drawn then, with its
+    // switch; _trafficShown is that switch, undefined until it is touched.
+    _trafficOffered(slot = "main") {
+      const hasMap = slot === "pop" ? this._config.show_map !== false : this._wantsMap;
+      return this._config.map_traffic === true && hasMap && haAtLeast(this._hass, 2026, 10);
+    }
+
+    // The line under the subtitle: the switch, when the flow was last
+    // fetched, and a refresh of its own. Updated in place by
+    // _renderTrafficLine as time passes and fetches come in.
+    _trafficLineHtml(str, slot = "main") {
+      if (!this._trafficOffered(slot)) return "";
+      const on = this._trafficShown !== false;
+      return `<div class="traffic-line" style="${escapeHtml(elementStyle(this._config, "sub"))}">
+        <label class="traffic-switch" title="${escapeHtml(str.trafficSwitch)}">
+          <input type="checkbox" data-what="traffic-switch"${on ? " checked" : ""}>
+          <span class="track"></span>
+        </label>
+        <span class="traffic-text">${escapeHtml(this._trafficLineText(str, slot))}</span>
+        ${on
+          ? `<button type="button" class="refresh" data-what="traffic-refresh"
+                title="${escapeHtml(str.trafficRefresh)}">${leadIconHtml(this._config, "refresh")}</button>`
+          : ""}
+      </div>`;
+    }
+
+    _trafficLineText(str, slot = "main") {
+      if (this._trafficShown === false) return `${str.trafficLine} · ${str.trafficOff}`;
+      const when = this[this._trafficSlot(slot).at];
+      const at = when ? new Date(when).toISOString() : "";
+      return `${str.trafficLine} · ${updatedText(str, at)}`;
+    }
+
+    // Both lines, each with its own map's time: the card's under the
+    // subtitle, the pop-up's under its title.
+    _renderTrafficLine() {
+      if (!this._hass) return;
+      const str = t(this._hass);
+      const head = this._headEl && this._headEl.querySelector(".traffic-text");
+      if (head) head.textContent = this._trafficLineText(str, "main");
+      const pop = this._popEl && this._popEl.querySelector(".pop-traffic .traffic-text");
+      if (pop) pop.textContent = this._trafficLineText(str, "pop");
+    }
+
+    // The line's switch and refresh, wherever the line was drawn.
+    _bindTrafficLine(root, slot) {
+      const trafficSwitch = root.querySelector('[data-what="traffic-switch"]');
+      if (trafficSwitch) {
+        trafficSwitch.addEventListener("change", () => {
+          this._trafficShown = trafficSwitch.checked;
+          this._syncTrafficSwitch();
+          if (slot === "pop") this._fillPopTrafficLine();
+          else this._render();
+        });
+      }
+      const trafficRefresh = root.querySelector('[data-what="traffic-refresh"]');
+      if (trafficRefresh) {
+        trafficRefresh.addEventListener("click", async () => {
+          if (trafficRefresh.disabled) return;
+          trafficRefresh.disabled = true;
+          trafficRefresh.classList.add("spinning");
+          try {
+            await this._askTraffic(slot, true, true);
+          } finally {
+            if (trafficRefresh.isConnected) {
+              trafficRefresh.disabled = false;
+              trafficRefresh.classList.remove("spinning");
+            }
+          }
+        });
+      }
+    }
+
+    // The pop-up's line, drawn whenever the pop-up is filled and whenever
+    // its switch is turned.
+    _fillPopTrafficLine() {
+      const box = this._popEl && this._popEl.querySelector(".pop-traffic");
+      if (!box || !this._hass) return;
+      box.innerHTML = this._trafficLineHtml(t(this._hass), "pop");
+      box.hidden = !box.firstElementChild;
+      this._bindTrafficLine(box, "pop");
+    }
+
+    _trafficSlot(slot) {
+      return slot === "pop"
+        ? { handles: "_popHandles", layer: "_popTrafficLayer", debounce: "_popTrafficDebounce", timer: "_popTrafficTimer", asked: "_popTrafficAsked", last: "_popTrafficLast", at: "_popTrafficAt" }
+        : { handles: "_handles", layer: "_trafficLayer", debounce: "_trafficDebounce", timer: "_trafficTimer", asked: "_trafficAsked", last: "_trafficLast", at: "_trafficAt" };
+    }
+
+    // The lines' width and opacity, from Layout -> Map.
+    _trafficStyle() {
+      const width = Number(this._config.traffic_width);
+      const opacity = Number(this._config.traffic_opacity);
+      return {
+        width: Number.isFinite(width) && width > 0 ? width : 1.5,
+        opacity: Number.isFinite(opacity) ? Math.max(0.1, Math.min(1, opacity / 100)) : 0.5,
+      };
+    }
+
+    // A changed width or opacity is painted onto what was last fetched; no
+    // request for a new look.
+    _restyleTraffic() {
+      for (const slot of ["main", "pop"]) {
+        const keys = this._trafficSlot(slot);
+        const last = this[keys.last];
+        if (!last || !this[keys.layer]) continue;
+        try {
+          this[keys.layer].set(last.segments, last.zoom, { ...this._trafficStyle(), bridge: last.bridge });
+        } catch (err) {
+          // The map went away underneath.
+        }
+      }
+    }
+
+    _scheduleTraffic(slot) {
+      const keys = this._trafficSlot(slot);
+      if (!this._trafficWanted(slot)) {
+        this._clearTraffic(slot);
+        return;
+      }
+      window.clearTimeout(this[keys.debounce]);
+      this[keys.debounce] = window.setTimeout(() => {
+        this[keys.debounce] = undefined;
+        this._askTraffic(slot);
+      }, TRAFFIC_DEBOUNCE_MS);
+    }
+
+    // The switch was turned while the map stands: on asks, off clears.
+    _syncTrafficSwitch() {
+      const main = this._trafficWanted("main");
+      if (main !== this._trafficOn) {
+        this._trafficOn = main;
+        this._scheduleTraffic("main");
+      }
+      if (this._popHandles) {
+        const pop = this._trafficWanted("pop");
+        if (pop !== this._popTrafficOn) {
+          this._popTrafficOn = pop;
+          this._scheduleTraffic("pop");
+        }
+      }
+    }
+
+    async _askTraffic(slot, refresh = false, force = false) {
+      const keys = this._trafficSlot(slot);
+      const h = this[keys.handles];
+      if (!h || !this._trafficWanted(slot) || !this.isConnected) return;
+      if (document.visibilityState === "hidden") return;
+      const entryId = this._entryIdFor(this._areaId());
+      if (!entryId || !this._hass || !this._hass.callWS || typeof h.bounds !== "function") return;
+      let box;
+      let zoom;
+      try {
+        box = h.bounds();
+        zoom = Math.round(h.zoom() || 0);
+      } catch (err) {
+        return;
+      }
+      if (!box || !Number.isFinite(box.south) || !Number.isFinite(box.east)) return;
+      // The same view asked for a moment ago is not asked for again - the
+      // integration would answer from its cache anyway, but the round trip
+      // is not worth making. A refresh from the timer asks regardless.
+      const key = [box.south, box.west, box.north, box.east].map((v) => v.toFixed(3)).join(",") + "|" + zoom;
+      const asked = this[keys.asked];
+      if (!refresh && asked && asked.key === key && Date.now() - asked.at < TRAFFIC_REFRESH_MS) return;
+      this[keys.asked] = { key, at: Date.now() };
+      let answer;
+      try {
+        answer = await this._hass.callWS({
+          type: "blitzer/traffic",
+          config_entry_id: entryId,
+          south: box.south,
+          west: box.west,
+          north: box.north,
+          east: box.east,
+          zoom,
+          ...(force ? { force: true } : {}),
+        });
+      } catch (err) {
+        // An older integration without the command, or no connection:
+        // whatever is drawn stays, and the timer tries again later.
+        this._armTrafficTimer(slot);
+        return;
+      }
+      if (!this._trafficWanted(slot) || this[keys.handles] !== h) return;
+      if (!answer || !answer.data) {
+        // Too far out to be worth a whole country of road, or Blitzer.de
+        // not answering: nothing new to draw. Zoomed out, what was drawn
+        // for a closer view would be wrong, so it goes.
+        if (answer && answer.reason === "too_large") this._dropTrafficLayer(slot);
+        this._armTrafficTimer(slot);
+        return;
+      }
+      if (!this[keys.layer]) {
+        try {
+          this[keys.layer] = h.traffic();
+        } catch (err) {
+          return;
+        }
+      }
+      const segments = trafficSegments(answer.data, answer.box);
+      const bridge = answer.along_route === true;
+      this[keys.last] = { segments, zoom, bridge };
+      this[keys.at] = Date.now() - (Number(answer.age) || 0) * 1000;
+      this._renderTrafficLine();
+      try {
+        this[keys.layer].set(segments, zoom, { ...this._trafficStyle(), bridge });
+      } catch (err) {
+        // The map went away underneath.
+      }
+      this._armTrafficTimer(slot);
+    }
+
+    _armTrafficTimer(slot) {
+      const keys = this._trafficSlot(slot);
+      window.clearTimeout(this[keys.timer]);
+      this[keys.timer] = window.setTimeout(() => {
+        this[keys.timer] = undefined;
+        this._askTraffic(slot, true);
+      }, TRAFFIC_REFRESH_MS);
+    }
+
+    _dropTrafficLayer(slot) {
+      const keys = this._trafficSlot(slot);
+      if (this[keys.layer]) {
+        try {
+          this[keys.layer].remove();
+        } catch (err) {
+          // Its map is already gone.
+        }
+        this[keys.layer] = undefined;
+      }
+    }
+
+    _clearTraffic(slot) {
+      const keys = this._trafficSlot(slot);
+      window.clearTimeout(this[keys.debounce]);
+      window.clearTimeout(this[keys.timer]);
+      this[keys.debounce] = undefined;
+      this[keys.timer] = undefined;
+      this[keys.asked] = undefined;
+      this[keys.last] = undefined;
+      this._dropTrafficLayer(slot);
     }
 
     _paintRoute() {
       removeRoute(this._routeDrawn);
       this._routeDrawn = undefined;
       const route = this._route;
-      const haMap = this._haMap;
-      if (!route || !haMap || !haMap.Leaflet || !this._leaflet) return;
-      this._routeDrawn = drawRoute(
-        haMap.Leaflet, this._leaflet, route.points,
-        routeColor(this, this._config.route_color), route.vias, this._config.route_width
+      const h = this._handles;
+      if (!route || !h) return;
+      this._routeDrawn = drawRouteWith(
+        h, route.points, routeColor(this, this._config.route_color), route.vias, this._config.route_width
       );
       // Fitted once per route, not on every redraw - a pan the person made
       // stays where they put it.
       const sig = routeSig(route);
       if (this._routeFitted !== sig) {
         this._routeFitted = sig;
-        fitRouteSettled(this._leaflet, this._routeDrawn.bounds);
+        this._endRouteWatch("_routeSettle");
+        this._routeSettle = fitRouteSettled(h, route.points);
       }
     }
 
+    // Ends the watch that keeps the route in view after its first fit - see
+    // fitRouteSettled - before the map is fitted to something else, or torn
+    // down. Nothing to end is fine.
+    _endRouteWatch(slot) {
+      const end = this[slot];
+      this[slot] = undefined;
+      if (typeof end === "function") {
+        try {
+          end();
+        } catch (err) {
+          // The map went first.
+        }
+      }
+    }
+
+    // A badge narrows the card to what it counted - the new reports, or the
+    // jams - and the map follows: switched on, it fits what is left, so the
+    // one tailback the card now lists is also the one thing in view;
+    // switched off, it goes back to the route, or to all of the area's
+    // reports where there is no route. Only on the change itself: a pan
+    // made in between stays where it was put.
+    _fitScope() {
+      const h = this._handles;
+      if (!h) return;
+      const scope = this._onlyNew ? "new" : this._onlyDelay ? "delay" : "";
+      const fitted = this._fittedScope === undefined ? "" : this._fittedScope;
+      if (scope === fitted) return;
+      this._fittedScope = scope;
+      // The map is about to be fitted on purpose; the route's own watch
+      // must not pull it back.
+      this._endRouteWatch("_routeSettle");
+      const points = (this._mapRows || [])
+        .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon))
+        .map((r) => [r.lat, r.lon]);
+      try {
+        if (scope) {
+          if (points.length) h.fit(points, { maxZoom: FOCUS_ZOOM });
+        } else if (this._route) {
+          h.fit(this._route.points);
+        } else if (points.length) {
+          h.fit(points, { maxZoom: FOCUS_ZOOM });
+        } else {
+          const circle = this._areaCircle();
+          if (circle) h.fit(circle);
+        }
+      } catch (err) {
+        // The map went away underneath; nothing to fit.
+      }
+    }
+
+    // The circle an area entry searches, as points along its edge - from
+    // the centre it was set up with, or from wherever its tracker is right
+    // now. Null for a route entry, or before the integration has said.
+    _areaCircle() {
+      const shape = this._areaShape;
+      if (!shape || !Number.isFinite(Number(shape.radius)) || Number(shape.radius) <= 0) return null;
+      let lat;
+      let lon;
+      if (shape.tracker) {
+        const state = this._hass && this._hass.states && this._hass.states[shape.tracker];
+        lat = state && Number(state.attributes.latitude);
+        lon = state && Number(state.attributes.longitude);
+      } else if (Array.isArray(shape.center)) {
+        lat = Number(shape.center[0]);
+        lon = Number(shape.center[1]);
+      }
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      const radius = Number(shape.radius);
+      const dLat = radius / 111320;
+      const dLon = radius / (111320 * Math.cos((lat * Math.PI) / 180));
+      const points = [];
+      for (let i = 0; i <= 64; i++) {
+        const t = (i / 64) * 2 * Math.PI;
+        points.push([lat + dLat * Math.cos(t), lon + dLon * Math.sin(t)]);
+      }
+      return points;
+    }
+
+    // The area's circle on a map with nothing on it: a dashed line in the
+    // route's colour, fitted into view once per area, the way a route is.
+    // With reports on the map there is nothing to draw - they are what the
+    // map shows, and Home Assistant fits them.
+    _paintArea(h = this._handles, rows = this._mapRows, slot = "_areaDrawn", settleSlot = "_areaSettle") {
+      this._removeArea(slot, settleSlot);
+      if (!h || this._config.map_always === false || this._route) return;
+      if ((rows || []).length) return;
+      const circle = this._areaCircle();
+      if (!circle) return;
+      try {
+        this[slot] = h.line(circle, {
+          color: routeColor(this, this._config.route_color),
+          width: 2,
+          opacity: 0.8,
+          dashed: true,
+        });
+        this[settleSlot] = fitRouteSettled(h, circle);
+      } catch (err) {
+        // The map went away underneath; nothing to draw on.
+      }
+    }
+
+    _removeArea(slot, settleSlot) {
+      this._endRouteWatch(settleSlot);
+      if (this[slot]) {
+        try {
+          this[slot].remove();
+        } catch (err) {
+          // Its map is already gone.
+        }
+      }
+      this[slot] = undefined;
+    }
+
     async _paintPopRoute() {
-      const leaflet = this._popLeaflet;
-      const haMap = this._popHaMap;
+      const h = this._popHandles;
       const route = this._config.map_route === false ? null : await this._routeFor(this._areaId());
-      if (!route || this._popLeaflet !== leaflet || !haMap || !haMap.Leaflet) return;
+      if (!route || !h || this._popHandles !== h) return;
       removeRoute(this._popRouteDrawn);
-      this._popRouteDrawn = drawRoute(
-        haMap.Leaflet, leaflet, route.points,
-        routeColor(this, this._config.route_color), route.vias, this._config.route_width
+      this._popRouteDrawn = drawRouteWith(
+        h, route.points, routeColor(this, this._config.route_color), route.vias, this._config.route_width
       );
-      fitRouteSettled(leaflet, this._popRouteDrawn.bounds);
+      this._endRouteWatch("_popRouteSettle");
+      this._popRouteSettle = fitRouteSettled(h, route.points);
+    }
+
+    // The stretch of road each official closure on the map closes, as a
+    // band under its symbol: the dark red Blitzer.de's own map uses, with a
+    // white dashed centre the way it stripes them. Drawn for the reports
+    // the map shows, so it follows every filter the symbols follow, and
+    // redrawn whenever the map is attached - which is whenever that set
+    // changes, since the set is part of the map's key.
+    _paintClosures(h = this._handles, rows = this._mapRows, slot = "_closuresDrawn") {
+      this._removeClosures(slot);
+      if (!h || this._config.map_closures === false) return;
+      const drawn = [];
+      for (const row of rows || []) {
+        const encoded = row.isHazard && row.state.attributes.closure_polyline;
+        if (typeof encoded !== "string" || !encoded) continue;
+        let points;
+        try {
+          points = decodePolyline(encoded);
+        } catch (err) {
+          continue;
+        }
+        if (points.length < 2) continue;
+        try {
+          drawn.push(h.line(points, { color: CLOSURE_COLOR, width: 6, opacity: 0.8 }));
+          drawn.push(h.line(points, { color: "#ffffff", width: 2, opacity: 0.9, dashed: true }));
+        } catch (err) {
+          // The map went away underneath; nothing to draw on.
+        }
+      }
+      this[slot] = drawn;
+    }
+
+    _removeClosures(slot) {
+      for (const item of this[slot] || []) {
+        try {
+          item.remove();
+        } catch (err) {
+          // Its map is already gone.
+        }
+      }
+      this[slot] = undefined;
     }
 
     _detachMap() {
-      if (this._leaflet && this._onMove) {
+      const h = this._handles;
+      if (h && this._onMove) {
         try {
-          this._leaflet.off("moveend", this._onMove);
-          this._leaflet.off("zoomend", this._onMove);
+          h.off("moveend", this._onMove);
+          h.off("zoomend", this._onMove);
         } catch (err) {
           // The map went away underneath us; nothing left to detach from.
         }
       }
-      if (this._leaflet && this._onMapClick) {
+      if (h && this._onMapClick) {
         try {
-          this._leaflet.off("click", this._onMapClick);
+          if (h.kind === "leaflet") h.off("click", this._onMapClick);
+          else if (this._haMap) this._haMap.removeEventListener("map-clicked", this._onMapClick);
         } catch (err) {
           // Same again - the instance is already gone.
         }
@@ -3411,9 +4820,18 @@
           // Its shadow root went with it.
         }
       }
+      this._endRouteWatch("_routeSettle");
       removeRoute(this._routeDrawn);
       this._routeDrawn = undefined;
-      this._leaflet = undefined;
+      this._removeArea("_areaDrawn", "_areaSettle");
+      this._removeClosures("_closuresDrawn");
+      this._clearTraffic("main");
+      if (this._moveRender) {
+        window.clearTimeout(this._moveRender);
+        this._moveRender = undefined;
+      }
+      this._viewSig = undefined;
+      this._handles = undefined;
       this._haMap = undefined;
       this._onMove = undefined;
       this._onMapClick = undefined;
@@ -3424,6 +4842,15 @@
     disconnectedCallback() {
       this._detachMap();
       this._unwatchMarkers();
+      if (this._onVisibility) {
+        document.removeEventListener("visibilitychange", this._onVisibility);
+        this._onVisibility = undefined;
+      }
+      if (this._trafficTick) {
+        window.clearInterval(this._trafficTick);
+        this._trafficTick = undefined;
+      }
+      this._clearTraffic("pop");
     }
 
     // Switching between the views of a dashboard takes the card out of the
@@ -3437,6 +4864,20 @@
     // the count goes on reporting whatever was in view before the switch;
     // and clicks on the map stop meaning anything.
     connectedCallback() {
+      // The traffic flow is fetched only while someone can see it: a tab
+      // coming back to the front asks again, a tab going to the back is
+      // left alone by the timer.
+      if (!this._onVisibility) {
+        this._onVisibility = () => {
+          if (document.visibilityState !== "visible") return;
+          this._scheduleTraffic("main");
+          if (this._popHandles) this._scheduleTraffic("pop");
+        };
+        document.addEventListener("visibilitychange", this._onVisibility);
+      }
+      if (!this._trafficTick) {
+        this._trafficTick = window.setInterval(() => this._renderTrafficLine(), 60000);
+      }
       // The very first insertion happens before there is a map to hook into.
       if (!this._map) return;
       this._attachMap();
@@ -4187,14 +5628,15 @@
       return input;
     }
 
-    _numberInput(key, min, max) {
+    _numberInput(key, min, max, step) {
       const input = document.createElement("input");
       input.type = "number";
       input.dataset.field = key;
       input.min = min;
       input.max = max;
+      if (step) input.step = step;
       input.addEventListener("input", () => {
-        const value = Number.parseInt(input.value, 10);
+        const value = step ? Number.parseFloat(input.value) : Number.parseInt(input.value, 10);
         this._set(key, Number.isFinite(value) ? value : min);
       });
       return input;
@@ -4354,14 +5796,56 @@
       return block;
     }
 
+    // The traffic flow's lines: width and opacity. Answers to "Show the
+    // traffic flow" under Settings -> General, the way the route block
+    // answers to the route switch.
+    _trafficBlock(str) {
+      const block = document.createElement("div");
+      block.className = "design-element";
+      block.dataset.design = "traffic";
+      block.dataset.withTraffic = "";
+      block.appendChild(this._groupLabelRow(str.edElTraffic, str.edElTrafficHelp));
+      const width = document.createElement("div");
+      width.className = "unit-input-wrap";
+      width.appendChild(this._numberInput("traffic_width", 0.5, 10, 0.1));
+      const px = document.createElement("span");
+      px.className = "unit-suffix";
+      px.textContent = "px";
+      width.appendChild(px);
+      block.appendChild(this._fieldRow(str.edTrafficWidth, str.edTrafficWidthHelp, width, true));
+      const opacity = document.createElement("div");
+      opacity.className = "unit-input-wrap";
+      opacity.appendChild(this._numberInput("traffic_opacity", 10, 100));
+      const pct = document.createElement("span");
+      pct.className = "unit-suffix";
+      pct.textContent = "%";
+      opacity.appendChild(pct);
+      block.appendChild(this._fieldRow(str.edTrafficOpacity, str.edTrafficOpacityHelp, opacity, true));
+      return block;
+    }
+
     // The cluster discs: the disc's colour and the count's, in a collapsible
-    // block of their own. Nothing to switch on: the map draws them whenever
-    // reports lie close together, and empty keeps the theme's colours.
+    // block of their own. The block answers to "Group nearby reports" just
+    // above it and hides with it; empty keeps the theme's colours.
     _clusterBlock(str) {
       const block = document.createElement("div");
       block.className = "design-element";
       block.dataset.design = "cluster";
+      block.dataset.withCluster = "";
       block.appendChild(this._groupLabelRow(str.edElCluster, str.edElClusterHelp));
+      // Bubble or disc - only a choice from 2026.10, so it is greyed out
+      // before that the same way the grouping switch is.
+      const styleRow = this._fieldRow(
+        str.edClusterStyle,
+        str.edClusterStyleHelp,
+        this._select("cluster_style", [
+          { value: "bubble", label: str.clusterStyleBubble },
+          { value: "disc", label: str.clusterStyleDisc },
+        ]),
+        true
+      );
+      styleRow.dataset.needsCluster = "";
+      block.appendChild(styleRow);
       block.appendChild(this._colorRow("cluster_color", str.edClusterColor, str.edClusterColorHelp, str));
       block.appendChild(
         this._colorRow("cluster_text_color", str.edClusterTextColor, str.edClusterTextColorHelp, str)
@@ -4814,6 +6298,11 @@
         // Whether there is a map at all. Its looks stay under Layout -> Map,
         // and "the list follows it" is a property of the list.
         body.appendChild(this._toggleRow("show_map", str.edShowMap, str.edShowMapHelp));
+        // Whether the map stays while there is nothing to put on it.
+        const alwaysRow = this._toggleRow("map_always", str.edMapAlways, str.edMapAlwaysHelp);
+        alwaysRow.classList.add("sub-field-row", "sub-toggle-row");
+        alwaysRow.dataset.withMap = "";
+        body.appendChild(alwaysRow);
         // Whether a route entry's route is drawn on it - indented under the
         // map switch, since without a map there is nothing to draw it on.
         // Its looks are under Layout -> Map.
@@ -4821,6 +6310,19 @@
         routeRow.classList.add("sub-field-row", "sub-toggle-row");
         routeRow.dataset.withMap = "";
         body.appendChild(routeRow);
+        // And an official closure's stretch of road, drawn the same way.
+        const closuresRow = this._toggleRow("map_closures", str.edMapClosures, str.edMapClosuresHelp);
+        closuresRow.classList.add("sub-field-row", "sub-toggle-row");
+        closuresRow.dataset.withMap = "";
+        body.appendChild(closuresRow);
+        // And Blitzer.de's traffic flow on the roads, fetched for the view
+        // while the card is on screen. Drawn into the map's own engine, so
+        // it needs 2026.10's map, like the grouping switch.
+        const trafficRow = this._toggleRow("map_traffic", str.edMapTraffic, str.edMapTrafficHelp);
+        trafficRow.classList.add("sub-field-row", "sub-toggle-row");
+        trafficRow.dataset.withMap = "";
+        trafficRow.dataset.needsCluster = "";
+        body.appendChild(trafficRow);
         body.appendChild(this._toggleRow("show_list", str.edShowList, str.edShowListHelp));
         // Last, because it is the one setting here that is about the map and
         // the list together rather than about either on its own.
@@ -4919,9 +6421,8 @@
         centre.dataset.withMap = "";
         body.appendChild(centre);
         const follow = this._toggleRow("follow_map", str.edFollowMap, str.edFollowMapHelp);
-        // There is nothing to follow without a map - and nothing to follow
-        // in the minimal format either, where the map is the pop-up's and the
-        // list beside it is not tied to what it shows.
+        // There is nothing to follow without a map. In the minimal format
+        // the map is the pop-up's, and the list beside it follows that one.
         follow.dataset.withViewport = "";
         body.appendChild(follow);
         body.appendChild(this._toggleRow("show_divider", str.edDivider, str.edDividerHelp));
@@ -4966,6 +6467,7 @@
         // three icons is what stops them sharing one line.
         chips.appendChild(this._toggleRow("show_row_reported", str.edRowReported, ""));
         chips.appendChild(this._toggleRow("show_row_confirmed", str.edRowConfirmed, ""));
+        chips.appendChild(this._toggleRow("show_row_closure", str.edRowClosure, ""));
         chips.appendChild(this._toggleRow("show_row_stars", str.edRowStars, ""));
         rowBody.appendChild(chips);
 
@@ -5015,6 +6517,13 @@
         );
         body.appendChild(this._toggleRow("map_fade", str.edMapFade, str.edMapFadeHelp));
         body.appendChild(this._routeBlock(str));
+        body.appendChild(this._trafficBlock(str));
+        // Whether nearby reports are gathered into discs at all, and then
+        // the discs' looks, which answer to this switch.
+        const clusterRow = this._toggleRow("map_cluster", str.edMapCluster, str.edMapClusterHelp);
+        clusterRow.dataset.withMap = "";
+        clusterRow.dataset.needsCluster = "";
+        body.appendChild(clusterRow);
         body.appendChild(this._clusterBlock(str));
         // What a click on the map does to the list is set here too, since it
         // is the map that decides which entry is meant.
@@ -5333,10 +6842,10 @@
       this.shadowRoot.querySelectorAll("[data-with-map]").forEach((row) => {
         row.hidden = !this._wantsMapHere() || inOffTab(row);
       });
-      // Following needs a map whose viewport the list is tied to, which the
-      // pop-up's map is not.
+      // Following needs a map whose viewport the list is tied to: the
+      // card's, or in the minimal format the pop-up's.
       this.shadowRoot.querySelectorAll("[data-with-viewport]").forEach((row) => {
-        row.hidden = minimal || !this._wantsMapHere() || inOffTab(row);
+        row.hidden = !this._wantsMapHere() || inOffTab(row);
       });
       // The settings only the minimal format has, and the ones it has no
       // use for.
@@ -5386,8 +6895,36 @@
       this.shadowRoot.querySelectorAll("[data-with-route]").forEach((row) => {
         row.hidden = this._config.map_route === false || !this._wantsMapHere() || inOffTab(row);
       });
+      // The traffic flow's lines answer to its own switch.
+      this.shadowRoot.querySelectorAll("[data-with-traffic]").forEach((row) => {
+        row.hidden = this._config.map_traffic !== true || !this._wantsMapHere() || inOffTab(row);
+      });
+      // And the discs' looks to the switch that draws them.
+      this.shadowRoot.querySelectorAll("[data-with-cluster]").forEach((row) => {
+        row.hidden = this._config.map_cluster === false || !this._wantsMapHere() || inOffTab(row);
+      });
+      // The switch itself needs a map that knows the option - Home Assistant
+      // 2026.10 or newer. On an older one it stays where it is, greyed out,
+      // with its tooltip saying why: a switch that simply vanished would
+      // send anyone who read about it looking for it.
+      const switchable = mapClusterSwitchable(this._hass);
+      this.shadowRoot.querySelectorAll("[data-needs-cluster]").forEach((row) => {
+        row.classList.toggle("disabled", !switchable);
+        const control = row.querySelector("input[data-toggle], select[data-field]");
+        if (control) control.disabled = !switchable;
+      });
       this._syncColorRow("route_color", this._config.route_color || "", "var(--primary-color)", str);
-      this._syncColorRow("cluster_color", this._config.cluster_color || "", "var(--primary-color)", str);
+      // What the colour falls back to is what the map draws without one: the
+      // primary colour on the disc through 2026.9, the card background on the
+      // bubble from 2026.10.
+      this._syncColorRow(
+        "cluster_color",
+        this._config.cluster_color || "",
+        haAtLeast(this._hass, 2026, 10) && this._config.cluster_style !== "disc"
+          ? "var(--card-background-color)"
+          : "var(--primary-color)",
+        str
+      );
       this._syncColorRow(
         "cluster_text_color", this._config.cluster_text_color || "", "var(--text-primary-color)", str
       );
@@ -5624,6 +7161,11 @@
     }
     .toggle input:checked + .track { background: var(--primary-color); }
     .toggle input:checked + .track::before { transform: translateX(14px); }
+    /* A switch this Home Assistant cannot act on: still there, still
+       explained by its "i", but plainly not for turning. */
+    .toggle-row.disabled .toggle { cursor: default; }
+    .toggle-row.disabled .toggle .track,
+    .toggle-row.disabled .toggle-label { opacity: 0.45; }
     .toggle-label {
       font-size: 0.85em;
       color: var(--secondary-text-color);
@@ -5819,7 +7361,10 @@
        that the swatch no longer reads as what the card renders. */
     .field-input-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     .field-input-row input[type="color"]::-webkit-color-swatch {
-      border: none;
+      /* A hairline of our own in its place: a swatch showing the card's
+         background - the grouped reports' default from 2026.10 - would
+         otherwise vanish into the dialog it sits in. */
+      border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.4));
       border-radius: 6px;
     }
     .preset-select { position: relative; flex-shrink: 0; }
@@ -5949,6 +7494,7 @@
     const chips = [
       config.show_row_reported === false ? "" : reportedText(str, a.created),
       config.show_row_confirmed === false ? "" : confirmedText(str, a.confirmed),
+      ...(config.show_row_closure === false ? [] : closureChips(str, a)),
     ].filter(Boolean);
     const stars = config.show_row_stars === false ? "" : starsHtml(row, config);
 
@@ -6289,6 +7835,9 @@
     /* Takes the width whether or not it says anything, so hiding the title
        leaves the close button in the corner it always sits in. */
     .pop-title { flex: 1 1 auto; min-width: 0; font-size: 1.1rem; font-weight: 500; }
+    .pop-traffic { position: relative; z-index: 1; padding: 0 16px 8px; }
+    .pop-traffic[hidden] { display: none; }
+    .pop-traffic .traffic-line { margin-top: 0; }
     .pop-close { background: none; border: none; font: inherit; font-size: 1rem;
                  color: var(--secondary-text-color); cursor: pointer;
                  padding: 4px 8px; border-radius: 6px; }
@@ -6388,6 +7937,26 @@
        box, so the line's own leading pushed the artwork half a line down
        inside the box, where overflow:hidden then cut it in half. */
     .sub { font-size: .8rem; color: var(--secondary-text-color); margin-top: 2px; }
+    .traffic-line {
+      font-size: .8rem; color: var(--secondary-text-color); margin-top: 4px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .traffic-switch {
+      position: relative; display: inline-block; width: 26px; height: 14px;
+      flex-shrink: 0; cursor: pointer;
+    }
+    .traffic-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .traffic-switch .track {
+      position: absolute; inset: 0; border-radius: 14px; transition: .2s;
+      background: var(--disabled-text-color, #ccc);
+    }
+    .traffic-switch .track::before {
+      content: ""; position: absolute; width: 10px; height: 10px; left: 2px; top: 2px;
+      border-radius: 50%; background: #fff; transition: .2s;
+    }
+    .traffic-switch input:checked + .track { background: var(--primary-color); }
+    .traffic-switch input:checked + .track::before { transform: translateX(12px); }
+    .traffic-switch input:focus-visible + .track { outline: 2px solid var(--primary-color); outline-offset: 2px; }
     ha-icon.fit-icon {
       display: inline-block;
       vertical-align: baseline;

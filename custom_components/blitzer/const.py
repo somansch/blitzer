@@ -103,7 +103,10 @@ HAZARD_ICONS = {
 CONF_HAZARD_COUNT = "hazard_count"
 CONF_HAZARD_SELECTOR = "hazard_selector"
 CONF_HAZARD_BLACKLIST = "hazard_blacklist"
-DEFAULT_HAZARD_COUNT = 9
+# How many reports a new entry keeps per half. 20 since v4.0.0 (9 before):
+# an entry made earlier keeps the number stored with it.
+DEFAULT_COUNT = 20
+DEFAULT_HAZARD_COUNT = 20
 # Hazards poll on a schedule of their own, with the same meaning and the
 # same default as CONF_UPDATE_INTERVAL: minutes, 0 = only ever on demand.
 # Separate because the two age very differently - a jam is stale in a
@@ -295,11 +298,13 @@ def tracker_position(state) -> tuple[float, float] | None:
 
 # How often this entry polls Blitzer.de, in minutes. User-configurable per
 # entry - 0 means "never automatically", relying entirely on the "refresh"
-# service instead (e.g. triggered from an automation). Default of 1 matches
-# this integration's previous fixed 60-second interval, so existing entries
-# see no behavior change unless the user opts into something different.
+# service instead (e.g. triggered from an automation). The default is an
+# hour: it only ever applies to an entry being created (an existing one
+# keeps the value stored with it), and a new entry should start cheap -
+# Blitzer.de blocks an address that asks too often, and a route of a few
+# dozen points polled every minute was measured to get there within hours.
 CONF_UPDATE_INTERVAL = "update_interval"
-DEFAULT_UPDATE_INTERVAL = 1
+DEFAULT_UPDATE_INTERVAL = 60
 UPDATE_INTERVAL_MANUAL = 0
 
 # How long a report counts as new, in minutes - one window per half, for
@@ -324,6 +329,10 @@ DEFAULT_NEW_MINUTES = 60
 # and neither should the reverse.
 SERVICE_REFRESH_CONTROLS = "refresh_controls"
 SERVICE_REFRESH_HAZARDS = "refresh_hazards"
+# Both halves in one go - and, for a route, in one pass over its points
+# (see coordinator._fetch_route_combined), where the two above would each
+# make a pass of their own.
+SERVICE_REFRESH = "refresh"
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 
 # Fired once per control that's newly reported for an entry - never for one

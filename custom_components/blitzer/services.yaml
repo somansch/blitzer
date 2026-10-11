@@ -12,3 +12,10 @@ refresh_hazards:
       selector:
         config_entry:
           integration: blitzer
+refresh:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: blitzer

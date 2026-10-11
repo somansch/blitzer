@@ -507,7 +507,7 @@ variables:
   map_url: >-
     {{ ''
        if not is_live or type == 'police_report'
-       else 'https://map.blitzer.de/v5/ID/' ~ report_id ~ '/' }}
+       else 'https://www.blitzer.de/karte/?poi=' ~ report_id }}
   distance: >-
     {%- if is_live and ref_lat is not none -%}
     {{ (distance(ref_lat | float, ref_lng | float,
@@ -556,8 +556,8 @@ variables:
           'distance': d,
           'entity_id': s.entity_id,
           'map_url': '' if t == 'police_report'
-                     else 'https://map.blitzer.de/v5/ID/'
-                          ~ (s.attributes.id | default('', true)) ~ '/'
+                     else 'https://www.blitzer.de/karte/?poi='
+                          ~ (s.attributes.id | default('', true))
         }] -%}
     {%- endif -%}
     {%- endif -%}

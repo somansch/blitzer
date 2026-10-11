@@ -17,7 +17,6 @@ import yaml
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
-from homeassistant.loader import async_get_integration
 from homeassistant.setup import async_when_setup
 
 from .const import DOMAIN
@@ -87,13 +86,26 @@ async def async_register_card(hass: HomeAssistant) -> None:
     # Without the loader on disk the card is handed over directly: a card
     # that cannot retry still beats no card at all.
     #
-    # The version travels as a query string, so a browser holding the
+    # A cache-buster travels as a query string, so a browser holding the
     # previous card fetches the new one after an update rather than after a
     # hard reload the user would have to know to do. The loader carries it
-    # over to the card's own URL.
-    integration = await async_get_integration(hass, DOMAIN)
+    # over to the card's own URL. It is the files' modification time, not
+    # the integration's version: a version only changes with a release,
+    # while the file changes with a beta, a hotfix copied in by hand, or
+    # every deploy while the card is being worked on - and under an unchanged
+    # "?v=" the browser kept running the old module through all of those
+    # (measured: a normal reload answered 304 with the previous body). The
+    # newer of the two files decides, since either may be the one that
+    # changed. Read off the event loop; it is a stat, but a stat on disk.
+    def _newest_mtime() -> int:
+        stamps = [card.stat().st_mtime]
+        if loader.is_file():
+            stamps.append(loader.stat().st_mtime)
+        return int(max(stamps))
+
+    version = await hass.async_add_executor_job(_newest_mtime)
     name = CARD_LOADER_FILE if loader.is_file() else CARD_FILE
-    url = f"{CARD_URL_BASE}/{name}?v={integration.version}"
+    url = f"{CARD_URL_BASE}/{name}?v={version}"
     add_extra_js_url(hass, url)
 
     # The same URL in the dashboards' own resource list. The list belongs to
