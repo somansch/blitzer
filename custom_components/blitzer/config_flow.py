@@ -116,8 +116,8 @@ def _flags_field(key: str, defaults: dict | None, fallbacks: dict, translation_k
     A form field per option cost about 75px of height each: seventeen control
     kinds came to roughly 1300px of scrolling, on a form where the whole group
     is usually left alone. As a single multi-select in list mode the same
-    seventeen take about 700px, and the four installation forms 179px instead
-    of 296px - measured in the frontend, not estimated.
+    seventeen take about 700px, and the installation forms a third of theirs -
+    measured in the frontend, not estimated.
 
     "list" rather than "dropdown" because these are read as much as they are
     changed. A dropdown is four times shorter still, but hides every option

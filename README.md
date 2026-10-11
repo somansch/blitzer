@@ -6,9 +6,9 @@
 [![Downloads](https://img.shields.io/github/downloads/somansch/blitzer/total)](https://github.com/somansch/blitzer/releases)
 [![Downloads@latest](https://img.shields.io/github/downloads/somansch/blitzer/latest/total)](https://github.com/somansch/blitzer/releases/latest)
 
-> **Note:** This is a continuation of the original [`hass-blitzerde`](https://github.com/timniklas/hass-blitzerde) integration by [@timniklas](https://github.com/timniklas). That GitHub account and repository are no longer available. This repository keeps the project going, so existing users are not left without updates.
+> **Unofficial.** Not affiliated with, endorsed by or supported by Blitzer.de. "Blitzer.de" and its symbols belong to their owner.
 
-<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-default.png" alt="The Blitzer card in its three formats: portrait with the map above the list, landscape with them side by side, and the minimal line counting everything reported, what of it is new, and what the jams among it cost" width="100%">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-default.png" alt="The Blitzer card in its three formats: portrait with the map above the list, landscape with them side by side and the traffic flow coloured along its route, and the minimal line counting everything reported, what of it is new, and what the jams among it cost" width="100%">
 
 > **A note on language:** this README is written in English. The integration speaks both, so every button and field below is named **English / Deutsch**. Sample data stays as Blitzer.de sends it, which is German.
 
@@ -26,14 +26,17 @@ Typical reasons to use it:
 - **See it on a map**, with Blitzer.de's own symbols instead of generic markers. Controls and hazards sit on separate sources, so either can be shown alone.
 - **Get more than speed cameras.** Red light cameras, section controls, tunnel cameras, distance, weight, height and lane checks, entrance and access controls, overtaking bans, police checks and dummies. Seventeen kinds, each tickable on its own.
 - **Get traffic hazards too.** Tailbacks with the length of the queue and the delay it costs, plus accidents, roadworks, obstacles, broken-down vehicles, road blocks and official bulletins.
+- **See how the traffic is flowing.** The card's map colours the roads the way Blitzer.de's own map does, fetched for the view on screen while you look - so a watched commute shows the jam building before a tailback is reported. Home Assistant 2026.10 or newer; see [Traffic flow](#traffic-flow).
 - **Watch a commute rather than a circle.** Draw a corridor along waypoints. No external routing engine needed.
 - **Poll each half at its own pace.** A tailback is stale within a minute. A permanent roadwork is still there next week. Each interval costs its own request.
 - **Print a report in one line.** Every entity carries a ready-made `summary`, so a card or a notification uses one field instead of six.
 
 Two different things are reported. Each is switched on separately, and each gets its own map source:
 
-- **Controls / Kontrollen.** Two axes decide what you get: how a control is *installed* (mobile, trailer, fixed, archive) and what it *measures* (seventeen kinds). Both have to say yes.
+- **Controls / Kontrollen.** Two axes decide what you get: how a control is *installed* (mobile, trailer, fixed) and what it *measures* (seventeen kinds). Both have to say yes.
 - **Hazards / Gefahren.** Ten types, each tickable on its own. All off by default, so an existing entry keeps reporting exactly what it did before.
+
+A third thing lives on the card alone, not in an entity: the [traffic flow](#traffic-flow), the roads coloured by how traffic is moving on them, fetched for the part of the map on screen only while someone is looking at it.
 
 **Questions, feedback, or just want to see what others are doing with it?** Join the discussion on the [Home Assistant Community thread](https://community.home-assistant.io/t/blitzer-de-integration-speed-camera-for-germany/1016805).
 
@@ -56,7 +59,6 @@ That is the whole setup. Everything below covers the individual options in more 
 - [Adding an area, tracker or route](#adding-an-area-tracker-or-route)
   - [Area (radius) / Bereich (Radius)](#area-radius--bereich-radius) - every field in the form
   - [Control types / Kontrollarten](#control-types--kontrollarten) - the seventeen switches, and why there are two axes
-  - [Archive data / Archivdaten](#archive-data--archivdaten) - what it is, and what it is not
   - [Hazard types / Gefahren](#hazard-types--gefahren) - the ten switches, and the two worth knowing about
   - [Device tracker (radius) / Gerätetracker (Radius)](#device-tracker-radius--gerätetracker-radius) - a circle that follows a phone or a car
   - [Route (waypoints) / Route (Wegpunkte)](#route-waypoints--route-wegpunkte)
@@ -79,6 +81,7 @@ That is the whole setup. Everything below covers the individual options in more 
 
 - [Blitzer card](#blitzer-card) - the card that comes with the integration
   - [Formats](#formats) - portrait, landscape, and one line with a pop-up
+  - [Traffic flow](#traffic-flow) - the roads coloured by how traffic moves, fetched on demand
   - [YAML](#yaml) - the options that decide what the card is
   - [CSS variables](#css-variables) - all 159, and the scheme behind their names
 - [Map card](#map-card)
@@ -116,28 +119,27 @@ Every field can be changed later. Open **Settings → Devices & Services**, find
 | **Controls** / **Kontrollen** – Mobile | Anything set up temporarily. A handheld or tripod measurement, most often speed. |
 | **Controls** / **Kontrollen** – Trailer / **Anhänger** | Trailer-mounted, semi-stationary installations. These stand for days or weeks rather than hours. |
 | **Controls** / **Kontrollen** – Fixed / **Feste** | Permanently installed ones. Not only speed cameras: section controls, tunnel cameras, weight, height, lane and entrance checks and dummies are all fixed. That is what the **Kontrollarten** switches are for. |
-| **Controls** / **Kontrollen** – Archive data / **Archivdaten** | Blitzer.de's archived reports - see [Archive data](#archive-data--archivdaten). Off by default. These are **not** things that are there now. |
 | **Control types** / **Kontrollarten** | A list of seventeen, one per kind - see [Control types](#control-types--kontrollarten). All ticked by default. A control is reported only if **both** its installation form above **and** its kind here are ticked. |
 | **Hazards** / **Gefahren** | A list of ten, one per type - see [Hazard types](#hazard-types--gefahren). All unticked by default, so an existing entry keeps reporting what it did before. Each type you tick becomes its own `geo_location` entity. |
 | **Only show confirmed** / **Nur bestätigte Kontrollen anzeigen** | Report only controls the Blitzer.de community has confirmed recently. Fixed installations carry no confirmation at all and are always kept - otherwise this switch would hide every one of them. |
-| **Number of controls** / **Maximale Anzahl der Kontrollen** | Upper limit on how many controls are tracked at once. Default 9. Anything beyond that is ignored. |
-| **Update interval (minutes, 0 = manual only)** / **Aktualisierungsintervall (Minuten, 0 = nur manuell)** | How often this area polls **for controls**. Default 1 minute. **0** switches automatic polling off; use the [`blitzer.refresh_controls` action](#on-demand-refresh-for-a-commute) instead. |
+| **Number of controls** / **Maximale Anzahl der Kontrollen** | Upper limit on how many controls are tracked at once. Default 20 for a new entry (9 through v3.3.x; an entry made then keeps its number). Anything beyond that is ignored. |
+| **Update interval (minutes, 0 = manual only)** / **Aktualisierungsintervall (Minuten, 0 = nur manuell)** | How often this area polls **for controls**. Default 60 minutes for a new entry; an entry made before v4.0.0 that polled faster than that was set to 60 once, by the update to v4.0.0, because Blitzer.de blocks an address that asks too often (0 stayed 0, a longer interval stayed). **0** switches automatic polling off; use the [`blitzer.refresh_controls` action](#on-demand-refresh-for-a-commute) instead. |
 | **Counts as new for (minutes, 0 = off)** / **Als neu zählen für (Minuten, 0 = aus)** | How long a **control** counts as new after Blitzer.de first reported it. Default 60 minutes. Also settable from the area's device page, where it is the **Controls new for** / **Kontrollen neu für** field - the one setting that does not rebuild the entry when it is changed. `0` switches the marking off. |
 | **Whitelist (comma-separated city names)** / **Whitelist (kommagetrennte Städtenamen)** | City names to keep, case-insensitive exact match, e.g. `Berlin,Potsdam`. Empty means no filtering. |
-| **Blacklist (comma-separated control IDs)** / **Blacklist (kommagetrennte Kontroll-IDs)** | Control IDs to always exclude, regardless of the whitelist, e.g. `120644,167589`. The ID is the `id`/`backend` attribute - the same number used in `https://map.blitzer.de/v5/ID/<id>/`. Use it for specific reports; the whitelist filters by city instead. |
-| **Number of hazards** / **Maximale Anzahl der Gefahren** | Upper limit for hazards, default 9, independent of the control limit. A dashboard showing 9 controls has no reason to cap roadworks at 9 too. Raise it deliberately if you enable **Dauerbaustelle**. |
+| **Blacklist (comma-separated control IDs)** / **Blacklist (kommagetrennte Kontroll-IDs)** | Control IDs to always exclude, regardless of the whitelist, e.g. `120644,167589`. The ID is the `id`/`backend` attribute - the same number used in `https://www.blitzer.de/karte/?poi=<id>`. Use it for specific reports; the whitelist filters by city instead. |
+| **Number of hazards** / **Maximale Anzahl der Gefahren** | Upper limit for hazards, default 20 for a new entry, independent of the control limit. A dashboard showing 20 controls has no reason to cap roadworks at 20 too. Raise it deliberately if you enable **Dauerbaustelle**. |
 | **Update interval** / **Aktualisierungsintervall** (hazards) | How often this area polls **for hazards**, independent of the control interval. **0** leaves [`blitzer.refresh_hazards`](#on-demand-refresh-for-a-commute) as the only way to update them. |
 | **Counts as new for** / **Als neu zählen für** (hazards) | The control window's counterpart, and a separate setting because the two halves age at different speeds: a tailback is stale within the hour, a permanent roadwork is news for a day. Default 60 minutes. On the device page it is **Hazards new for** / **Gefahren neu für**. |
 | **Whitelist** / **Whitelist** (hazards) | The control whitelist's counterpart. Note that a police report sometimes carries no city at all; those are dropped when a whitelist is set. |
 | **Blacklist (comma-separated hazard IDs)** / **Blacklist (kommagetrennte Gefahren-IDs)** | The control blacklist's counterpart. Hazard IDs are their own numbering - an ID blacklisted as a control means nothing here. |
 
-The last nine fields sit in two collapsible sections: **Optional settings for controls** / **Optionale Einstellungen Kontrollen** and **Optional settings for hazards** / **Optionale Einstellungen Gefahren**.
+The last eleven fields sit in two collapsible sections: **Optional settings for controls** / **Optionale Einstellungen Kontrollen** and **Optional settings for hazards** / **Optionale Einstellungen Gefahren**.
 
 ### Control types / Kontrollarten
 
 Two axes decide which controls you get, and both have to say yes:
 
-- **Controls** / **Kontrollen** - how the thing is *installed*: mobile, trailer, fixed, archive.
+- **Controls** / **Kontrollen** - how the thing is *installed*: mobile, trailer, fixed.
 - **Control types** / **Kontrollarten** - what it *measures*.
 
 The second axis exists because the first one hides almost everything. A tunnel camera, both halves of a section control, a weight check, a height check, a dummy and a plain speed camera are all `fixed`. In the test data that was 98 of 127 controls, all governed by a single switch.
@@ -162,30 +164,13 @@ The second axis exists because the first one hides almost everything. A tunnel c
 | `dummy` | Dummy | Attrappe |
 | `unknown` | Unknown | Unbekannt |
 
-Blitzer.de distinguishes several variants of the same control: a speed camera on a tripod, in a housing, or in the archive. They are grouped under one switch here, because you want to filter on the control, not the variant.
+Blitzer.de distinguishes several variants of the same control: a speed camera on a tripod or in a housing. They are grouped under one switch here, because you want to filter on the control, not the variant.
 
 Anything Blitzer.de starts reporting after this release belongs to no switch yet. It is reported rather than dropped, so a new kind shows up instead of vanishing.
 
 Unticking a kind also stops it being *requested*. Leaving the ones you don't care about unticked therefore costs nothing.
 
 All three groups are single multi-select lists rather than one switch per option. Seventeen separate switches came to about 1300 px of form; as a list the same seventeen take 700 px, and the four installation forms 180 px instead of 300 px.
-
-### Archive data / Archivdaten
-
-Blitzer.de keeps a second set of records alongside its live data: archived speed cameras and distance checks. Its own map calls them **"Archiv-Daten"**, handles them apart from the live ones, and draws them as smaller secondary markers.
-
-They are **not controls that are there now.** What the live data shows:
-
-- They carry no community data. Their `info` is empty, so there is no confirmation count, no quality and no comments. **Nur bestätigte Kontrollen anzeigen** cannot filter them.
-- Their IDs never overlap the controls reported as current - measured across four regions.
-- Roughly a quarter sit within 50 m of one that *is* current: the archived predecessor of an installation still standing. The rest are elsewhere entirely.
-- They are numerous. The archived speed cameras alone fill an entire response around Berlin.
-
-Switch them on and they arrive as their own `type`, `archive`, with Blitzer.de's own archive symbol. They can never be mistaken for a live one, on a map or in a template.
-
-They are fetched in a request of their own and appended *after* the live controls. **Maximale Anzahl der Kontrollen** is therefore spent on current ones first. To see archived ones at all, raise that limit.
-
-Useful for spotting where enforcement used to be. Not useful as a warning.
 
 ### Hazard types / Gefahren
 
@@ -213,7 +198,10 @@ Measured across the Ruhr area: the same box returned 162 controls when asked for
 Two types are worth knowing about before you switch them on:
 
 - **Permanent roadworks** / **Dauerbaustelle** is by far the most numerous. A 20 km radius around Berlin returns the full ~500 on its own. Enable it with **Maximale Anzahl der Gefahren** raised and a long update interval. Or leave it off and use the short-lived types instead.
-- **Slipperiness** / **Rutschgefahr**, **Obstructed view** / **Sichtbehinderung** and **Road block** / **Sperrung** are declared by Blitzer.de, but returned nothing in any region sampled while writing this. They are offered for completeness; do not be surprised by an empty result.
+- **Slipperiness** / **Rutschgefahr** and **Obstructed view** / **Sichtbehinderung** are declared by Blitzer.de, but returned nothing in any region sampled while writing this. They are offered for completeness; do not be surprised by an empty result.
+- **Road block** / **Sperrung** has grown with v4.0.0. Besides the community's reports it now carries the official closures Blitzer.de takes from the Mobilithek, Germany's public mobility data, each with the period it runs for and the stretch of road it closes - see the [hazard attributes](#created-entities). Around a town they can run into dozens, most of them roadworks filed as closures, so count them against **Maximale Anzahl der Gefahren** too.
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-road-blocks.png" alt="The card on an area in Berlin: two official closures drawn as red bands along the closed streets under their symbols, the list naming each one's road and its text with Since and Until chips, and the traffic flow coloured on the streets around them" width="60%">
 
 ### Device tracker (radius) / Gerätetracker (Radius)
 
@@ -223,21 +211,21 @@ Two fields, and below them the area form unchanged:
 
 | Field | Description |
 |---|---|
-| **Device tracker** / **Gerätetracker** | The tracker to follow. The list is a short one: only `device_tracker` entities **reporting coordinates at that moment** are offered - the Home Assistant companion app, a GPS logger, a car integration. One that knows nothing but home and away has no position to put a circle around, so offering it would only buy an entry that fails at its first fetch, long after the form was filled in. If nothing on your instance qualifies, the form says so instead of showing an empty dropdown. `person` entities are deliberately not offered: a person is a layer over whichever tracker is reporting for them, and this entry wants the tracker itself. |
+| **Device tracker** / **Gerätetracker** | The tracker to follow. The list is a short one: only `device_tracker` entities **reporting coordinates at that moment** are offered - the Home Assistant companion app, a GPS logger, a car integration. One that knows nothing but home and away has no position to put a circle around, so offering it would only buy an entry that fails at its first fetch, long after the form was filled in. If nothing on your instance qualifies, the dialog ends with a message saying so instead of showing an empty dropdown. `person` entities are deliberately not offered: a person is a layer over whichever tracker is reporting for them, and this entry wants the tracker itself. |
 | **Radius (meters)** / **Radius (Meter)** | How far around it to search. 50 to 20 000 m, default 1 000. |
 
 Everything under those two is the area form field for field - the four installation forms, the seventeen [control types](#control-types--kontrollarten), the ten [hazard types](#hazard-types--gefahren), both optional sections and both update intervals. They mean exactly what they mean [there](#area-radius--bereich-radius).
 
 What is different is only where the circle sits:
 
-- **The position is read once per poll**, not once per request, so the controls, the archive and the hazards of one poll are always searched around the same point.
+- **The position is read once per poll**, not once per request, so the controls and the hazards of one poll are always searched around the same point.
 - **Distance is measured from the tracker**, not from the home zone. Each marker's state is how far it was from the tracker when that search was made - which is the point those reports were actually found around.
 - **The entry's device model is `Tracker`**, so the card's subtitle line says so, the way it says `Radius` or `Route` for the other two.
 - **Both refresh actions work unchanged.** `blitzer.refresh_controls` and `blitzer.refresh_hazards` re-read the position along with everything else.
 
-**Pick the radius against the update interval, not against what looks like a sensible distance.** The circle is only ever as current as the last poll, and a car covers ground between two of them: at 100 km/h it crosses a 1 km radius in 36 seconds, at 130 km/h in 28. On a motorway with the default one-minute interval, a radius under about 3 km is a circle the car has already left. In town, where 50 km/h needs 72 seconds for that same kilometre, 1-2 km is plenty.
+**Pick the radius against the update interval, not against what looks like a sensible distance.** The circle is only ever as current as the last poll, and a car covers ground between two of them: at 100 km/h it crosses a 1 km radius in 36 seconds, at 130 km/h in 28. On a motorway polled once a minute, a radius under about 3 km is a circle the car has already left; in town, where 50 km/h needs 72 seconds for that same kilometre, 1-2 km is plenty. And a new entry polls once an hour until you say otherwise - for a circle that follows a car, that interval is the first thing to shorten, or leave it long and let the automation in the tip below do the polling.
 
-**If the tracker has no position**, the entry says so rather than reporting an empty area. Found at startup, it waits in **Retrying setup** with the reason on the integration page - "reports no usable position (home)" - and starts by itself once the tracker reports one. Home Assistant retries a waiting entry on a backoff that doubles from 10 seconds to at most 10 minutes, so a tracker that reports a few seconds late costs seconds; one that was missing all morning can cost up to those ten minutes. **Reload** / **Neu laden** on the entry's own menu skips the wait. Lost while running - a phone in a tunnel, a tracker briefly unavailable - the entry stays up and its entities go `unavailable` until the next poll that finds a position. Neither case reports zero controls, because "we do not know where to look" is not the same answer as "nothing is reported there".
+**If the tracker has no position**, the entry says so rather than reporting an empty area. Found at startup, it waits in **Retrying setup** with the reason on the integration page - "reports no usable position (home)" - and starts by itself once the tracker reports one. Home Assistant retries a waiting entry on a backoff that doubles from 10 seconds to at most 10 minutes, so a tracker that reports a few seconds late costs seconds; one that was missing all morning can cost up to those ten minutes. **Reload** / **Neu laden** on the entry's own menu skips the wait. Lost while running - a phone in a tunnel, a tracker briefly unavailable - the entry stays up and its three count sensors go `unavailable` until the next poll that finds a position; the markers keep the last position they were found around. Neither case reports zero controls, because "we do not know where to look" is not the same answer as "nothing is reported there".
 
 Editing a tracker entry via **Configure** / **Konfigurieren** opens that same form, filled in with what is saved. The tracker you already picked stays on the list even while it is briefly without a fix, so opening the form to change something else cannot quietly drop it.
 
@@ -252,14 +240,14 @@ For a commute, an area search would need an impractically large radius. Route mo
 3. Uncheck **Add another waypoint** once the last one is placed. At least two are needed.
 4. Set the **Corridor width (meters)** / **Korridorbreite (Meter)** - how far to each side of the line to search, default 300 m.
 
-Below that are the same **Kontrollen**, **Kontrollarten**, **Gefahren** and optional-settings sections as in area mode, both update intervals included. Hazards along a route are found exactly the way controls are: the corridor is sampled point by point and the results merged.
+Below that are the same **Kontrollen**, **Kontrollarten**, **Gefahren** and optional-settings sections as in area mode, both update intervals included. Hazards along a route are found exactly the way controls are: the corridor is sampled point by point and the results merged. One thing is filtered here too: roadworks and official closures, which come with a line of their own, must run along the route rather than cross it - a closed side road passing under the motorway lies inside the corridor at the bridge and nowhere else. The rule is the one the [start/destination route](#route-startdestination--route-startziel) applies, measured against the corridor width.
 
 Internally the integration places sample points along the line, one every corridor width of route. It queries Blitzer.de around every one of them, then merges the results and removes duplicates by id - so a route drawn with many waypoints close together costs no more requests than one drawn with few.
 
 Editing a route via **Configure** / **Konfigurieren** first asks what to edit:
 
 - **Edit waypoints** / **Wegpunkte bearbeiten** steps through every saved waypoint, one at a time. Move the map to reposition it, or check **Remove this waypoint** / **Diesen Wegpunkt entfernen** to drop it. Afterwards you can append further waypoints to the end. The route is not discarded and redrawn.
-- **Edit search settings** / **Sucheinstellungen bearbeiten** jumps straight to corridor width, the switches and the optional settings, leaving the waypoints untouched.
+- **Edit search settings (corridor width, types, filters)** / **Sucheinstellungen bearbeiten (Korridorbreite, Typen, Filter)** jumps straight to corridor width, the switches and the optional settings, leaving the waypoints untouched.
 
 ### Route (start/destination) / Route (Start/Ziel)
 
@@ -280,15 +268,15 @@ The setup walks these screens:
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-wizard-routes.png" alt="The Which way? screen: three routes from openrouteservice, fastest first with their length and driving time, all of them drawn on the map with the first as the route and the others dashed" width="55%">
 
-**Also create the way back** makes a second entry, destination to start, with its own route worked out by openrouteservice - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. It is named after the first entry with "return" / "Rückweg" added, and takes the same settings. Both entries are independent from then on: each has its own **Configure**, and removing one leaves the other. The switch is offered when a route is created, not when one is edited.
+**Also create the way back** makes a second entry, destination to start, with its own route worked out by openrouteservice - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. It is named after the first entry with " - return" / " - Rückweg" added ("Home -> Work - return"), and takes the same settings. Both entries are independent from then on: each has its own **Configure**, and removing one leaves the other. The switch is offered when a route is created, not when one is edited.
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-route-return.png" alt="The card of a return entry: the route drawn on the map with the reports on it, and a list measuring each one along the route from its start" width="45%">
 
 There is no corridor width to set. The route is searched in boxes along it - about 40 of them, never narrower than 300 m and never wider than 5 km, so a long route does not cost hundreds of Blitzer.de requests a minute. Their width is the `corridor_width` attribute of the entry's **Total count** sensor.
 
-Those boxes only find candidates. What is reported is decided by **Distance from the route** / **Abstand zur Route**: 60 m by default, adjustable from 10 to 300 m, measured from the route line itself. On a first real route, Munich to Poing, that kept 9 of 18 reports - the other 9 were on streets 290 to 800 m away, and nothing lay between 80 and 290 m.
+Those boxes only find candidates. What is reported is decided by **Distance from the route** / **Abstand zur Route**: 60 m by default, adjustable from 10 to 300 m, measured from the route line itself. On a first real route, that kept 9 of 18 reports - the other 9 were on streets 290 to 800 m away, and nothing lay between 80 and 290 m.
 
-Some reports have a length and are measured along it: roadworks that come with a line of their own, and tailbacks with an end point, so a queue whose far end reaches onto the route counts. A tailback must also run the way the route does - on a motorway the opposite carriageway lies well within 60 m, and a queue there is one this route never meets. Blitzer.de does not say which way a queue runs; routing along three real motorway queues in both directions showed it runs from the reported point towards its end point. Speed cameras cannot be told apart by direction: Blitzer.de gives them none beyond free text, so a camera in the other tube of a tunnel stays in.
+Some reports have a length and are measured along it: roadworks that come with a line of their own, and tailbacks with an end point, so a queue whose far end reaches onto the route counts. A tailback must also run the way the route does - on a motorway the opposite carriageway lies well within 60 m, and a queue there is one this route never meets. Blitzer.de does not say which way a queue runs; routing along three real motorway queues in both directions showed it runs from the reported point towards its end point. Speed cameras cannot be told apart by direction: Blitzer.de gives them none beyond free text, so a camera in the other tube of a tunnel stays in. Roadworks and official closures, which come with a line of their own, must run *along* the route rather than cross it: a closed side road passing under the motorway comes within 60 m at the bridge and is not on the route. One counts once about four times the distance of it - 240 m at the default - runs within that distance, or half of it for a short one that also heads the route's way, a closed slip road say; the short piece of a lane passing under the motorway heads across it and stays out.
 
 The map on that last screen is Home Assistant's own, the one its dashboards use. A setup form has no field that can draw a line, so the integration's frontend file puts the map there itself. That relies on how Home Assistant builds its dialogs rather than on a documented interface. Should that change one day, the screen still works - it names the route, its length and its driving time, without the map.
 
@@ -297,14 +285,14 @@ If openrouteservice cannot produce a route - a point too far from any road, no r
 Editing a route entry via **Configure** / **Konfigurieren** first asks what to edit:
 
 - **Change the route (start, destination, via points)** / **Route ändern (Start, Ziel, Via-Punkte)** walks the screens again, each filled in with what is saved. The route is only worked out again once an end or a via point has actually changed.
-- **Edit search settings** / **Sucheinstellungen bearbeiten** goes straight to the last screen, with the saved route - no request to openrouteservice at all.
+- **Edit search settings (distance from the route, types, filters)** / **Sucheinstellungen bearbeiten (Abstand zur Route, Typen, Filter)** goes straight to the last screen, with the saved route - no request to openrouteservice at all.
 - **Change the openrouteservice API key** / **openrouteservice-API-Key ändern**. A saved key changed here changes for every route that uses it.
 
-On the [Blitzer card](#blitzer-card), the map of a route entry - this mode or the waypoint one - shows the route itself, fitted into view when the card first draws it, with the reports on top of it. **Show the route on the map** / **Route in der Karte einzeichnen** under the card's map switch turns that off; **Layout → Map** sets the line's colour and width.
+On the [Blitzer card](#blitzer-card), the map of a route entry - this mode or the waypoint one - shows the route itself, fitted into view when the card first draws it, with the reports on top of it - and with nothing reported, the route alone, so a commute that is empty most of the day still has its map. **Show the route on the map** / **Route in der Karte einzeichnen** under the card's map switch turns that off; **Layout → Map** sets the line's colour and width.
 
 ## Created entities
 
-Each entry produces the entities below. The three sensors are named in your Home Assistant's language:
+Each entry produces the entities below. The sensors are named in your Home Assistant's language:
 
 | Entity | Example ID | Description |
 |---|---|---|
@@ -312,9 +300,12 @@ Each entry produces the entities below. The three sensors are named in your Home
 | Count sensor: **Hazard count** / **Anzahl Gefahren** | `sensor.<area>_anzahl_gefahren` | The same for hazards, capped at **Maximale Anzahl der Gefahren**, with its own `last_update`. |
 | Count sensor: **Total count** / **Anzahl Gesamt** | `sensor.<area>_anzahl_gesamt` | Both counts added together. The one place both timestamps sit side by side: `last_update_controls`, `last_update_hazards`, and `last_update` for the later of the two. |
 | One `geo_location` entity per control | `geo_location.<area>_kontrolle_<street>` | Created and removed as controls appear and disappear. There is no fixed pool of entities. |
-| One `geo_location` entity per hazard | `geo_location.<area>_gefahr_<street>` | The same, on the area's `blitzer_<area>_hazards` source. |
+| One `geo_location` entity per hazard | `geo_location.<area>_gefahr_<street>` | The same, on the area's `blitzer_<area>_hazards` source. A report without a street - an official closure, say - is `geo_location.<area>_gefahr`, numbered from the second one on. |
 | Number: **Controls new for** / **Kontrollen neu für** | `number.<area>_kontrollen_neu_fur` | How many minutes a control counts as new. The same setting as in the options form, put where the sensors it governs are listed. A configuration entity, so it sits under the device's **Configuration** heading rather than among the readings. |
 | Number: **Hazards new for** / **Gefahren neu für** | `number.<area>_gefahren_neu_fur` | The same for hazards. Changing either of these is the one change that does **not** rebuild the entry: no refetch, no entity churn, nothing but a number two sensors report. |
+| Diagnostic sensor: **Request count** / **Anzahl Anfragen** | `sensor.<area>_anzahl_anfragen` | Every request this entry has sent to Blitzer.de since the last reset, cluster look-ups included: what a poll costs, and the figure behind choosing an interval, a radius or a corridor width. Survives a restart and only ever goes up. Under the device's **Diagnostic** heading. |
+| Diagnostic sensor: **Delivered reports** / **Gelieferte Meldungen** | `sensor.<area>_gelieferte_meldungen` | Every report Blitzer.de handed back for this entry since the last reset, counted before the entry's own filters thin them out: what a poll brings. |
+| Button: **Reset counters** / **Zähler zurücksetzen** | `button.<area>_zahler_zurucksetzen` | Brings both counters back to zero. A configuration entity, beside the two *new for* windows. |
 
 Every entry gets a **device** of its own, named after the area. Home Assistant renders the full name from the device name plus a short entity name: "Berlin Anzahl Kontrollen" on a German instance, "Berlin Control count" on an English one. The old "Blitzer.de" prefix is gone, since the integration is already called that.
 
@@ -345,15 +336,16 @@ Attributes on each control's `geo_location` entity:
 | `state` | Distance in km (or miles). From the area's centre point, from the tracker, or - on a route - the way along the route from its start to where the report lies, so the markers read like the trip: this one at km 3, that one at km 23. |
 | `source` | `blitzer_<area>_controls`, e.g. `blitzer_berlin_controls`. Lets a map card select one area's controls. |
 | `area` | The display name you gave this area. |
-| `type` | How the control is installed: `mobile`, `trailer`, `fixed` or `archive`. Decided by the `fixed` and `partly_fixed` flags inside `info`, by their *value* - the API also sends `partly_fixed: "0"` for one explicitly *not* semi-stationary. **This no longer reports `redlight`**; see `kind`. |
+| `type` | How the control is installed: `mobile`, `trailer` or `fixed`. Decided by the `fixed` and `partly_fixed` flags inside `info`, by their *value* - the API also sends `partly_fixed: "0"` for one explicitly *not* semi-stationary. **This no longer reports `redlight`**; see `kind`. |
 | `kind` | What the control measures: `speed`, `redlight`, `section_control`, `tunnel`, `distance` and so on - see [Control types](#control-types--kontrollarten). Empty for anything this release has no grouping for. |
 | `type_name` | What it is, in Blitzer.de's own words: "Blitzer im Tunnel" / "Speedcam inside tunnel". Finer than `type` and `kind`, which between them can only say "fixed" and "speed". Follows the **server** language under **Settings → System → General**, not a user's own frontend language, because entity attributes are stored once for everyone. Empty for something this release has no wording for. |
-| `summary` | The whole control in one readable line, so a card prints one field instead of six: `Geschwindigkeitsblitzer · 100 km/h · A10 Tauernautobahn, Trebesing — 500m vor Tunneleinfahrt in Rtg. Spittal, Front- und Heckblitzer`. Type, speed limit, location, then the note from `info.desc` where there is one. Where the type name would leave out the more useful half, the line names the installation instead: `Mobiler Geschwindigkeitsblitzer` for a mobile one, `Anhängerblitzer` for one on a trailer. Blitzer.de reports both under the same type name as a fixed one, and `type_name` keeps that name unchanged. An **archived** report says `Archiv · …` first, so it can never be read as something standing there today. Same language rule as `type_name`. |
-| `id` / `backend` | The control's numeric Blitzer.de ID. The same number appears in its `https://map.blitzer.de/v5/ID/<id>/` URL and in the blacklist. |
-| `vmax` | Speed limit in km/h. `/` for red light cameras, `?` if unknown. |
+| `summary` | The whole control in one readable line, so a card prints one field instead of six: `Geschwindigkeitsblitzer · 100 km/h · A10 Tauernautobahn, Trebesing — 500m vor Tunneleinfahrt in Rtg. Spittal, Front- und Heckblitzer`. Type, speed limit, location, then the note from `info.desc` where there is one. The limit is left out where it says nothing: the `0` on a red light camera, and the figure on a distance check, which is not a speed. Where the type name would leave out the more useful half, the line names the installation instead: `Mobiler Geschwindigkeitsblitzer` for a mobile one, `Anhängerblitzer` for one on a trailer. Blitzer.de reports both under the same type name as a fixed one, and `type_name` keeps that name unchanged. Same language rule as `type_name`. |
+| `id` / `backend` | The control's numeric Blitzer.de ID. The same number opens it on Blitzer.de's map, `https://www.blitzer.de/karte/?poi=<id>`, and goes into the blacklist. |
+| `vmax` | Speed limit in km/h, as sent: `0` on a red light camera, `?` if unknown. (Through v3.3.x a red light camera reported `/` instead.) |
 | `counter` | Number of community confirmations. Always `0` for fixed installations - 128 of 128 in the test data. |
-| `city`, `street`, `zip_code` | Address. |
-| `created`, `confirmed` | Blitzer.de's own stamps, exactly as sent, and **not** full timestamps. Each is either a date (`20.08.2026`) or a time of day (`13:21`, meaning today), never both. A fixed camera usually reports `01.01.1970` as `confirmed`: the epoch stands in for "never confirmed", since fixed installations are not community-reported. |
+| `city`, `street`, `zip_code` | Address. `zip_code` is empty since v4.0.0 - Blitzer.de's rebuilt map sends no postcode - and stays so a template reading it keeps working. |
+| `created`, `confirmed` | Blitzer.de's stamps the way its map shows them, and **not** full timestamps: each is either a date (`20.08.2026`) or a time of day (`13:21`, meaning today), never both. Since v4.0.0 Blitzer.de sends a full timestamp and the integration folds it into this form, so templates written against it keep working. A fixed camera's `confirmed` is usually empty: fixed installations are not community-reported (older versions put `01.01.1970` there). |
+| `created_at`, `confirmed_at` | The same two as full timestamps, ISO 8601 in local time (`2026-10-10T09:25:30`), for a template that wants a real datetime. Only present where Blitzer.de sent one. |
 | `info` | The raw detail object, small enough to carry whole. `desc` holds a fixed camera's written-out note ("Einbahnstr. in Rtg. Velbert, 7-17 Uhr 30 km/h, sonst 50 km/h"). `label`, `quality`, `tags` and `confirmed` hold the community's verdict on a mobile one. `{}` whenever the API sends something other than an object. |
 | `entity_picture` | The symbol blitzer.de's own map draws for this one, chosen the way it chooses. A tunnel camera, a section control and a combined red light plus speed camera each get their own. |
 
@@ -366,16 +358,20 @@ Attributes on each hazard's `geo_location` entity:
 | `area` | The display name you gave this area. |
 | `type` | The key from the [hazard types table](#hazard-types--gefahren), e.g. `roadwork_permanent`. |
 | `type_name` | The same key in Blitzer.de's own words: "Dauerbaustelle" / "Permanent roadworks". Same language rule as on a control. |
-| `summary` | The hazard in one readable line: `Stauende · 2.3 km · 34 km/h · +3 min · A100, Berlin`. Where Blitzer.de supplies its own text it reads `Polizeimeldung · B2R, München — Mittlerer Ring bis Petueltunnel …`. Only figures that were actually sent appear, so a tailback carrying none reads `Stauende · A100, Berlin`, and a roadwork never shows a crawl speed. The location matters most on the types that say nothing else: an accident and a broken-down vehicle arrive with `info` set to a bare `false`, and a day roadwork with every field of its `info` empty. Where Blitzer.de fills an address field with a placeholder (`Straßenname unbekannt`, or a bare `unbekannt` for a town), that half is dropped from this line. The `street` and `city` attributes still report it verbatim. |
+| `summary` | The hazard in one readable line: `Stauende · 2.3 km · 34 km/h · +3 min · A100, Berlin`. Where Blitzer.de supplies its own text it reads `Polizeimeldung · B2R, München — Mittlerer Ring bis Petueltunnel …`. Only figures that were actually sent appear, so a tailback carrying none reads `Stauende · A100, Berlin`, and a roadwork never shows a crawl speed. The location matters most on the types that say nothing else: an accident and a broken-down vehicle arrive with `info` set to a bare `false`, and a day roadwork with every field of its `info` empty. Where Blitzer.de fills an address field with a placeholder (`Straßenname unbekannt`, or a bare `unbekannt` for a town), that half is dropped from this line. The `street` and `city` attributes still report it verbatim. An official closure reads `Sperrung · NEA19 zwischen Hagenbüchach und B8 in Bräuersdorf, Kreis Neustadt an der Aisch-Bad Windsheim — gesperrt, Baustelle, von 13.07.2026 07:30 Uhr bis 18.12.2026 15:00 Uhr, …`: the road and the county off its text, the rest of the text as the note. |
 | `id` / `backend` | The hazard's Blitzer.de ID, used in its map URL and in the hazard blacklist. Unrelated to control IDs. |
 | `reason` | Free text describing the hazard. A police report carries a fully written-out bulletin. Community-reported types usually carry nothing. |
 | `counter` | Number of community confirmations. |
-| `city`, `street`, `zip_code` | Address. A police report often has no postcode, sometimes no city, and carries its road only as `street`. |
-| `created`, `confirmed` | Blitzer.de's own creation and last-confirmation stamps, as sent. A time of day for something reported today, a date for anything older, never both. |
+| `city`, `street`, `zip_code` | Address, with `zip_code` always empty since v4.0.0 (see the controls' table). A police report sometimes has no city and carries its road only as `street`; an official closure arrives without an address, so its road and county are read off its text (`NEA19 zwischen Hagenbüchach und B8 in Bräuersdorf`, `Kreis Neustadt an der Aisch-Bad Windsheim`) where the text has a recognisable shape, and it has no `created` or `confirmed`. |
+| `created`, `confirmed` | Blitzer.de's creation and last-confirmation stamps in the short form: a time of day for something reported today, a date for anything older, never both - see the controls' table. |
+| `created_at`, `confirmed_at` | The same two as full ISO 8601 timestamps, where sent. |
 | `length`, `duration`, `delay` | Only on the types that describe a stretch of road rather than a point, and not on all of those - plenty of tailbacks arrive with all three empty. `length` is in kilometers, `duration` the seconds it takes to drive through, `delay` the seconds lost against a clear road. |
 | `tailback_speed` | How fast traffic is actually moving, in km/h: `length × 3600 ÷ duration`. That is the same arithmetic blitzer.de's own popup does; a 1 km queue taking 240 s is 15 km/h. Absent when either figure is missing. Deliberately absent on both kinds of roadwork, whose `length` describes the works rather than a queue - the map suppresses it there too. |
 | `delay_minutes` | `delay` rounded up to whole minutes, the way blitzer.de shows it. 210 s becomes 4 min. Same exclusions as above. |
 | `end_latitude`, `end_longitude` | The far end of that stretch, where one is given. |
+| `closure_since`, `closure_until`, `closure_open_end` | On a road block (`type: closure`): the day it starts and the day it ends, as `YYYY-MM-DD`, and `true` where no end is known. Empty on one the community reported, and empty where Blitzer.de knows no start. |
+| `closure_origin`, `closure_source` | Where a road block comes from. An official one says `Mobilithek` and `gm`; one from the community says "Meldung aus der Blitzer.de-App" and leaves `closure_source` empty. |
+| `closure_polyline` | The closed stretch of road, as a Google-encoded polyline, on an official road block. The [Blitzer card](#blitzer-card) draws it as a red band along the road. |
 | `info` | The raw detail object, alongside the individual fields lifted out of it above. `{}` for the types that do not send one. |
 | `entity_picture` | Blitzer.de's own symbol for this hazard type. |
 
@@ -394,7 +390,7 @@ Want it on its own, in an instance without the integration? Import it straight f
 - **Live alerts** / **Live-Meldungen** - only what is new. One notification per newly reported control or hazard, the moment it shows up. Never for one already known, and never right after a restart. A time window keeps it quiet at night; a window from `22:00` to `06:00` spans midnight.
 - **Digest** / **Sammelmeldung** - everything currently reported. One message listing what is standing right now, nearest first, capped at a length you choose. Trigger it at a time of day, when someone leaves a zone, from any entity changing state, or on demand via `automation.trigger`. Several of these can be armed at once.
 - **One set of filters for both.** Which areas and routes, controls and/or hazards, what a control measures, how it is installed, which hazard types. A minimum speed limit keeps a 30 km/h camera in a side street quiet while the one on the motorway still reports.
-- **Proximity** / **Umkreis.** Measure against a zone or a person, report only what is within a radius of it, and sort the digest by that distance. Left empty, every report carries its own figure - from the area's centre, from the tracker, or on a route the way along it from its start, so a route's digest reads in driving order.
+- **Proximity** / **Umkreis.** Measure against a zone, a person or a device tracker, report only what is within a radius of it, and sort the digest by that distance. Left empty, every report carries its own figure - from the area's centre, from the tracker, or on a route the way along it from its start, so a route's digest reads in driving order.
 - **Notify anywhere**, each its own collapsible section:
   - **Mobile App Notify**: push to one or more devices via the Companion App. A live alert is tappable straight through to that report on blitzer.de's map.
   - **Notifications**: Home Assistant's own notification bell, and/or a dashboard status helper (`input_text`) for a Markdown or Entity card.
@@ -437,7 +433,7 @@ The event data holds `config_entry_id`, `area`, `id`, `type`, `kind`, `type_name
 
 `distance` is the marker's own figure, in km (or miles): from the area's centre, from the tracker, or on a route the way along it from its start - so an automation can say "at km 23" without a reference point of its own.
 
-`summary` is the same one-line description the entity carries. A notification can print that one field instead of assembling six - straight from the event, without looking the entity up.
+`summary` is the same one-line description the entity carries, and `type_name` the same name. A notification can print that one field instead of assembling six - straight from the event, without looking the entity up.
 
 Drop the `event_data: area: ...` filter to match every configured area. This is a plain event, not tied to an entity, so the data is read from `trigger.event.data.*`.
 
@@ -526,7 +522,7 @@ automation:
             {% if commute.controls %}
             🚨 {{ commute.controls | count }} control(s) on your commute:
             {% for c in commute.controls %}
-            - {{ c.city }}, {{ c.street }}{% if c.vmax not in (None, '/', '?') %} ({{ c.vmax }} km/h){% endif %}
+            - {{ c.city }}, {{ c.street }}{% if c.vmax not in (None, '/', '?', '0', 0) %} ({{ c.vmax }} km/h){% endif %}
             {% endfor %}
             {% else %}
             Nothing currently reported on your commute. Safe drive!
@@ -538,6 +534,8 @@ automation:
 Hazards have their own action, **`blitzer.refresh_hazards`** - **Refresh hazards** / **Gefahren aktualisieren**. It takes the same `config_entry_id` and returns `hazards`, each with `id`, `type`, `reason`, `city`, `street`, `latitude` and `longitude`.
 
 The two are deliberately separate rather than one action with a switch. Refreshing your commute's controls should not spend a request on roadworks that have not moved since this morning, and each half leaves the other's data and timestamp untouched.
+
+When you do want both, call **`blitzer.refresh`** - **Refresh** / **Aktualisieren** - rather than the two in turn. It fetches both halves in a single pass, which on a route means one request per point for both instead of one per point per half, and returns both lists, under `controls` and `hazards`. The card's refresh button uses it whenever the card shows both halves.
 
 To find `YOUR_ROUTE_CONFIG_ENTRY_ID`: open **Settings → Devices & Services**, click the "Blitzer.de" integration, open the route's entry and copy the ID from the browser URL.
 
@@ -576,17 +574,27 @@ The picture at the top of this page shows all three side by side.
 - **Show controls, hazards or both**, switchable on the card itself.
 - **A map that mirrors the list, or drives it.** Clicking an entry can centre the map on that report; the list can restrict itself to what the map currently shows, so panning the map is a way of asking a different question.
 - **Draw a route on the map.** A route entry's route - the one openrouteservice worked out, or the straight lines between hand-placed waypoints - is drawn underneath the reports and fitted into view when the card first draws it. **Show the route on the map** / **Route in der Karte einzeichnen** turns it off; **Layout → Map** sets the line's colour and width, and the **Grouped reports** / **Zusammengefasste Meldungen** block beside it recolours the discs the map gathers nearby reports into. On a route entry every distance is the way along the route from its start, so the list reads in driving order.
+- **Keep the map when nothing is reported.** On by default: an area with nothing to report still has its map, fitted to the circle it searches - drawn as a dashed line around its centre, or around the tracker it follows - and a route to its route. So a commute that is empty most of the day, or an area watched for its traffic flow alone, is never a blank card. **Keep the map when nothing is reported** / **Karte auch ohne Meldungen zeigen** under the map switch turns it off, and the map then goes until something is reported.
+- **Show the traffic flow.** The roads coloured by how traffic is moving on them, the way Blitzer.de's own map does it, fetched for the view on screen while the card is visible. Its own section: [Traffic flow](#traffic-flow).
 - **Sort by distance, newest or oldest.** The order also decides which reports survive when the number shown is capped.
 - **Measure distance from the area's centre, from the map, or from a person or zone**, so "nearest first" means nearest to whoever is driving.
 - **Mark what is new.** The threshold is the area's own, set on its device page, so the card and every automation agree on what "new" means. A badge next to the title counts them; each entry carries a tag.
 - **Say what the jams cost.** Where reports carry a delay - Blitzer.de sends one on a tailback, not on a roadwork - a red badge beside the NEW one adds them up: *+10 min*, *+1 h 35 min*. Clicking it narrows the card and the map to exactly those reports, the same way the NEW badge narrows them to what is new; clicking it again, or the other badge, lets go. **Show what the jams cost** / **Zeigen, was die Staus kosten** switches the badge off; it has its own block under **Layout → General**, with the same colour, background, font and switches the NEW marker has. With the list following the map it counts what is on screen, like the number beside it.
 
-  In the [minimal format](#formats) the same switch draws a third part of the line instead of a badge - *+22 min* after the total and the new count, in the same red - and a tap on it opens the pop-up on those reports alone. It stays there at *0 min*, quiet and not pressable, the way the new part does at nought: a line that gained and lost a third of itself every time a jam cleared would move everything under it each time. Its own block under **Layout → General** sets its colour, its fill and its symbol, and on a narrow card the words go first, then the type steps down, so the figure is never cut off.
+  In the [minimal format](#formats) the same switch draws a third part of the line instead of a badge - *+22 min* after the total and the new count, in the same red - and a tap on it opens the pop-up on those reports alone. It stays there at *0 min*, quiet and not pressable, the way the new part does at nought (the total at nought stays pressable while the map is set to stay - see `map_always` - since the pop-up then has the area's map to show): a line that gained and lost a third of itself every time a jam cleared would move everything under it each time. Its own block under **Layout → General** sets its colour, its fill and its symbol, and on a narrow card the words go first, then the type steps down, so the figure is never cut off.
 - **Fold a long list** after a number of entries you choose, with a chevron to open the rest.
 - **Refresh on demand**, with a button at the end of the subtitle line. Worth having above all on an area set to poll manually - an update interval of `0`.
 - **A tap action in the minimal format.** Home Assistant's own set: more-info, navigate, URL, an action, toggle, or nothing. Left on **Default** the tap opens the pop-up, which is what the format is for.
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-route-delay.png" alt="A route entry on the card: the red badge adding up what the jams cost, switched on so that card, list and map show only the reports costing time - two tailbacks with their queue length, speed and delay" width="50%">
+
+### Traffic flow
+
+**Show the traffic flow** / **Verkehrsfluss anzeigen** under the map switch colours the roads by how traffic is moving on them, from green through yellow and red to dark red, grey where nothing is known - the same colours and the same speed steps as Blitzer.de's own map (motorways: 30/50/70/90/110 km/h, other roads: 5/15/25/40/60). It is not polled: an area polls once an hour, and traffic is stale within minutes, so instead the card asks for the view it is showing while it is on screen - one request to Blitzer.de for the view, another after a pan or a zoom, and a fresh one every three minutes as long as the card stays visible; a hidden tab or a dashboard nobody has open costs nothing. The integration snaps the view to a kilometre grid and keeps the answer for a minute and a half, so two cards on one view, or a small pan, share a request. Those requests count on the area's **Request count** like any other. Zoomed out beyond about 250 km the layer stays empty rather than fetching a whole country. On a route entry only the route itself is coloured, in its direction of travel: Blitzer.de reports each carriageway as a line of its own, running the way its traffic drives, so the other carriageway and the ramps of an interchange are left out by heading, the way a tailback on the other carriageway is. A waypoint route, whose straight lines leave the road on the bends, takes what runs the same way inside its corridor. **Layout → Map** sets the lines' width and opacity. With the option on, a line under the subtitle - and under the title of the minimal format's pop-up - carries a switch to show or hide the flow on the map for the moment, says when it was last fetched, and has a refresh button of its own that fetches it again right away. Needs Home Assistant 2026.10 or newer.
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-traffic-flow.png" alt="The card on an area in Munich with the traffic flow on: every street coloured by how its traffic moves, green through yellow to red, one speed camera trailer marked among them, and the line under the subtitle with the flow's switch, the time of its last fetch and its own refresh button" width="45%"> <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-traffic-delay.png" alt="The card on a route from Berlin to Munich with the traffic flow on: only the route itself coloured, green where traffic moves and red where it stands, the two tailbacks on it marked, and the NEW and the +13 min badges counting them" width="45%">
+
+Where a road shows no colour at all, Blitzer.de has no reading for it; the card cannot invent one. What it does close are the seams and the small holes: Blitzer.de delivers a road in pieces, and the card joins pieces that meet end to end in the same colour into one line, so a bend no longer opens a gap between them - and where the next piece of the road starts up to 400 m further on, in the road's own direction, the hole is bridged in that colour - on a route entry only, where the few roads shown are the ones worth completing; an area's view is never complete anyway, and is left as Blitzer.de delivers it. Blitzer.de also thins its answer out the further the map is zoomed out, so the integration asks for up to two zoom steps more detail than the map shows, as long as the answer stays within about 1.5 MB. The flow lies on top of the route line, so on a route entry the thin coloured bands are what you see of the route where Blitzer.de has a reading, and the route's own colour where it has none.
 
 ### Settings
 
@@ -597,7 +605,7 @@ Two panels, each with three groups:
 
 Every field carries an **i** describing it, so the reference for its roughly 220 settings is the editor itself. The editor writes only what differs from the default, so a card configured entirely in the interface stays short in YAML.
 
-<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-custom.png" alt="The same three formats restyled: coloured badges, a renamed title, a background image, other symbols, underlined addresses, confirmation stars, a recoloured route with the discs its grouped reports sit on, and the minimal line with each of its three parts in a colour of its own" width="100%">
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-custom.png" alt="The same three formats restyled: coloured badges, a renamed title, a background image, other symbols, underlined addresses, confirmation stars, a recoloured route with the groups its nearby reports are gathered into, and the minimal line with each of its three parts in a colour of its own" width="100%">
 
 The same card, the same area, the same data - and not a line of CSS. Everything above was set in the **Layout** panel.
 
@@ -643,21 +651,28 @@ The options that decide what the card *is*, rather than how it is drawn:
 | `sort` | `distance` | `distance`, `newest` or `oldest`. |
 | `reference_mode` | `area` | Where distances are measured from: `area`, `map` or `entity`. On a route entry every distance is the way along the route from its start, whatever this says. |
 | `reference` | - | The person, device tracker or zone, with `reference_mode: entity`. |
-| `only_new` | `false` | Show nothing but what is still new. |
+| `only_new` | `false` | Show nothing but what is still new. Whenever a badge narrows the card this way - the new reports, or the jams - the map fits what is left, and goes back to the route or the whole area when the badge is switched off. |
 | `show_max` / `max` | `false` / `5` | Cap how many reports are listed. |
 | `collapse_list` / `collapse_after` | `false` / `3` | Fold the list after this many entries. Portrait only. |
 | `show_map` / `show_list` | `true` / `true` | The two halves of the card, and of the pop-up in the minimal format. |
 | `map_aspect_ratio` | `16:9` | The map's shape. |
+| `map_always` | `true` | Keep the map while nothing is reported, fitted to the area as it is set up - the circle around its centre or its tracker, drawn as a dashed line - or to the route. Off takes the map down until something is reported. |
 | `map_route` | `true` | Draw a route entry's route on the map. |
+| `map_closures` | `true` | Draw an official closure's stretch of road as a red band on the map. |
+| `map_traffic` | `false` | Colour the roads by how traffic is moving on them, the way Blitzer.de's map does - see [What it can do](#what-it-can-do). On a route entry only the route itself, in its direction of travel. Home Assistant 2026.10 or newer; the editor greys the switch out on older versions. |
+| `traffic_width` / `traffic_opacity` | `1.5` / `50` | The flow's line width in pixels at the usual zoom, decimals allowed (a motorway gets one more, street level widens them), and how solid the colours are, in percent. Under **Layout → Map**. |
 | `route_color` / `route_width` | *(theme primary)* / `4` | The route line's colour and its width in pixels. |
-| `cluster_color` / `cluster_text_color` | *(theme)* | The discs the map gathers nearby reports into, and the count on them. |
+| `map_cluster` | `true` | Gather nearby reports into discs with the count on them when zoomed out. Off draws every report on its own; needs Home Assistant 2026.10 or newer - older versions always group, and the editor greys the switch out on them. |
+| `cluster_style` | `bubble` | From Home Assistant 2026.10: `bubble` is the map's own bubble with the first symbols, `disc` the disc with the count that every version before drew. Older versions draw the disc regardless. |
+| `cluster_color` / `cluster_text_color` | *(theme)* | What the map gathers nearby reports into, and the count on it: the disc with the count through Home Assistant 2026.9, the bubble with the first symbols and a "+N" from 2026.10. |
 | `cluster_font_size` / `cluster_bold` / `cluster_italic` / `cluster_underline` | *(the map's)* / `false` | The count's size and style. |
-| `follow_map` | `true` | Restrict the list to what the map shows. |
+| `follow_map` | `true` | Restrict the list to what the map shows - in the minimal format, the pop-up's list to the pop-up's map. |
 | `center_on_click` | `true` | A click on an entry centres the map on it. |
 | `show_area_picker` / `show_filter_picker` | `true` / `true` | The two dropdowns. |
 | `show_title` / `show_count` / `show_new` / `show_delay` / `show_sub` | `true` | The parts of the head. |
+| `show_row_closure` | `true` | The "Since ..." and "Until ..." chips on an official closure, dated the way the reported and confirmed chips are (`21.09.2026`). |
 | `show_refresh` | `true` | The refresh button at the end of the subtitle line. |
-| `mini_tap_action` | *(opens the pop-up)* | Minimal format: what a tap on either number does. |
+| `mini_tap_action` | *(opens the pop-up)* | Minimal format: what a tap on any part of the line does. |
 | `mini_show_total` | `true` | Minimal format: show the total next to the new count. |
 
 The rest of the keys say how a given element is drawn. Those are what the **Layout** panel writes, and the same ground is covered by the custom properties below.
@@ -833,14 +848,13 @@ Each entry is up to three lines. What it is and where; the free text Blitzer.de 
 
 The card reads `summary` rather than assembling the fields itself. That is what lets one template serve both halves without knowing which it has. Everything after the ` — ` moves to a smaller line of its own, and the last `·` segment is the address, which becomes the link.
 
-`Bestätigt` is dropped for a fixed installation, whose `confirmed` is `01.01.1970` because it was never community-confirmed. A value carrying a date says "Gemeldet am", one carrying a time "Gemeldet um".
+`Bestätigt` is dropped where `confirmed` is empty - a fixed installation, which is never community-confirmed (through v3.3.x that was `01.01.1970`, which the template still skips). A value carrying a date says "Gemeldet am", one carrying a time "Gemeldet um".
 
 The stars are `counter`, drawn with blitzer.de's own star images. They are capped at three, the way its map caps them - one control in the test data reported 16.
 
-Three kinds of report skip the stars, because for those the number is never a community rating:
+Two kinds of report skip the stars, because for those the number is never a community rating:
 
 - A **fixed** installation is put up by whoever operates it. All 91 of them in the test data reported `0`.
-- An **archived** record's count is a leftover from when it was still live. It says nothing about a device that no longer stands there.
 - A **police report** is an official bulletin rather than a sighting.
 
 Everything else keeps its stars, hazards included, where the count runs between one and three. This is written as an exclusion rather than a list of what qualifies, so a hazard type Blitzer.de adds later is rated instead of silently left blank.
@@ -882,11 +896,11 @@ Every other type resolves: controls, tailbacks, both kinds of roadwork, obstacle
 {%- set created = state_attr(e, 'created') or '' -%}
 {%- set confirmed = state_attr(e, 'confirmed') or '' -%}
 {%- set stamped = created or (confirmed and confirmed != '01.01.1970') -%}
-{%- set rateable = state_attr(e, 'type') not in ['fixed', 'archive', 'police_report'] -%}
+{%- set rateable = state_attr(e, 'type') not in ['fixed', 'police_report'] -%}
 {%- set stars = [state_attr(e, 'counter') | int(0), 3] | min -%}
 <img src="{{ state_attr(e, 'entity_picture') }}" width="30">
 <b>{{ states(e) }} km</b> ·
-{%- if linkable %} {{ parts[:-1] | join(' · ') }} · <a href="https://map.blitzer.de/v5/ID/{{ state_attr(e, 'id') }}/">{{ place }}</a>
+{%- if linkable %} {{ parts[:-1] | join(' · ') }} · <a href="https://www.blitzer.de/karte/?poi={{ state_attr(e, 'id') }}">{{ place }}</a>
 {%- else %} {{ head }}
 {%- endif %}<br>
 {%- if extra %}<small>ℹ️ {{ extra }}</small><br>{% endif -%}
@@ -894,8 +908,8 @@ Every other type resolves: controls, tailbacks, both kinds of roadwork, obstacle
 {%- if created %} Gemeldet {{ 'am' if '.' in created else 'um' }} {{ created }}{% endif -%}
 {%- if confirmed and confirmed != '01.01.1970' %}{{ ' · ' if created else ' ' }}Bestätigt {{ 'am' if '.' in confirmed else 'um' }} {{ confirmed }}
 {%- if rateable %} ·&nbsp;
-{%- for _ in range(stars) %}<img src="https://map.blitzer.de/v5/images/star_full.svg" width="12">{% endfor -%}
-{%- for _ in range(3 - stars) %}<img src="https://map.blitzer.de/v5/images/star_contour.svg" width="12">{% endfor -%}
+{%- for _ in range(stars) %}<img src="https://www.blitzer.de/karte/images/star_full.svg" width="12">{% endfor -%}
+{%- for _ in range(3 - stars) %}<img src="https://www.blitzer.de/karte/images/star_contour.svg" width="12">{% endfor -%}
 {%- endif -%}
 {%- endif %}</small><br>
 {%- endif -%}
@@ -948,11 +962,11 @@ The same card with English wording. `summary` and `type_name` follow the **serve
 {%- set created = state_attr(e, 'created') or '' -%}
 {%- set confirmed = state_attr(e, 'confirmed') or '' -%}
 {%- set stamped = created or (confirmed and confirmed != '01.01.1970') -%}
-{%- set rateable = state_attr(e, 'type') not in ['fixed', 'archive', 'police_report'] -%}
+{%- set rateable = state_attr(e, 'type') not in ['fixed', 'police_report'] -%}
 {%- set stars = [state_attr(e, 'counter') | int(0), 3] | min -%}
 <img src="{{ state_attr(e, 'entity_picture') }}" width="30">
 <b>{{ states(e) }} km</b> ·
-{%- if linkable %} {{ parts[:-1] | join(' · ') }} · <a href="https://map.blitzer.de/v5/ID/{{ state_attr(e, 'id') }}/">{{ place }}</a>
+{%- if linkable %} {{ parts[:-1] | join(' · ') }} · <a href="https://www.blitzer.de/karte/?poi={{ state_attr(e, 'id') }}">{{ place }}</a>
 {%- else %} {{ head }}
 {%- endif %}<br>
 {%- if extra %}<small>ℹ️ {{ extra }}</small><br>{% endif -%}
@@ -960,8 +974,8 @@ The same card with English wording. `summary` and `type_name` follow the **serve
 {%- if created %} Reported {{ 'on' if '.' in created else 'at' }} {{ created }}{% endif -%}
 {%- if confirmed and confirmed != '01.01.1970' %}{{ ' · ' if created else ' ' }}Confirmed {{ 'on' if '.' in confirmed else 'at' }} {{ confirmed }}
 {%- if rateable %} ·&nbsp;
-{%- for _ in range(stars) %}<img src="https://map.blitzer.de/v5/images/star_full.svg" width="12">{% endfor -%}
-{%- for _ in range(3 - stars) %}<img src="https://map.blitzer.de/v5/images/star_contour.svg" width="12">{% endfor -%}
+{%- for _ in range(stars) %}<img src="https://www.blitzer.de/karte/images/star_full.svg" width="12">{% endfor -%}
+{%- for _ in range(3 - stars) %}<img src="https://www.blitzer.de/karte/images/star_contour.svg" width="12">{% endfor -%}
 {%- endif -%}
 {%- endif %}</small><br>
 {%- endif -%}
@@ -1020,7 +1034,7 @@ If you find a problem, feel free to open an issue and I will do my best to help.
 
 This custom integration is not officially endorsed or supported by Blitzer.de. Use it at your own risk, and make sure you comply with all relevant terms of service and privacy policies.
 
-There is no official, documented Blitzer.de API. This integration queries `cdn2.atudo.net`, the backend the Blitzer.de map application uses internally, and falls back to `cdn3.atudo.net` and `cdn4.atudo.net`, which serve the same data, when it does not answer. A number of other long-standing community projects - for Home Assistant, ioBroker, FHEM and others - do the same. It is not a sanctioned integration point.
+There is no official, documented Blitzer.de API. This integration reads the same data the Blitzer.de map application itself reads - since v4.0.0 from Blitzer.de's own site, through v3.3.x from the content server the map used then, which the rebuilt map no longer does. A number of other long-standing community projects - for Home Assistant, ioBroker, FHEM and others - do the same. It is not a sanctioned integration point.
 
 Blitzer.de's terms of use grant only a non-exclusive, non-transferrable license for private use of their apps. They explicitly prohibit reverse-engineering those apps and using their traffic data "in any way without our written consent or license". Using this integration is likely a violation of those terms in the strict sense, even though there is no indication of Blitzer.de having taken action against the existing ecosystem of similar tools. Use it at your own legal risk.
 

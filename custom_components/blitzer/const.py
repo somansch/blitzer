@@ -14,25 +14,9 @@ TYPE_MOBILE = [0,1,2,3,4,5,6]
 TYPE_TRAILER = ['ts']
 TYPE_FIXED = [101,102,103,104,105,106,107,108,109,110,111,112,113,115,117,114]
 
-# Blitzer.de's archive layer. Its own map calls this "Archiv-Daten": every
-# code of 200 and above lands in a separate branch there and is drawn as a
-# small secondary marker rather than a full camera pin. 201 is a speed
-# camera and 206 a distance check; no other code in that range returned
-# anything in any region sampled.
-#
-# These are not live reports, and are reported as their own category rather
-# than mixed in with the current ones. They carry no community data at all
-# (their "info" is an empty list), their ids never overlap the cameras
-# Blitzer.de reports as current, and roughly a quarter of them sit within
-# 50m of one that is - the archived predecessor of a camera still standing.
-# Numerous, too: 201 alone fills an entire response around Berlin, which is
-# why they are requested separately and appended after the live cameras, so
-# that "Maximale Anzahl der Blitzer" spends itself on current ones first.
-TYPE_ARCHIVE = [201, 206]
-# The one word the readable summary needs that isn't a type name. Without
-# it an archived report reads exactly like a live camera - "Speedcamera,
-# 100 km/h" - which is the one thing the archive must never be mistaken for.
-ARCHIVE_LABEL = {"de": "Archiv", "en": "Archive"}
+# Codes of 200 and above were Blitzer.de's archive of removed cameras. The
+# rebuilt site no longer delivers that layer - a request for it answers with
+# nothing - so the integration no longer asks for it (v4.0.0).
 
 # Two combinations the type name on its own cannot express. A handheld
 # camera, one in a housing and one on a trailer all come back under the same
@@ -157,27 +141,25 @@ CODE_LABELS = {
     "114": {"de": "Blitzer im Tunnel", "en": "Speedcam inside tunnel"},
     "115": {"de": "Überholverbot", "en": "Overtaking ban"},
     "117": {"de": "Stationäre Polizeikontrolle", "en": "Stationary Police Check"},
-    "201": {"de": "Geschwindigkeitsblitzer", "en": "Speedcamera"},
-    "206": {"de": "Abstandskontrolle", "en": "Distance control"},
     "closure": {"de": "Sperrung", "en": "Road block"},
     "vwd": {"de": "Polizeimeldung", "en": "Police reports"},
 }
 
 # The control kinds, i.e. what is actually being measured. This is the axis
-# the type section switches on; "type" (mobile / trailer / fixed / archive)
+# the type section switches on; "type" (mobile / trailer / fixed)
 # is the other one, how the thing is installed, and the two combine with AND.
 #
-# Several codes mean the same control: 1, 7, 107 and 201 are all a speed
-# camera, on a tripod, in a housing, or in the archive. Grouping them here
+# Several codes mean the same control: 1, 7 and 107 are all a speed
+# camera, on a tripod or in a housing. Grouping them here
 # means a switch says what it does rather than naming a number.
 CONF_KINDS = "kinds"
 CONTROL_KINDS = {
-    "speed": ["1", "7", "107", "201"],
+    "speed": ["1", "7", "107"],
     "redlight": ["2", "11", "111"],
     "redlight_speed": ["110"],
     "section_control": ["12", "112", "113"],
     "tunnel": ["114"],
-    "distance": ["6", "101", "206"],
+    "distance": ["6", "101"],
     "weight": ["3", "108"],
     "height": ["109"],
     "lane": ["104"],
@@ -201,8 +183,10 @@ CODE_KIND = {
 # The installation form, the other axis. "redlight" used to live here too,
 # which was the mistake this splits up: it answers what is measured, not how
 # the camera is mounted, and it is now one of the control kinds above.
-TYPE_FORMS = ["mobile", "trailer", "fixed", "archive"]
-FORM_DEFAULTS = {"mobile": True, "trailer": True, "fixed": False, "archive": False}
+# "archive" used to be a fourth form; an entry that still carries the key
+# is read for the three that remain and the key is ignored (v4.0.0).
+TYPE_FORMS = ["mobile", "trailer", "fixed"]
+FORM_DEFAULTS = {"mobile": True, "trailer": True, "fixed": False}
 
 CONF_SEARCH_MODE = "search_mode"
 SEARCH_MODE_AREA = "area"

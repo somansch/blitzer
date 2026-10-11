@@ -2,7 +2,7 @@
 
 A route is searched box by box, and a box a few hundred metres wide around a
 road through a city holds every parallel street and every crossing. On the
-first real route, Munich to Poing, 8 of 18 reports were between 290 and 800 m
+first real route, 8 of 18 reports were between 290 and 800 m
 off the road - Prinzregentenstraße, Rosenheimer Straße - and there was nothing
 at all between 80 and 290 m. So the boxes stay, as the search for candidates,
 and a report is kept only when it comes within a small distance of the route

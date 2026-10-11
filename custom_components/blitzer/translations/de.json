@@ -13,8 +13,7 @@
             "options": {
                 "mobile": "Mobile",
                 "trailer": "Anhänger",
-                "fixed": "Feste",
-                "archive": "Archivdaten (abgebaut/historisch)"
+                "fixed": "Feste"
             }
         },
         "control_kind": {

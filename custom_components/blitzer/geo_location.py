@@ -16,7 +16,6 @@ from homeassistant.util import location as location_util
 from homeassistant.util import slugify
 
 from .const import (
-    ARCHIVE_LABEL,
     DOMAIN,
     EVENT_NEW_CONTROL,
     EVENT_NEW_HAZARD,
@@ -32,7 +31,6 @@ from .coordinator import (
     control_label,
     hazard_key,
     hazard_reason,
-    is_archive,
     item_info,
     poi_id,
 )
@@ -45,7 +43,6 @@ _ICONS = {
     "fixed": "mdi:cctv",
     "mobile": "mdi:speedometer",
     "trailer": "mdi:truck-trailer",
-    "archive": "mdi:cctv-off",
 }
 _KIND_ICONS = {
     "redlight": "mdi:traffic-light",
@@ -119,7 +116,7 @@ def _tailback_figures(item: dict) -> dict:
 # What Blitzer.de writes into an address field when it has no name for it,
 # rather than leaving it empty: "Straßenname unbekannt" for a road, a bare
 # "unbekannt" for a town. Both are rare - three streets across some 1300
-# sampled hazards, one town across 840 archive entries - and both are noise
+# sampled hazards, one town across some 800 sampled records - and both are noise
 # in a sentence meant to be read.
 #
 # Only filtered out of the readable line. The "street" and "city"
@@ -130,7 +127,7 @@ _CITY_PLACEHOLDERS = ("unbekannt", "unknown")
 
 
 # What a road reads like in an official closure's text: a road number at
-# the start ("EBE5", "St2081", "A1", "L108"), or a street name - a line, or
+# the start ("NEA19", "St2081", "A1", "L108"), or a street name - a line, or
 # its first word, ending the way German streets do.
 _ROAD_NUMBER = re.compile(r"^[A-Z][A-Za-z]{0,2}\s?\d+")
 _STREET_ENDINGS = (
@@ -256,12 +253,7 @@ def _control_summary(item: dict, language: str) -> str:
     ("Einbahnstr. in Rtg. Velbert, 7-17 Uhr 30 km/h"), which is otherwise
     buried a level down.
     """
-    parts = []
-    if is_archive(item):
-        # Said first, and said at all: an archived report otherwise reads
-        # word for word like a camera that is standing there today.
-        parts.append(ARCHIVE_LABEL.get((language or "en")[:2].lower(), ARCHIVE_LABEL["en"]))
-    parts.append(control_label(item, language))
+    parts = [control_label(item, language)]
     vmax = item.get("vmax")
     # A distance check measures the gap between two cars, not their speed.
     # Blitzer.de still fills in the road's own limit there, and printed after
@@ -620,13 +612,6 @@ class BlitzerdeControlEvent(BlitzerdeGeoEvent):
         code = str(item.get("type", ""))
         speed = cls._picture_speed(item)
 
-        if is_archive(item):
-            # The map's second branch, with its own small marker. 206 is a
-            # distance check and 202 a red light one; everything else in the
-            # range keeps the speed.
-            suffix = {"206": "distance", "202": "redlight"}.get(code, speed)
-            return "mobile_archive_" + suffix
-
         tags = info.get("tags")
         if isinstance(tags, list) and "Chat-Icon" in tags:
             return "chat"
@@ -668,7 +653,7 @@ class BlitzerdeControlEvent(BlitzerdeGeoEvent):
         control_id = item["backend"].split("-")[-1]
         self._extra_attrs = {
             "area": self._coordinator.displayname,
-            # How it is installed: mobile, trailer, fixed or archive. This
+            # How it is installed: mobile, trailer or fixed. This
             # no longer says "redlight" - that answers what is measured, not
             # how the camera is mounted, and now has its own attribute.
             "type": form,

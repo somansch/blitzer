@@ -13,8 +13,7 @@
             "options": {
                 "mobile": "Mobile",
                 "trailer": "Trailer",
-                "fixed": "Fixed",
-                "archive": "Archive data (removed/historical)"
+                "fixed": "Fixed"
             }
         },
         "control_kind": {

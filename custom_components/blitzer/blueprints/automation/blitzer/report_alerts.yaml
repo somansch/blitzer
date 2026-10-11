@@ -40,7 +40,7 @@ blueprint:
     - `{{ type_name }}` - Blitzer.de's own wording, e.g. "Blitzer im Tunnel"
     - `{{ report_kind }}` - `control` or `hazard`
     - `{{ area }}` - the area, route or tracker that reported it
-    - `{{ type }}` - a control's installation form (`mobile`/`trailer`/`fixed`/`archive`), or the hazard's type key
+    - `{{ type }}` - a control's installation form (`mobile`/`trailer`/`fixed`), or the hazard's type key
     - `{{ kind }}` - what a control measures (`speed`, `redlight`, `section_control`, ...). Empty on a hazard
     - `{{ vmax }}` - speed limit in km/h, where there is one
     - `{{ reason }}` - a hazard's own written-out text. Empty on a control
@@ -238,8 +238,6 @@ blueprint:
                   value: trailer
                 - label: Fixed / Fest
                   value: fixed
-                - label: Archive data / Archivdaten
-                  value: archive
         min_vmax:
           name: Minimum speed limit / Mindestgeschwindigkeit
           description: >-

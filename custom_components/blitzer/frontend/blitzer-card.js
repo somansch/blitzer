@@ -821,7 +821,7 @@
   const NEVER_CONFIRMED = "01.01.1970";
 
   // The report types whose confirmation count is not a community rating.
-  const UNRATED_TYPES = ["fixed", "archive", "police_report"];
+  const UNRATED_TYPES = ["fixed", "police_report"];
 
   // ----------------------------------------------------------------- config
   const DEFAULTS = {
@@ -2429,10 +2429,9 @@
   // filled as far as the count reaches. Capped at three the way its map caps
   // them - one control in the test data reported 16.
   //
-  // Three kinds of report have no stars at all, because for them the number
+  // Two kinds of report have no stars at all, because for them the number
   // is not a community rating: a fixed installation is put up by whoever
-  // operates it, an archived record's count is a leftover from when it was
-  // still live, and a police report is an official bulletin rather than a
+  // operates it, and a police report is an official bulletin rather than a
   // sighting. Written as an exclusion, so a hazard type Blitzer.de adds later
   // is rated rather than silently left blank.
   // Drawn here rather than fetched as Blitzer.de's own two star images. Those

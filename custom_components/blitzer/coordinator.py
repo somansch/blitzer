@@ -58,7 +58,6 @@ from .const import (
     SEARCH_MODE_ROUTE_ORS,
     SEARCH_MODE_TRACKER,
     tracker_position,
-    TYPE_ARCHIVE,
     TYPE_FORMS,
     TYPE_TRAILER,
     TYPE_MOBILE,
@@ -94,19 +93,8 @@ def poi_id(item: dict) -> str:
     return str(item["backend"]).split("-")[-1]
 
 
-def is_archive(item: dict) -> bool:
-    """Whether this is one of Blitzer.de's archived reports.
-
-    Its own map splits on exactly this: a type code of 200 or above lands in
-    a separate branch there, under the comment "Archiv-Daten", and is drawn
-    smaller than a live control.
-    """
-    code = str(item.get("type", ""))
-    return code.isdigit() and int(code) >= 200
-
-
 def control_form(item: dict) -> str:
-    """How the control is installed: mobile, trailer, fixed or archive.
+    """How the control is installed: mobile, trailer or fixed.
 
     The *value* of the flags is what counts, not the presence of the key:
     the API has been seen sending "partly_fixed": "0" - a control explicitly
@@ -114,8 +102,6 @@ def control_form(item: dict) -> str:
     turned six of those into trailers across the sampled regions. The map
     itself tests the value too.
     """
-    if is_archive(item):
-        return "archive"
     info = item_info(item)
     if str(info.get("fixed", "")) == "1":
         return "fixed"
@@ -304,7 +290,7 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         self.blacklist = _comma_set(config_entry.data.get(CONF_BLACKLIST))
 
         # A control is filtered on two axes, and both have to say yes:
-        # how it is installed (mobile / trailer / fixed / archive) and what
+        # how it is installed (mobile / trailer / fixed) and what
         # it measures (speed, red light, distance, weight, ...). Splitting
         # them apart is what makes "only section controls" or "everything
         # except dummies" expressible at all - before, sixteen different
@@ -333,11 +319,6 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         if self.forms['fixed']:
             control_types = control_types + wanted(TYPE_FIXED)
         self.control_types = control_types
-        # Kept out of control_types on purpose: the archive gets a request of
-        # its own, so that its sheer volume cannot push live controls out of
-        # the ~500 a single response carries.
-        self.archive_types = wanted(TYPE_ARCHIVE) if self.forms['archive'] else []
-        self.want_archive = bool(self.archive_types)
 
         # Hazards: everything Blitzer.de reports that is not a control. Every
         # one of them is off unless switched on, so an entry that predates
@@ -375,7 +356,7 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         tick_minutes = [
             minutes
             for wanted, minutes in (
-                (self.control_types or self.want_archive, self.control_interval),
+                (self.control_types, self.control_interval),
                 (self.hazard_types, self.hazard_interval),
             )
             if wanted and minutes != UPDATE_INTERVAL_MANUAL
@@ -565,7 +546,7 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             self._forced.clear()
 
             # Once per pass, not once per request: a poll that asks for
-            # controls, the archive and hazards would otherwise read the
+            # controls and hazards would otherwise read the
             # tracker three times and could search three different circles.
             # Skipped entirely when neither half is due, so a tracker that
             # is briefly without a fix doesn't fail a pass that was not
@@ -691,22 +672,14 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         """Query and filter the controls."""
         types = self.control_types
 
-        if not types and not self.want_archive:
+        if not types:
             # Every installation form switched off. Worth having now that an
             # entry can be about hazards alone: asking for an empty type list
             # is answered with 200 and a body that has nothing to do with
             # what was asked, so the request is simply skipped.
             return []
 
-        controls = await self._query(types) if types else []
-
-        if self.want_archive:
-            # Appended after the live controls, never merged into their
-            # request: the archive is numerous enough to fill a response on
-            # its own, and coming last means the configured maximum is spent
-            # on current ones before archived ones.
-            controls = controls + await self._query(self.archive_types)
-
+        controls = await self._query(types)
         return self._filter_controls(controls)
 
     def _filter_controls(self, controls):
@@ -791,8 +764,7 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
     async def _fetch_route_combined(self):
         """One route pass that asks for the control and hazard types at once,
         then splits the answer back apart by type code and filters each half
-        as its own fetch would. The archive keeps its own request (see
-        _fetch_controls). Only called for a route entry with both halves due
+        as its own fetch would. Only called for a route entry with both halves due
         (see _update), so each point's box is a small corridor square whose
         answer cannot approach the endpoint's ~500-entry limit.
         """
@@ -800,8 +772,6 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         hazard_codes = {str(code) for code in self.hazard_types}
         raw_hazards = [i for i in items if str(i.get("type", "")) in hazard_codes]
         raw_controls = [i for i in items if str(i.get("type", "")) not in hazard_codes]
-        if self.want_archive:
-            raw_controls = raw_controls + await self._query(self.archive_types)
         return self._filter_controls(raw_controls), self._filter_hazards(raw_hazards)
 
     def _route_sample_points(self):

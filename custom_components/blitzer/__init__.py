@@ -520,7 +520,6 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             # for the fixed type codes whenever either switch was on, so
             # either switch has to keep the form on now.
             "fixed": old_fixed or old_redlight,
-            "archive": old.get("archive", False),
         }
         kinds = dict(KIND_DEFAULTS)
         if old_fixed and not old_redlight:
