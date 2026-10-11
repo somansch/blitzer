@@ -1266,6 +1266,38 @@
   // whatever the version: events, the centre and the viewport, a jump to a
   // point, and the three things a route is drawn with - a line, a dot and a
   // numbered label - plus a fit to a set of points.
+  // Home Assistant 2026.9 draws the streets under a Leaflet map through a
+  // plugin that defers part of its work to the next frame after a resize or
+  // a zoom - its _transitionEnd - and runs it whether or not the layer is
+  // still on a map by then. A map taken down in between, which a pop-up
+  // closing, a view switch or a card rebuilding its map all do, leaves that
+  // frame reading a null map: "Cannot read properties of null (reading
+  // 'getZoom')", reported by the frontend into Home Assistant's log. Every
+  // such frame is scheduled through Leaflet's own scheduler, so that is
+  // taught to drop a callback whose layer has been removed. Once per
+  // Leaflet, for every map on the page; 2026.10's MapLibre engine does not
+  // go through here.
+  function guardLeafletPlugin(L) {
+    try {
+      const util = L && L.Util;
+      if (!util || util.__blitzerGuarded || typeof util.requestAnimFrame !== "function") return;
+      const raf = util.requestAnimFrame;
+      util.requestAnimFrame = function (fn, context, immediate) {
+        if (context && typeof fn === "function" && "_glMap" in context) {
+          const guarded = function () {
+            if (!context._map || !context._glMap) return undefined;
+            return fn.apply(this, arguments);
+          };
+          return raf.call(this, guarded, context, immediate);
+        }
+        return raf.call(this, fn, context, immediate);
+      };
+      util.__blitzerGuarded = true;
+    } catch (err) {
+      // A Leaflet without that scheduler has nothing to guard.
+    }
+  }
+
   function mapHandles(haMap) {
     if (!haMap) return null;
 
@@ -1329,6 +1361,7 @@
 
     // Through 2026.9.
     if (haMap.leafletMap && haMap.Leaflet && typeof haMap.leafletMap.getBounds === "function") {
+      guardLeafletPlugin(haMap.Leaflet);
       return leafletHandles(haMap.Leaflet, haMap.leafletMap);
     }
 
@@ -1336,6 +1369,7 @@
     if (!engine) return null;
     // 2026.10's Leaflet fallback: the same Leaflet, one level down.
     if (engine.leafletMap && engine.Leaflet && typeof engine.leafletMap.getBounds === "function") {
+      guardLeafletPlugin(engine.Leaflet);
       return leafletHandles(engine.Leaflet, engine.leafletMap);
     }
     // 2026.10's MapLibre engine. The route goes on as one of the engine's
