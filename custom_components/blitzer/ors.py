@@ -12,7 +12,7 @@ services take the key in the Authorization header: without one they answer
 
 from __future__ import annotations
 
-from math import atan2, cos, degrees, radians, sin
+from math import asin, atan2, cos, degrees, radians, sin, sqrt
 import logging
 
 from aiohttp import ClientError
@@ -64,6 +64,13 @@ VIA_BEARING_DEVIATION = 100
 ALTERNATIVE_ROUTES = 3
 ALTERNATIVE_WEIGHT_FACTOR = 1.6
 ALTERNATIVE_SHARE_FACTOR = 0.6
+# The public service offers alternatives only up to 100 km ("Distance
+# (alternative & round trip): 100 km" on its restrictions page), measured
+# as the straight line between the points, and answers a longer request
+# with error 2004 - which used to come back as "the route is too long",
+# although the route itself is fine. So a longer route is asked for as the
+# one way there is.
+ALTERNATIVES_MAX_M = 100_000
 
 CORRIDOR_SAMPLES = 40
 MIN_CORRIDOR_M = 300
@@ -226,6 +233,14 @@ class ORSClient:
             "coordinates": [[lon, lat] for lat, lon in points],
             "instructions": False,
         }
+        if alternatives and len(points) == 2 and _straight_m(points) >= ALTERNATIVES_MAX_M:
+            _LOGGER.debug(
+                "route of about %.0f km as the crow flies is beyond openrouteservice's "
+                "%d km limit for alternatives; asking for the one route",
+                _straight_m(points) / 1000,
+                ALTERNATIVES_MAX_M // 1000,
+            )
+            alternatives = False
         if alternatives and len(points) == 2:
             request["alternative_routes"] = {
                 "target_count": ALTERNATIVE_ROUTES,
@@ -246,6 +261,16 @@ class ORSClient:
                 [],
             ]
         try:
+            body = await self._call("POST", DIRECTIONS_URL, json=request)
+        except ORSLimitExceeded:
+            # The limit for alternatives is lower than the one for a route,
+            # and its measure is the service's own - so a request that still
+            # went over it is made again as a plain one before the limit is
+            # taken to be the route's.
+            if "alternative_routes" not in request:
+                raise
+            _LOGGER.debug("openrouteservice refused the alternatives; asking for the one route")
+            request.pop("alternative_routes", None)
             body = await self._call("POST", DIRECTIONS_URL, json=request)
         except ORSParameterError:
             if "bearings" not in request and "alternative_routes" not in request:
@@ -302,6 +327,19 @@ async def async_save_key(hass: HomeAssistant, api_key: str) -> None:
 async def async_forget_key(hass: HomeAssistant) -> None:
     await _store(hass).async_remove()
     hass.data.pop(_STORE_DATA, None)
+
+
+def _straight_m(points: list[tuple[float, float]]) -> float:
+    """The points' straight-line length in metres, leg by leg - the measure
+    openrouteservice applies its alternatives limit to."""
+    total = 0.0
+    for (lat1, lon1), (lat2, lon2) in zip(points, points[1:]):
+        p1, p2 = radians(lat1), radians(lat2)
+        dphi = p2 - p1
+        dlmb = radians(lon2 - lon1)
+        h = sin(dphi / 2) ** 2 + cos(p1) * cos(p2) * sin(dlmb / 2) ** 2
+        total += 2 * 6_371_000 * asin(sqrt(h))
+    return total
 
 
 def _bearing(a: tuple[float, float], b: tuple[float, float]) -> float:

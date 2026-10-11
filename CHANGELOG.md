@@ -2,6 +2,11 @@
 
 All notable changes to this integration are documented here.
 
+## v4.0.1
+
+### Fixed
+- **A route of more than 100 km can be set up again.** Setting up a start/destination route longer than that - as the crow flies, between the two ends - stopped with "The route is too long for openrouteservice, or has too many points". The route was not: openrouteservice offers its alternatives only up to 100 km and refuses the request for them beyond, and the refusal was read as the route's. Such a route is now asked for as the one way there is, and the wizard goes on with it; up to 100 km it still offers up to three.
+
 ## v4.0.0
 
 > **Important: every area or route that polled faster than once an hour polls once an hour after this update - both halves, once.** Through v3.3.2 a new entry polled once a minute, and an entry keeps the interval it was made with - so the new hourly default alone would never have reached the ones that exist, and those are the ones Blitzer.de blocks for asking too often. The update sets them to the default and says so in the log, naming the entry. An interval of 0 (on demand only) and one already longer than an hour are left as they are. Shorten it again under **Configure** / **Konfigurieren** if you must - the entry's **Request count** says what it costs. A new entry starts at that hourly default too, where it used to start at a minute - Blitzer.de blocks an address that asks too often, and a route of a few dozen points polled every minute was measured to get there within hours.
