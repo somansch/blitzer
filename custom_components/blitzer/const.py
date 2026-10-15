@@ -227,6 +227,9 @@ CONF_ORS_DESTINATION = "ors_destination"
 # The switch on a new route's last screen that makes the way back as a
 # second entry. A form field only - never stored.
 CONF_ORS_RETURN_ROUTE = "ors_return_route"
+# The way back's own name, on the form that creates both entries. A form
+# field only; the return entry stores it as its CONF_NAME.
+CONF_ORS_RETURN_NAME = "ors_return_name"
 CONF_ORS_VIAS = "ors_vias"
 CONF_ROUTE_DISTANCE = "route_distance"
 CONF_ROUTE_DURATION = "route_duration"
@@ -240,6 +243,38 @@ ORS_KIND_ADDRESS = "address"
 # openrouteservice takes up to 50 points per request; far fewer vias than
 # that are needed to pin a commute to the road it actually takes.
 MAX_ORS_VIAS = 20
+
+# Which service works a start/destination route out. openrouteservice once,
+# when the route is set up - the default, and what every entry from before
+# the choice has - or TomTom on every poll, with the traffic of the moment:
+# the route the traffic makes fastest right now, its travel time, and how
+# much of that is delay. Each service has a key of its own.
+CONF_ROUTE_SERVICE = "route_service"
+ROUTE_SERVICE_ORS = "ors"
+ROUTE_SERVICE_TOMTOM = "tomtom"
+CONF_TOMTOM_API_KEY = "tomtom_api_key"
+TOMTOM_SIGNUP_URL = "https://developer.tomtom.com/"
+# When a live route is kept up to date: the weekdays, and the time of day
+# from one to the other. Outside those hours the entry does not poll at all
+# - neither TomTom nor Blitzer.de - until a refresh action asks; a commute
+# needs no requests at night. No day ticked, or the same time on both
+# ends, means always.
+CONF_LIVE_DAYS = "live_days"
+CONF_LIVE_FROM = "live_from"
+CONF_LIVE_UNTIL = "live_until"
+LIVE_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+# The way back's own hours, on the form that creates both entries - it is
+# driven at another time of day. Form fields only; the return entry stores
+# them as its CONF_LIVE_FROM / CONF_LIVE_UNTIL.
+CONF_LIVE_BACK_FROM = "live_back_from"
+CONF_LIVE_BACK_UNTIL = "live_back_until"
+# Fired when a live route's fastest way becomes a different one - after
+# the first route of a run, which is only ever the start of knowing.
+EVENT_ROUTE_CHANGED = f"{DOMAIN}_route_changed"
+# Under hass.data[DOMAIN]: the entry whose sensors carry the month's TomTom
+# total. One sensor for all entries, so one entry has to carry it - the
+# first TomTom entry to set up, and the next one up once it is gone.
+TOMTOM_TOTAL_OWNER = "tomtom_total_owner"
 
 # How far from the route line a report may lie and still count as on the
 # route. The boxes a route is searched in are hundreds of metres wide and

@@ -15,6 +15,7 @@ from homeassistant.helpers.selector import selector
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_ORS_RETURN_NAME,
     CONF_ORS_RETURN_ROUTE,
     CONF_BLACKLIST,
     CONF_KINDS,
@@ -59,10 +60,22 @@ from .const import (
     MIN_ROUTE_TOLERANCE,
     ORS_KIND_ADDRESS,
     ORS_SIGNUP_URL,
+    CONF_LIVE_BACK_FROM,
+    CONF_LIVE_BACK_UNTIL,
+    CONF_LIVE_DAYS,
+    CONF_LIVE_FROM,
+    CONF_LIVE_UNTIL,
+    CONF_ROUTE_SERVICE,
+    CONF_TOMTOM_API_KEY,
+    LIVE_DAYS,
+    ROUTE_SERVICE_ORS,
+    ROUTE_SERVICE_TOMTOM,
+    TOMTOM_SIGNUP_URL,
     ORS_KIND_POINT,
     ORS_KIND_ZONE,
     tracker_position,
 )
+from .tomtom import TomTomClient
 from .ors import (
     ALTERNATIVE_ROUTES,
     async_load_saved_key,
@@ -411,6 +424,10 @@ def _ors_route_schema(
     hazard_defaults=None,
     hazard_optional_defaults=None,
     offer_return=False,
+    return_name_default="",
+    live=False,
+    live_defaults=None,
+    live_back=False,
 ):
     """The waypoint route's settings, less the corridor width.
 
@@ -419,8 +436,9 @@ def _ors_route_schema(
     offer a setting the next route change silently replaces.
 
     `offer_return` adds the switch that creates the way back as a second
-    entry - on creation only: an entry being edited already has, or has
-    not, its counterpart.
+    entry, and the field for that entry's name, filled with the usual one -
+    on creation only: an entry being edited already has, or has not, its
+    counterpart.
     """
     return vol.Schema(
         {
@@ -428,7 +446,17 @@ def _ors_route_schema(
                 vol.Coerce(int),
                 vol.Range(min=MIN_ROUTE_TOLERANCE, max=MAX_ROUTE_TOLERANCE),
             ),
-            **({vol.Required(CONF_ORS_RETURN_ROUTE, default=False): bool} if offer_return else {}),
+            **(
+                {
+                    vol.Required(CONF_ORS_RETURN_ROUTE, default=False): bool,
+                    vol.Optional(CONF_ORS_RETURN_NAME, default=return_name_default): str,
+                }
+                if offer_return
+                else {}
+            ),
+            # A live route's hours: which days, and from when to when. Only
+            # offered for one, since a stored route costs nothing to keep.
+            **(_live_fields(live_defaults or {}, back=live_back) if live else {}),
             **_flags_field(CONF_TYPE, type_defaults, FORM_DEFAULTS, "control_form"),
             **_flags_field(CONF_KINDS, kind_defaults, KIND_DEFAULTS, "control_kind"),
             **_flags_field(CONF_HAZARDS, hazard_defaults, HAZARD_DEFAULTS, "hazard_type"),
@@ -436,6 +464,35 @@ def _ors_route_schema(
             vol.Required('hazard_optional'): _hazard_optional_section(hazard_optional_defaults),
         }
     )
+
+
+def _live_fields(defaults: dict, back: bool = False) -> dict:
+    """The fields that say when a live route is kept up to date: the days,
+    from when to when - and, while the way back is on offer, from when to
+    when for that one, since it is driven at another time of day."""
+    hours = {
+        vol.Optional(CONF_LIVE_BACK_FROM, default="00:00:00"): selector({"time": {}}),
+        vol.Optional(CONF_LIVE_BACK_UNTIL, default="00:00:00"): selector({"time": {}}),
+    } if back else {}
+    return {
+        vol.Optional(CONF_LIVE_DAYS, default=list(defaults.get(CONF_LIVE_DAYS) or LIVE_DAYS)): selector(
+            {
+                "select": {
+                    "multiple": True,
+                    "mode": "list",
+                    "options": list(LIVE_DAYS),
+                    "translation_key": "live_days",
+                }
+            }
+        ),
+        vol.Optional(CONF_LIVE_FROM, default=defaults.get(CONF_LIVE_FROM) or "00:00:00"): selector(
+            {"time": {}}
+        ),
+        vol.Optional(CONF_LIVE_UNTIL, default=defaults.get(CONF_LIVE_UNTIL) or "00:00:00"): selector(
+            {"time": {}}
+        ),
+        **hours,
+    }
 
 
 def _common_data(user_input: dict) -> dict:
@@ -509,7 +566,7 @@ def _same_place(a, b) -> bool:
 def _ors_error_key(err: ORSError) -> str:
     # The form only says what kind of problem it was; the log keeps what
     # openrouteservice actually said, which is what a bug report needs.
-    _LOGGER.warning("openrouteservice: %s", err)
+    _LOGGER.warning("routing service: %s", err)
     for kind, key in _ORS_ERRORS:
         if isinstance(err, kind):
             return key
@@ -544,14 +601,83 @@ class _OrsRouteSteps:
     _ors_failure: str | None = None
     # An address found but not yet taken: shown back before it becomes an end.
     _ors_pending: dict | None = None
+    # Which service works the route out - see CONF_ROUTE_SERVICE. Picked on
+    # the first screen of a new route, kept by an entry being edited.
+    _route_service: str = ROUTE_SERVICE_ORS
+    # Whether _ors_route is the stored route rather than one this flow
+    # worked out: a live route is asked for again then, so the screen says
+    # what the way takes right now, not what it took when it was set up.
+    _ors_route_saved: bool = False
 
     def _ors_saved(self) -> dict:
         return {}
 
+    # --- the service ---------------------------------------------------
+
+    def _live(self) -> bool:
+        return self._route_service == ROUTE_SERVICE_TOMTOM
+
+    def _ors_key_conf(self) -> str:
+        """Under which key an entry keeps its own key for this service."""
+        return CONF_TOMTOM_API_KEY if self._live() else CONF_ORS_API_KEY
+
+    def _usage_entry_id(self) -> str | None:
+        """Whose TomTom count a lookup of this flow goes on: the entry being
+        edited, or - while one is being set up - none yet, so the total only."""
+        return None
+
+    def _route_client(self, key):
+        if self._live():
+            return TomTomClient(self.hass, key, self._usage_entry_id())
+        return ORSClient(self.hass, key)
+
+    def _ors_key_step_id(self) -> str:
+        return "tomtom_key" if self._live() else "ors_key"
+
+    def _ors_route_step_id(self) -> str:
+        return "tomtom_route" if self._live() else "ors_route"
+
+    def _ors_key_placeholders(self) -> dict:
+        return {"url": TOMTOM_SIGNUP_URL if self._live() else ORS_SIGNUP_URL}
+
+    async def async_step_ors_service(self, user_input=None):
+        """Which service works the route out: once, or live with the traffic."""
+        if user_input is not None:
+            service = user_input[CONF_ROUTE_SERVICE]
+            if service != self._route_service:
+                # A different service is a different route - and a
+                # different key.
+                self._ors_route = None
+                self._ors_alternatives = None
+                self._ors_key = None
+                self._ors_key_in_entry = False
+            self._route_service = service
+            if await async_load_saved_key(self.hass, service):
+                return await self._ors_after_key()
+            return await self.async_step_ors_key()
+        return self.async_show_form(
+            step_id="ors_service",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_ROUTE_SERVICE, default=self._route_service): selector(
+                        {
+                            "select": {
+                                "options": [ROUTE_SERVICE_ORS, ROUTE_SERVICE_TOMTOM],
+                                "translation_key": "route_service",
+                                "mode": "list",
+                            }
+                        }
+                    )
+                }
+            ),
+            last_step=False,
+        )
+
     def _ors_load_saved(self) -> None:
         """Pick up where a saved route entry left off, for editing it."""
         saved = self._ors_saved()
-        self._ors_key = saved.get(CONF_ORS_API_KEY)
+        self._route_service = saved.get(CONF_ROUTE_SERVICE, ROUTE_SERVICE_ORS)
+        self._ors_key = saved.get(self._ors_key_conf())
         self._ors_key_in_entry = bool(self._ors_key)
         self._ors_start = saved.get(CONF_ORS_START)
         self._ors_destination = saved.get(CONF_ORS_DESTINATION)
@@ -566,6 +692,7 @@ class _OrsRouteSteps:
             if points
             else None
         )
+        self._ors_route_saved = bool(points)
 
     def _ors_home(self) -> tuple[float, float]:
         return (self.hass.config.latitude, self.hass.config.longitude)
@@ -573,12 +700,12 @@ class _OrsRouteSteps:
     # --- the key -------------------------------------------------------
 
     async def _ors_api_key(self) -> str | None:
-        """The key to call openrouteservice with: this route's own, else the saved one."""
-        return self._ors_key or await async_load_saved_key(self.hass)
+        """The key to call the routing service with: this route's own, else the saved one."""
+        return self._ors_key or await async_load_saved_key(self.hass, self._route_service)
 
     async def async_step_ors_key(self, user_input=None):
         errors = {}
-        saved_key = await async_load_saved_key(self.hass)
+        saved_key = await async_load_saved_key(self.hass, self._route_service)
         has_key = bool(self._ors_key or saved_key)
         if user_input is not None:
             # Left empty, the field keeps the key already there.
@@ -587,12 +714,12 @@ class _OrsRouteSteps:
                 errors["base"] = "api_key_required"
             else:
                 try:
-                    await ORSClient(self.hass, key).async_check_key(*self._ors_home())
+                    await self._route_client(key).async_check_key(*self._ors_home())
                 except ORSError as err:
                     errors["base"] = _ors_error_key(err)
                 else:
                     if user_input.get(CONF_ORS_SAVE_KEY, True):
-                        await async_save_key(self.hass, key)
+                        await async_save_key(self.hass, key, self._route_service)
                         self._ors_key = None
                         self._ors_key_in_entry = False
                     else:
@@ -606,7 +733,7 @@ class _OrsRouteSteps:
         # the field empty instead.
         key_field = vol.Optional(CONF_ORS_API_KEY) if has_key else vol.Required(CONF_ORS_API_KEY)
         return self.async_show_form(
-            step_id="ors_key",
+            step_id=self._ors_key_step_id(),
             data_schema=vol.Schema(
                 {
                     key_field: selector({"text": {"type": "password"}}),
@@ -616,9 +743,17 @@ class _OrsRouteSteps:
                 }
             ),
             errors=errors,
-            description_placeholders={"url": ORS_SIGNUP_URL},
+            description_placeholders=self._ors_key_placeholders(),
             last_step=False,
         )
+
+    # The same screen under TomTom's name, with its own text: a flow's
+    # step is called by the id the form was shown under.
+    async def async_step_tomtom_key(self, user_input=None):
+        return await self.async_step_ors_key(user_input)
+
+    async def async_step_tomtom_route(self, user_input=None):
+        return await self.async_step_ors_route(user_input)
 
     async def _ors_after_key(self):
         return await self.async_step_ors_start()
@@ -699,8 +834,8 @@ class _OrsRouteSteps:
             else:
                 text = user_input["address"].strip()
                 try:
-                    lat, lon, label = await ORSClient(
-                        self.hass, await self._ors_api_key()
+                    lat, lon, label = await self._route_client(
+                        await self._ors_api_key()
                     ).async_geocode(text, self._ors_home())
                 except ORSError as err:
                     errors["base"] = _ors_error_key(err)
@@ -789,7 +924,7 @@ class _OrsRouteSteps:
                 self._ors_pending = None
                 return await self._ors_accept(end, pending)
             try:
-                lat, lon, label = await ORSClient(self.hass, await self._ors_api_key()).async_geocode(
+                lat, lon, label = await self._route_client(await self._ors_api_key()).async_geocode(
                     text, self._ors_home()
                 )
             except ORSError as err:
@@ -874,6 +1009,20 @@ class _OrsRouteSteps:
     # only a flow that makes the first can make it.
     _offers_return = False
 
+    def _return_name(self) -> str:
+        """The way back's name unless one is typed: only a new entry offers
+        the way back, so only the flow that makes one says."""
+        return ""
+
+    def _name_taken(self, name: str) -> bool:
+        """Whether an entry of this name exists - the one being made here
+        included, which is not an entry yet."""
+        wanted = slugify(name)
+        return wanted == slugify(getattr(self, "_name", "") or "") or any(
+            slugify(entry.data.get(CONF_NAME, "")) == wanted
+            for entry in self.hass.config_entries.async_entries(DOMAIN)
+        )
+
     def _ors_points(self) -> list[tuple[float, float]]:
         return [
             (self._ors_start["latitude"], self._ors_start["longitude"]),
@@ -888,11 +1037,23 @@ class _OrsRouteSteps:
         vias = list(self._ors_vias or [])
         return {
             CONF_SEARCH_MODE: SEARCH_MODE_ROUTE_ORS,
+            CONF_ROUTE_SERVICE: self._route_service,
             # Only a route keeping its own key stores one; the rest use the
             # saved key, and a key changed there reaches them all.
             **(
-                {CONF_ORS_API_KEY: self._ors_key}
+                {self._ors_key_conf(): self._ors_key}
                 if self._ors_key_in_entry and self._ors_key
+                else {}
+            ),
+            # A live route's hours, and nothing of the kind for a stored one.
+            # The way back has hours of its own on the same form.
+            **(
+                {
+                    CONF_LIVE_DAYS: list(user_input.get(CONF_LIVE_DAYS) or []),
+                    CONF_LIVE_FROM: user_input.get(CONF_LIVE_BACK_FROM if reverse else CONF_LIVE_FROM) or "00:00:00",
+                    CONF_LIVE_UNTIL: user_input.get(CONF_LIVE_BACK_UNTIL if reverse else CONF_LIVE_UNTIL) or "00:00:00",
+                }
+                if self._live()
                 else {}
             ),
             CONF_ORS_START: self._ors_destination if reverse else self._ors_start,
@@ -915,28 +1076,37 @@ class _OrsRouteSteps:
             route = self._ors_route
             data = self._ors_entry_data(route, user_input)
             if user_input.get(CONF_ORS_RETURN_ROUTE):
-                # The way back is worked out before either entry exists, so a
-                # failure leaves nothing half done: the form comes back with
-                # the reason, both switches as they were.
-                key = await self._ors_api_key()
-                try:
-                    back = await ORSClient(self.hass, key).async_route(self._ors_points()[::-1])
-                except ORSError as err:
-                    errors["base"] = _ors_error_key(err)
+                # The way back's name first: one already in use would make
+                # the second entry fail quietly after the first is made.
+                # Then the way back itself, worked out before either entry
+                # exists, so a failure leaves nothing half done: the form
+                # comes back with the reason, both switches as they were.
+                back_name = (user_input.get(CONF_ORS_RETURN_NAME) or "").strip() or self._return_name()
+                if self._name_taken(back_name):
+                    errors[CONF_ORS_RETURN_NAME] = "return_name_taken"
                 else:
-                    self._ors_create_return(self._ors_entry_data(back, user_input, reverse=True))
+                    key = await self._ors_api_key()
+                    try:
+                        back = await self._route_client(key).async_route(self._ors_points()[::-1])
+                    except ORSError as err:
+                        errors["base"] = _ors_error_key(err)
+                    else:
+                        self._ors_create_return(
+                            self._ors_entry_data(back, user_input, reverse=True), back_name
+                        )
             if not errors:
                 return await self._ors_finish(data)
 
-        if not self._ors_route:
+        if not self._ors_route or (self._live() and self._ors_route_saved):
             key = await self._ors_api_key()
             if not key:
                 return await self.async_step_ors_key()
             try:
-                routes = await ORSClient(self.hass, key).async_routes(self._ors_points())
+                routes = await self._route_client(key).async_routes(self._ors_points())
             except ORSError as err:
                 self._ors_failure = _ors_error_key(err)
                 return await self.async_step_ors_route_failed()
+            self._ors_route_saved = False
             if len(routes) > 1:
                 self._ors_alternatives = routes
                 return await self.async_step_ors_alternatives()
@@ -945,11 +1115,16 @@ class _OrsRouteSteps:
         route = self._ors_route
         distance = route.get("distance")
         duration = route.get("duration")
+        delay = route.get("delay")
         return self.async_show_form(
-            step_id="ors_route",
+            step_id=self._ors_route_step_id(),
             data_schema=_ors_route_schema(
                 tolerance_default=saved.get(CONF_ROUTE_TOLERANCE, DEFAULT_ROUTE_TOLERANCE),
                 offer_return=self._offers_return,
+                return_name_default=self._return_name(),
+                live=self._live(),
+                live_defaults=saved,
+                live_back=self._offers_return,
                 **_route_options_kwargs(saved),
             ),
             errors=errors,
@@ -959,6 +1134,7 @@ class _OrsRouteSteps:
                 "vias": str(len(self._ors_vias or [])),
                 "distance": f"{distance / 1000:.1f}" if distance is not None else "?",
                 "duration": str(round(duration / 60)) if duration is not None else "?",
+                "delay": str(round(delay / 60)) if delay is not None else "?",
                 # Referenced by no text. blitzer-card.js watches for a flow step
                 # carrying it and draws these points on a native map above the
                 # form - a flow has no field that can draw a line.
@@ -1055,6 +1231,8 @@ class _OrsRouteSteps:
         if user_input is not None:
             if self._ors_failure == "invalid_api_key":
                 return await self.async_step_ors_key()
+            # A live route that failed on the way: the service's limits
+            # are not the points' doing.
             return await self.async_step_ors_start()
         return self.async_show_form(
             step_id="ors_route_failed",
@@ -1103,10 +1281,8 @@ class BlitzerdeConfigFlow(_OrsRouteSteps, ConfigFlow, domain=DOMAIN):
             if user_input[CONF_SEARCH_MODE] == SEARCH_MODE_TRACKER:
                 return await self.async_step_tracker()
             if user_input[CONF_SEARCH_MODE] == SEARCH_MODE_ROUTE_ORS:
-                # A key saved with an earlier route is used without asking.
-                if await async_load_saved_key(self.hass):
-                    return await self.async_step_ors_start()
-                return await self.async_step_ors_key()
+                # First which service, then its key - unless one is saved.
+                return await self.async_step_ors_service()
             return await self.async_step_area()
 
         data_schema = vol.Schema(
@@ -1258,15 +1434,18 @@ class BlitzerdeConfigFlow(_OrsRouteSteps, ConfigFlow, domain=DOMAIN):
             title=f"Blitzer.de {self._name}", data={CONF_NAME: self._name, **data}
         )
 
-    def _ors_create_return(self, data: dict) -> None:
-        """The way back as an entry of its own, named after this one.
+    def _return_name(self) -> str:
+        suffix = "Rückweg" if self.hass.config.language.startswith("de") else "return"
+        return f"{self._name} - {suffix}"
+
+    def _ors_create_return(self, data: dict, name: str) -> None:
+        """The way back as an entry of its own, under the name the form
+        gave it - this entry's with "return" added unless one was typed.
 
         Through a flow of its own rather than a second async_create_entry,
         which a flow has only one of. Started rather than awaited: this flow
         is still open, and the other must not wait for it.
         """
-        suffix = "Rückweg" if self.hass.config.language.startswith("de") else "return"
-        name = f"{self._name} - {suffix}"
         self.hass.async_create_task(
             self.hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": SOURCE_IMPORT}, data={CONF_NAME: name, **data}
@@ -1302,6 +1481,9 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
         self._existing_waypoints: list[dict] = []
         self._review_index: int = 0
 
+    def _usage_entry_id(self) -> str | None:
+        return self.config_entry.entry_id
+
     async def async_step_init(self, user_input=None):
         """Configure options for Met."""
         mode = self.config_entry.data.get(CONF_SEARCH_MODE, SEARCH_MODE_AREA)
@@ -1313,7 +1495,7 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
             self._ors_load_saved()
             return self.async_show_menu(
                 step_id="init",
-                menu_options=["edit_route", "edit_ors_settings", "edit_ors_key"],
+                menu_options=["edit_route", "edit_ors_settings", "edit_route_service", "edit_ors_key"],
             )
         if mode == SEARCH_MODE_ROUTE:
             # Editing waypoints is a multi-screen wizard, so it's split from
@@ -1353,6 +1535,11 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
 
     async def async_step_edit_ors_key(self, user_input=None):
         return await self.async_step_ors_key()
+
+    async def async_step_edit_route_service(self, user_input=None):
+        # Switching the service works the route out afresh with the other
+        # one, after its key: the ends and vias stay as they are.
+        return await self.async_step_ors_service()
 
     def _ors_saved(self) -> dict:
         return dict(self.config_entry.data)

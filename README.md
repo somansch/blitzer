@@ -27,6 +27,7 @@ Typical reasons to use it:
 - **Get more than speed cameras.** Red light cameras, section controls, tunnel cameras, distance, weight, height and lane checks, entrance and access controls, overtaking bans, police checks and dummies. Seventeen kinds, each tickable on its own.
 - **Get traffic hazards too.** Tailbacks with the length of the queue and the delay it costs, plus accidents, roadworks, obstacles, broken-down vehicles, road blocks and official bulletins.
 - **See how the traffic is flowing.** The card's map colours the roads the way Blitzer.de's own map does, fetched for the view on screen while you look - so a watched commute shows the jam building before a tailback is reported. Home Assistant 2026.10 or newer; see [Traffic flow](#traffic-flow).
+- **Know how long the way takes right now.** With TomTom as the routing service the route is worked out on every poll with the traffic of the moment: the way that is fastest right now, the minutes it takes and how many of them are delay, as sensors and on the card - and the reports on exactly that way. See [Live traffic with TomTom](#live-traffic-with-tomtom).
 - **Watch a commute rather than a circle.** Draw a corridor along waypoints. No external routing engine needed.
 - **Poll each half at its own pace.** A tailback is stale within a minute. A permanent roadwork is still there next week. Each interval costs its own request.
 - **Print a report in one line.** Every entity carries a ready-made `summary`, so a card or a notification uses one field instead of six.
@@ -63,6 +64,7 @@ That is the whole setup. Everything below covers the individual options in more 
   - [Device tracker (radius) / Gerätetracker (Radius)](#device-tracker-radius--gerätetracker-radius) - a circle that follows a phone or a car
   - [Route (waypoints) / Route (Wegpunkte)](#route-waypoints--route-wegpunkte)
   - [Route (start/destination) / Route (Start/Ziel)](#route-startdestination--route-startziel) - a route worked out by openrouteservice
+    - [Live traffic with TomTom](#live-traffic-with-tomtom) - the route the traffic makes fastest right now, its travel time and its delay
 
 **How reports behave**
 
@@ -289,6 +291,105 @@ Editing a route entry via **Configure** / **Konfigurieren** first asks what to e
 - **Change the openrouteservice API key** / **openrouteservice-API-Key ändern**. A saved key changed here changes for every route that uses it.
 
 On the [Blitzer card](#blitzer-card), the map of a route entry - this mode or the waypoint one - shows the route itself, fitted into view when the card first draws it, with the reports on top of it - and with nothing reported, the route alone, so a commute that is empty most of the day still has its map. **Show the route on the map** / **Route in der Karte einzeichnen** under the card's map switch turns that off; **Layout → Map** sets the line's colour and width.
+
+### Live traffic with TomTom
+
+A start/destination route is worked out by openrouteservice once, when it is set up, and stays as it is: openrouteservice knows the roads but not the traffic. Pick **TomTom** as the routing service on the first screen of a new route - **Routing service** / **Routen-Dienst** - and the route is worked out again on every poll, with the traffic of the moment: the way that is fastest right now, how long it takes, and how much of that is delay. The Blitzer.de search runs along that route, so the reports are the ones on the way you would actually take, and the card draws the route as it is now.
+
+<img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-tomtom-route.png" alt="The card on a live TomTom route from Potsdam to Berlin: the travel time of 35 minutes large under the badges with the refresh button beside it, the line under it reading incl. +2 min traffic and 32.3 km, the route drawn on the map with the traffic flow coloured along it and a scale bar in the corner, the Controls and Hazards switches on the right, and the list with a speed camera trailer and an official closure on the A100" width="100%">
+
+What you get on top of the ordinary route entry:
+
+| | |
+|---|---|
+| **Travel time** / **Fahrzeit** | A sensor in minutes: the route right now, traffic included. Attributes carry the time without traffic, the delay, the length in km, when it was last worked out and when the fastest way last became a different one. |
+| **Traffic delay** / **Verzögerung** | A sensor in minutes: how much of the travel time the way costs beyond a free road - the travel time less the time without traffic, so roadworks at a crawl count as much as a jam. Same attributes. |
+| **Route length** / **Streckenlänge** | A sensor in kilometres - miles on an instance that measures in them: how long the way is right now, since the fastest way changes with the traffic. Same attributes. |
+| **TomTom requests this month** / **TomTom-Abfragen diesen Monat** | A diagnostic sensor counting this entry's requests to TomTom in the current calendar month - every request that got an answer, the setup's lookups made under **Configure** included. It starts at nought on the first of the month; the month before stays readable as `previous_month_requests`. |
+| **TomTom requests this month, all entries** / **TomTom-Abfragen diesen Monat, alle Einträge** | One more sensor, on no device: every TomTom request of the month across all entries, with the lookups of setting up a new route, which have no entry yet. This is the figure to hold against TomTom's free 20,000. |
+| On the card | The travel time, large under the title, with the refresh button beside it saying when the entry last fetched. Under it how much of that is traffic - *incl. +9 min traffic*; TomTom's travel time already contains the delay - coloured by two thresholds, green below 5 minutes, yellow from 5, red from 15, all three set under **Layout → Traffic delay** / **Verzögerung**, followed by the route's name and its length right now. In the minimal format the same stands in its pop-up, right of the map and above the list. With **Show the travel time** / **Fahrzeit anzeigen** off, the subtitle line reads *Route 38 min (+9)* instead. |
+| `blitzer_route_changed` | An event, fired when the fastest way becomes a different one than at the poll before, with the new `distance`, `duration` and `delay` (metres and seconds) and the entry's `area`. Not for the first route after a restart. |
+| **Hours** / **Zeiten** | On the route's last screen: which days, and from when to when the route is kept up to date. Outside those hours the entry does not poll at all - neither TomTom nor Blitzer.de - until a refresh action asks. No day ticked, or the same time at both ends, means always. A way back created along with the route gets hours of its own on the same screen, since it is driven at another time of day. |
+
+**The key.** TomTom's is free and needs no payment method: sign up at [developer.tomtom.com](https://developer.tomtom.com/), and the dashboard's **API & SDK Keys** page already lists one, *My First API key*, with every API enabled - the Routing API, the Geocoding API and the Reverse Geocoding API among them, the three used here (the two geocoding ones look addresses up and check the key). Copy it from there. 20,000 requests a month are free; a commute polled every 10 minutes within two hours morning and evening on weekdays takes about 530 of them. Saved once, the key serves every further TomTom route, like the openrouteservice key does.
+
+**What stays the same.** Start, destination and via points are picked the same way, with a zone, a point on the map or an address; **Distance from the route** filters the same way; the way back can be created as a second entry, under a name of your own or this entry's with *return* added. There is no *Which way?* screen: the fastest way right now is the one, and the next poll may make it another. An existing openrouteservice route switches to TomTom under **Configure** → **Change the routing service**, keeping its ends and via points. After a restart the search runs along the stored route until the first live one has arrived.
+
+**What it costs.** One TomTom request per poll, plus the Blitzer.de requests along the route as for any route entry - the entry's **Request count** says what those are. A route that did not change between two polls keeps its search boxes; only a different route moves them.
+
+**A message in the morning when the way takes too long.** The automation below fires on every poll of the travel time, and goes through only on a weekday morning, only while the way takes more than 40 minutes, and only once a day - the last condition reads the automation's own `last_triggered`, so no helper is needed. The message carries the time against the time without traffic, the length, and then every tailback and every control on the route, nearest first, each as the summary line its entity already carries. The entry here is named *Commute*; put your own name in `area` and your entity ids in the three sensors, and your phone in the notify action.
+
+<details>
+<summary>YAML</summary>
+
+```yaml
+alias: Commute - morning warning
+description: Once a weekday morning, when the way to work takes more than 40 minutes, with the jams and the controls on it.
+triggers:
+  - trigger: state
+    entity_id: sensor.commute_travel_time
+conditions:
+  - condition: time
+    after: "06:00:00"
+    before: "09:00:00"
+    weekday: [mon, tue, wed, thu, fri]
+  - condition: numeric_state
+    entity_id: sensor.commute_travel_time
+    above: 40
+  - condition: template
+    value_template: >-
+      {{ this.attributes.last_triggered is none
+         or now() - this.attributes.last_triggered > timedelta(hours=20) }}
+actions:
+  - action: notify.mobile_app_your_phone
+    data:
+      title: "Commute: {{ states('sensor.commute_travel_time') }} min right now"
+      message: |
+        {%- set area = 'Commute' -%}
+        {%- set reports = expand(integration_entities('blitzer') | select('search', '^geo_location\.') | list)
+             | selectattr('attributes.area', 'eq', area) | list -%}
+        {%- set ns = namespace(jams=[], controls=[]) -%}
+        {%- for r in reports -%}
+          {%- if r.attributes.type == 'tailback_end' -%}
+            {%- set ns.jams = ns.jams + [(r.state | float(0), r.attributes.summary)] -%}
+          {%- elif r.attributes.source.endswith('_controls') -%}
+            {%- set ns.controls = ns.controls + [(r.state | float(0), r.attributes.summary)] -%}
+          {%- endif -%}
+        {%- endfor -%}
+        🚗 {{ states('sensor.commute_travel_time') }} min, {{ state_attr('sensor.commute_travel_time', 'travel_time_no_traffic_minutes') }} without traffic, {{ states('sensor.commute_route_length') }} km
+        {% if ns.jams -%}
+        🚧 Jams:
+        {%- for d, s in ns.jams | sort %}
+        • km {{ '%.1f' | format(d) }}: {{ s }}
+        {%- endfor %}
+        {%- else -%}
+        🚧 No jam reported
+        {%- endif %}
+        {% if ns.controls -%}
+        📷 Controls:
+        {%- for d, s in ns.controls | sort %}
+        • km {{ '%.1f' | format(d) }}: {{ s }}
+        {%- endfor %}
+        {%- else -%}
+        📷 No control reported
+        {%- endif %}
+mode: single
+```
+
+</details>
+
+What arrives, on a bad morning:
+
+```
+Commute: 52 min right now
+🚗 52 min, 31 without traffic, 33.1 km
+🚧 Jams:
+• km 12.4: End of tailback · 1.6 km · 12 km/h · +9 min · A8, Dachau
+• km 27.0: End of tailback · 0.8 km · 20 km/h · +4 min · Landshuter Allee, München
+📷 Controls:
+• km 21.3: Speedcamera · 60 km/h · Landshuter Allee, München
+• km 29.8: Speedcam inside tunnel · 60 km/h · Richard-Strauss-Straße, München
+```
 
 ## Created entities
 
@@ -564,14 +665,15 @@ Everything it draws is already in the frontend's own state. The reports are `geo
 |---|---|
 | `portrait` | The map above, the list below. The default. |
 | `landscape` | Map and list side by side. |
-| `minimal` | One line carrying two or three numbers - everything the area reports, what of it is still new, and what the jams among it cost - each opening the pop-up on what it counted. Built for a dense dashboard, or for a section where a card of full height would be one too many. |
+| `minimal` | One line carrying up to four parts - everything the area reports, what of it is still new, what the jams among it cost, and on a live TomTom route how long it takes right now, coloured by its delay - each opening the pop-up on what it counted. Built for a dense dashboard, or for a section where a card of full height would be one too many. |
 
 The picture at the top of this page shows all three side by side.
 
 ### What it can do
 
 - **Pick the area on the card**, or pin it to one. Several areas on one card share a dropdown; a card pinned to a single area drops it.
-- **Show controls, hazards or both**, switchable on the card itself.
+- **Show controls, hazards or both**, with two switches on the card itself, under the area dropdown. Both off shows nothing, and the card says so.
+- **Show how long a live route takes right now.** On a route TomTom keeps live, the travel time stands large under the title, and the line under it says how much of it is traffic, in green, yellow or red by thresholds of your choosing - see [Live traffic with TomTom](#live-traffic-with-tomtom).
 - **A map that mirrors the list, or drives it.** Clicking an entry can centre the map on that report; the list can restrict itself to what the map currently shows, so panning the map is a way of asking a different question.
 - **Draw a route on the map.** A route entry's route - the one openrouteservice worked out, or the straight lines between hand-placed waypoints - is drawn underneath the reports and fitted into view when the card first draws it. **Show the route on the map** / **Route in der Karte einzeichnen** turns it off; **Layout → Map** sets the line's colour and width, and the **Grouped reports** / **Zusammengefasste Meldungen** block beside it recolours the discs the map gathers nearby reports into. On a route entry every distance is the way along the route from its start, so the list reads in driving order.
 - **Keep the map when nothing is reported.** On by default: an area with nothing to report still has its map, fitted to the circle it searches - drawn as a dashed line around its centre, or around the tracker it follows - and a route to its route. So a commute that is empty most of the day, or an area watched for its traffic flow alone, is never a blank card. **Keep the map when nothing is reported** / **Karte auch ohne Meldungen zeigen** under the map switch turns it off, and the map then goes until something is reported.
@@ -581,16 +683,16 @@ The picture at the top of this page shows all three side by side.
 - **Mark what is new.** The threshold is the area's own, set on its device page, so the card and every automation agree on what "new" means. A badge next to the title counts them; each entry carries a tag.
 - **Say what the jams cost.** Where reports carry a delay - Blitzer.de sends one on a tailback, not on a roadwork - a red badge beside the NEW one adds them up: *+10 min*, *+1 h 35 min*. Clicking it narrows the card and the map to exactly those reports, the same way the NEW badge narrows them to what is new; clicking it again, or the other badge, lets go. **Show what the jams cost** / **Zeigen, was die Staus kosten** switches the badge off; it has its own block under **Layout → General**, with the same colour, background, font and switches the NEW marker has. With the list following the map it counts what is on screen, like the number beside it.
 
-  In the [minimal format](#formats) the same switch draws a third part of the line instead of a badge - *+22 min* after the total and the new count, in the same red - and a tap on it opens the pop-up on those reports alone. It stays there at *0 min*, quiet and not pressable, the way the new part does at nought (the total at nought stays pressable while the map is set to stay - see `map_always` - since the pop-up then has the area's map to show): a line that gained and lost a third of itself every time a jam cleared would move everything under it each time. Its own block under **Layout → General** sets its colour, its fill and its symbol, and on a narrow card the words go first, then the type steps down, so the figure is never cut off.
+  In the [minimal format](#formats) the same switch draws a third part of the line instead of a badge - *+22 min* after the total and the new count, in the same red and without a word beside it - and a tap on it opens the pop-up on those reports alone. It stays there at *0 min*, quiet and not pressable, the way the new part does at nought (the total at nought stays pressable while the map is set to stay - see `map_always` - since the pop-up then has the area's map to show): a line that gained and lost a third of itself every time a jam cleared would move everything under it each time. Its own block under **Layout → General** sets its colour, its fill and its symbol, and on a narrow card the words go first, then the type steps down, so the figure is never cut off.
 - **Fold a long list** after a number of entries you choose, with a chevron to open the rest.
-- **Refresh on demand**, with a button at the end of the subtitle line. Worth having above all on an area set to poll manually - an update interval of `0`.
+- **Refresh on demand**, with a button at the end of the subtitle line - beside the travel time on a live route - that also says how long ago the area was last fetched. Worth having above all on an area set to poll manually - an update interval of `0`.
 - **A tap action in the minimal format.** Home Assistant's own set: more-info, navigate, URL, an action, toggle, or nothing. Left on **Default** the tap opens the pop-up, which is what the format is for.
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-route-delay.png" alt="A route entry on the card: the red badge adding up what the jams cost, switched on so that card, list and map show only the reports costing time - two tailbacks with their queue length, speed and delay" width="50%">
 
 ### Traffic flow
 
-**Show the traffic flow** / **Verkehrsfluss anzeigen** under the map switch colours the roads by how traffic is moving on them, from green through yellow and red to dark red, grey where nothing is known - the same colours and the same speed steps as Blitzer.de's own map (motorways: 30/50/70/90/110 km/h, other roads: 5/15/25/40/60). It is not polled: an area polls once an hour, and traffic is stale within minutes, so instead the card asks for the view it is showing while it is on screen - one request to Blitzer.de for the view, another after a pan or a zoom, and a fresh one every three minutes as long as the card stays visible; a hidden tab or a dashboard nobody has open costs nothing. The integration snaps the view to a kilometre grid and keeps the answer for a minute and a half, so two cards on one view, or a small pan, share a request. Those requests count on the area's **Request count** like any other. Zoomed out beyond about 250 km the layer stays empty rather than fetching a whole country. On a route entry only the route itself is coloured, in its direction of travel: Blitzer.de reports each carriageway as a line of its own, running the way its traffic drives, so the other carriageway and the ramps of an interchange are left out by heading, the way a tailback on the other carriageway is. A waypoint route, whose straight lines leave the road on the bends, takes what runs the same way inside its corridor. **Layout → Map** sets the lines' width and opacity. With the option on, a line under the subtitle - and under the title of the minimal format's pop-up - carries a switch to show or hide the flow on the map for the moment, says when it was last fetched, and has a refresh button of its own that fetches it again right away. Needs Home Assistant 2026.10 or newer.
+**Show the traffic flow** / **Verkehrsfluss anzeigen** under the map switch colours the roads by how traffic is moving on them, from green through yellow and red to dark red, grey where nothing is known - the same colours and the same speed steps as Blitzer.de's own map (motorways: 30/50/70/90/110 km/h, other roads: 5/15/25/40/60). It is not polled: an area polls once an hour, and traffic is stale within minutes, so instead the card asks for the view it is showing while it is on screen - one request to Blitzer.de for the view, another after a pan or a zoom, and a fresh one every three minutes as long as the card stays visible; a hidden tab or a dashboard nobody has open costs nothing. The integration snaps the view to a kilometre grid and keeps the answer for a minute and a half, so two cards on one view, or a small pan, share a request. Those requests count on the area's **Request count** like any other. Zoomed out beyond about 250 km the layer stays empty rather than fetching a whole country. On a route entry only the route itself is coloured, in its direction of travel: Blitzer.de reports each carriageway as a line of its own, running the way its traffic drives, so the other carriageway and the ramps of an interchange are left out by heading, the way a tailback on the other carriageway is. A waypoint route, whose straight lines leave the road on the bends, takes what runs the same way inside its corridor. **Layout → Map** sets the lines' width and opacity. With the option on, a switch under the ones for controls and hazards - and one under the title of the minimal format's pop-up - shows or hides the flow on the map for the moment, and the button beside it says when the flow was last fetched and fetches it again right away; **Offer the Traffic flow switch** / **Schalter für Verkehrsfluss anbieten** under **Content** takes both away and leaves the flow drawn. Needs Home Assistant 2026.10 or newer.
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-traffic-flow.png" alt="The card on an area in Munich with the traffic flow on: every street coloured by how its traffic moves, green through yellow to red, one speed camera trailer marked among them, and the line under the subtitle with the flow's switch, the time of its last fetch and its own refresh button" width="45%"> <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-traffic-delay.png" alt="The card on a route from Berlin to Munich with the traffic flow on: only the route itself coloured, green where traffic moves and red where it stands, the two tailbacks on it marked, and the NEW and the +13 min badges counting them" width="45%">
 
@@ -657,6 +759,7 @@ The options that decide what the card *is*, rather than how it is drawn:
 | `show_map` / `show_list` | `true` / `true` | The two halves of the card, and of the pop-up in the minimal format. |
 | `map_aspect_ratio` | `16:9` | The map's shape. |
 | `map_always` | `true` | Keep the map while nothing is reported, fitted to the area as it is set up - the circle around its centre or its tracker, drawn as a dashed line - or to the route. Off takes the map down until something is reported. |
+| `map_scale` | `true` | A scale bar in the map's bottom left corner, in metres and kilometres or - on an instance measuring in miles - feet and miles. |
 | `map_route` | `true` | Draw a route entry's route on the map. |
 | `map_closures` | `true` | Draw an official closure's stretch of road as a red band on the map. |
 | `map_traffic` | `false` | Colour the roads by how traffic is moving on them, the way Blitzer.de's map does - see [What it can do](#what-it-can-do). On a route entry only the route itself, in its direction of travel. Home Assistant 2026.10 or newer; the editor greys the switch out on older versions. |
@@ -668,10 +771,14 @@ The options that decide what the card *is*, rather than how it is drawn:
 | `cluster_font_size` / `cluster_bold` / `cluster_italic` / `cluster_underline` | *(the map's)* / `false` | The count's size and style. |
 | `follow_map` | `true` | Restrict the list to what the map shows - in the minimal format, the pop-up's list to the pop-up's map. |
 | `center_on_click` | `true` | A click on an entry centres the map on it. |
-| `show_area_picker` / `show_filter_picker` | `true` / `true` | The two dropdowns. |
+| `show_area_picker` / `show_filter_picker` | `true` / `true` | The area dropdown, and the Controls and Hazards switches under it. |
+| `show_traffic_switch` | `true` | The traffic flow's own switch and refresh button under those two. Off draws the flow without them. |
+| `show_travel_time` | `true` | A live TomTom route's travel time, large under the title, with the line saying how much of it is traffic - in the minimal format, in the pop-up. |
+| `mini_show_travel` | `true` | Minimal format: the line's fourth part, the live route's travel time, coloured by the delay thresholds; its colours per level are under **Layout → Travel time on the line**. |
+| `delay_warn_minutes` / `delay_alert_minutes` | `5` / `15` | From how many minutes of delay that line turns yellow, and red. `delay_ok_color`, `delay_warn_color` and `delay_alert_color` replace the three colours. |
 | `show_title` / `show_count` / `show_new` / `show_delay` / `show_sub` | `true` | The parts of the head. |
 | `show_row_closure` | `true` | The "Since ..." and "Until ..." chips on an official closure, dated the way the reported and confirmed chips are (`21.09.2026`). |
-| `show_refresh` | `true` | The refresh button at the end of the subtitle line. |
+| `show_refresh` | `true` | The refresh button at the end of the subtitle line, or beside a live route's travel time, with how long ago the area was last fetched. |
 | `mini_tap_action` | *(opens the pop-up)* | Minimal format: what a tap on any part of the line does. |
 | `mini_show_total` | `true` | Minimal format: show the total next to the new count. |
 
@@ -722,9 +829,10 @@ Which suffixes an element takes depends on what it is made of:
 | `--blitzer-new-` | New marker - the badge, and the tag in the card's own list | ✓ | ✓ | ✓ | | |
 | `--blitzer-delay-` | The delay badge beside it - what the jams cost | ✓ | ✓ | ✓ | | |
 | `--blitzer-no-reports-` | Text without reports | ✓ | ✓ | | | |
+| `--blitzer-travel-time-` | A live route's travel time | ✓ | ✓ | | | |
 | `--blitzer-area-select-` | Area dropdown | ✓ | ✓ | ✓ | | |
-| `--blitzer-filter-select-` | Filter dropdown | ✓ | ✓ | ✓ | | |
-| `--blitzer-refresh-` | Refresh button | | | | ✓ | |
+| `--blitzer-switch-` | The switches' labels - controls, hazards, traffic flow | ✓ | ✓ | | | |
+| `--blitzer-refresh-` | Refresh buttons - the area's and the traffic flow's | ✓ | ✓ | ✓ | ✓ | |
 | `--blitzer-row-picture-` | An entry's symbol | | | | | ✓ |
 | `--blitzer-row-line1-` | Distance and kind | ✓ | ✓ | | | |
 | `--blitzer-row-line2-` | Place | ✓ | ✓ | | ✓ | |

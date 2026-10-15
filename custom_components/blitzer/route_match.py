@@ -15,6 +15,7 @@ free of anything Home Assistant, so it can be checked on its own.
 
 from __future__ import annotations
 
+import re
 from math import cos, hypot, radians
 
 _METERS_PER_DEGREE = 111320.0
@@ -50,6 +51,28 @@ _MAX_CROSSING_COS = 0.5
 # under the motorway, and that one crosses.
 _ALONG_TOLERANCES = 4.0
 _ALONG_SHARE = 0.5
+
+# A closure whose text names the direction it is for - "A8 Vollsperrung AS
+# Flughafen-Messe FR München", "A3 Würzburg Richtung Frankfurt", "A8:
+# Karlsruhe -> München" - is drawn with its points running that way, as
+# every such closure checked was. On a motorway the other carriageway lies
+# well inside the distance, so a long closure there used to count as on the
+# route; one with a direction now has to run the route's way as well. A
+# text closing both directions, or naming none, keeps the direction-blind
+# rule: its line's order says nothing.
+_DIRECTED = re.compile(r"\b(FR|RiFa|Fahrtrichtung|Richtung)\b|->|→")
+_BOTH_WAYS = re.compile(r"beide[nr]?\s+(Fahrt)?[Rr]ichtung|in beiden", re.IGNORECASE)
+
+# A line that names no direction is judged by where it lies: the route
+# runs on the carriageway of its own direction, and with traffic keeping
+# right, the other carriageway is to the left of it - 20 m and more on a
+# motorway, measured - while an exit, a ramp or a parallel lane on the
+# route's own side is to the right. So a line whose middle runs this far to
+# the left is the other carriageway's, whichever way its points happen to
+# run; a line on a single-carriageway road lies within a few metres either
+# side and is kept. Points keep their distance alone: a camera is placed
+# by a phone, and 50 m of scatter is not a side.
+OTHER_CARRIAGEWAY_M = 20.0
 
 
 def decode_polyline(encoded: str, precision: int = 5) -> list[tuple[float, float]]:
@@ -236,6 +259,32 @@ class RouteLine:
                 )
         return best
 
+    def side_offset(self, line: list[tuple[float, float]], tolerance: float) -> float | None:
+        """Which side of the route another line runs on, and how far: the
+        median signed distance of its pieces within `tolerance` metres of
+        the route, negative to the left of the route's direction of travel,
+        positive to the right. None when no piece comes within reach."""
+        offsets = []
+        xy = [self._project(p) for p in line]
+        for (p, q), ((ax, ay), (bx, by)) in zip(zip(line, line[1:]), zip(xy, xy[1:])):
+            if ax == bx and ay == by:
+                continue
+            mid = ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)
+            dist, _, segment = self.nearest(mid, within=tolerance)
+            if dist > tolerance:
+                continue
+            (sx, sy), (ex, ey) = self._xy[segment], self._xy[min(segment + 1, len(self._xy) - 1)]
+            mx, my = (ax + bx) / 2, (ay + by) / 2
+            rx, ry = ex - sx, ey - sy
+            # The cross product's sign: positive puts the point to the left
+            # of the route's direction, in these east/north coordinates.
+            cross = rx * (my - sy) - ry * (mx - sx)
+            offsets.append(-dist if cross > 0 else dist)
+        if not offsets:
+            return None
+        offsets.sort()
+        return offsets[len(offsets) // 2]
+
     def length_within(self, line: list[tuple[float, float]], tolerance: float) -> tuple[float, float]:
         """How much of another line runs within `tolerance` metres of the
         route, and how long that line is, both in metres.
@@ -330,7 +379,7 @@ def on_route(route: RouteLine, item: dict, info: dict, tolerance: float) -> bool
     if route.distance_to_line(geometry, within=tolerance) > tolerance:
         return False
     if str(item.get("type")) != TYPE_TAILBACK:
-        return _runs_along_route(route, geometry, tolerance)
+        return _runs_along_route(route, geometry, tolerance, directed=is_directed(item))
     return _runs_with_route(route, geometry[0], geometry[-1], tolerance)
 
 
@@ -417,16 +466,31 @@ def crosses_route(route: RouteLine, item: dict, info: dict, tolerance: float) ->
     geometry = report_geometry(item, info)
     if len(geometry) < 2 or str(item.get("type")) == TYPE_TAILBACK:
         return False
-    return not _runs_along_route(route, geometry, tolerance)
+    return not _runs_along_route(route, geometry, tolerance, directed=is_directed(item))
 
 
-def _runs_along_route(route: RouteLine, line, tolerance: float) -> bool:
-    """Whether a line report runs along the route rather than across it."""
+def is_directed(item: dict) -> bool:
+    """Whether a report's text names one direction of travel - see _DIRECTED."""
+    info = item.get("info")
+    text = item.get("reason") or (info.get("reason") if isinstance(info, dict) else "") or ""
+    text = str(text)
+    return bool(_DIRECTED.search(text)) and not _BOTH_WAYS.search(text)
+
+
+def _runs_along_route(route: RouteLine, line, tolerance: float, directed: bool = False) -> bool:
+    """Whether a line report runs along the route rather than across it -
+    and, for one that names its direction, the route's way along it."""
     near, total = route.length_within(line, tolerance)
     if near <= 0:
         return False
     if near >= _ALONG_TOLERANCES * tolerance:
-        return True
+        if directed:
+            _, along, _ = route.length_along(line, tolerance)
+            return along >= _ALONG_SHARE * near
+        # No direction in its text: the other carriageway is told by its
+        # side - see OTHER_CARRIAGEWAY_M.
+        offset = route.side_offset(line, tolerance)
+        return offset is None or offset > -OTHER_CARRIAGEWAY_M
     if near < _ALONG_SHARE * total:
         return False
     # Short and mostly within reach: along the route only if it also heads

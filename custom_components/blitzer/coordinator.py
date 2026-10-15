@@ -21,7 +21,9 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util import location as location_util
 
 from .api import BlitzerdeAPI, APIConnectionError
+from .ors import ORSError, async_load_saved_key, corridor_width_for
 from .route_match import RouteLine, crosses_route, on_route
+from .tomtom import TomTomClient
 from .const import DOMAIN
 
 from .const import (
@@ -38,6 +40,18 @@ from .const import (
     CONF_NEW_MINUTES,
     CONF_SEARCH_MODE,
     CONF_ROUTE_TOLERANCE,
+    CONF_LIVE_DAYS,
+    CONF_LIVE_FROM,
+    CONF_LIVE_UNTIL,
+    CONF_ORS_DESTINATION,
+    CONF_ORS_START,
+    CONF_ORS_VIAS,
+    CONF_ROUTE_SERVICE,
+    CONF_TOMTOM_API_KEY,
+    EVENT_ROUTE_CHANGED,
+    LIVE_DAYS,
+    ROUTE_SERVICE_ORS,
+    ROUTE_SERVICE_TOMTOM,
     CONF_TRACKER,
     CONF_TRACKER_RADIUS,
     CONF_UPDATE_INTERVAL,
@@ -254,6 +268,20 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         # be judged off the route.
         self._route_line = None
         self.route_tolerance = None
+        # Which service a start/destination route came from, and - for a
+        # live one - the route as the traffic of the moment makes it, which
+        # replaces the stored one on every poll (see _refresh_live_route):
+        # its travel time, delay and length under self.live, and when the
+        # fastest way last became a different one. The stored route is what
+        # the search runs along until the first live one has arrived.
+        self.route_service = None
+        # Whether a pass has ever tried to reach Blitzer.de: a live route
+        # outside its hours, or an entry set to manual only, polls nothing
+        # on purpose, which setup must not take for a server not answering.
+        self.attempted_fetch = False
+        self.live: dict | None = None
+        self.route_changed_at: datetime | None = None
+        self._route_signature = None
         if self.search_mode in ROUTE_MODES:
             self.location = None
             self.waypoints = config_entry.data[CONF_WAYPOINTS]
@@ -266,6 +294,8 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
                 self.route_tolerance = config_entry.data.get(
                     CONF_ROUTE_TOLERANCE, DEFAULT_ROUTE_TOLERANCE
                 )
+            if self.search_mode == SEARCH_MODE_ROUTE_ORS:
+                self.route_service = config_entry.data.get(CONF_ROUTE_SERVICE, ROUTE_SERVICE_ORS)
         elif self.search_mode == SEARCH_MODE_TRACKER:
             # The centre is read off the tracker on every poll, so there is
             # nothing to know here yet - only which entity to ask and how
@@ -543,7 +573,19 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             previous = self.data
             fetch_controls = self._is_due("controls", self.control_interval)
             fetch_hazards = self._is_due("hazards", self.hazard_interval)
+            forced = bool(self._forced)
             self._forced.clear()
+
+            # A live route: outside the hours set for it nothing polls at all
+            # - the refresh actions excepted - and inside them the route of
+            # the moment comes first, since the search runs along it.
+            if self.route_service == ROUTE_SERVICE_TOMTOM and (fetch_controls or fetch_hazards):
+                if not forced and not self._in_live_window(dt_util.now()):
+                    _LOGGER.debug("%s: outside its hours, nothing polled", self.displayname)
+                    return previous or BlitzerdeAPIData(controls=[], hazards=[])
+                await self._refresh_live_route()
+            if fetch_controls or fetch_hazards:
+                self.attempted_fetch = True
 
             # Once per pass, not once per request: a poll that asks for
             # controls and hazards would otherwise read the
@@ -603,6 +645,88 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         except APIConnectionError as err:
             # This will show entities as unavailable by raising UpdateFailed exception
             raise UpdateFailed(f"Error communicating with API: {err}") from err
+
+    def _in_live_window(self, now: datetime) -> bool:
+        """Whether a live route is kept up to date right now - see
+        CONF_LIVE_DAYS: no day ticked, or the same time at both ends, is
+        always; a span past midnight wraps."""
+        data = self.entry.data
+        days = data.get(CONF_LIVE_DAYS) or []
+        if days and LIVE_DAYS[now.weekday()] not in days:
+            return False
+        start, end = data.get(CONF_LIVE_FROM) or "", data.get(CONF_LIVE_UNTIL) or ""
+        if not start or not end or start == end:
+            return True
+        try:
+            minutes = lambda text: int(text[:2]) * 60 + int(text[3:5])  # noqa: E731
+            begin, finish, current = minutes(start), minutes(end), now.hour * 60 + now.minute
+        except (TypeError, ValueError):
+            return True
+        if begin < finish:
+            return begin <= current < finish
+        return current >= begin or current < finish
+
+    def _live_points(self) -> list[tuple[float, float]]:
+        """Start, vias and destination of a start/destination route."""
+        data = self.entry.data
+        ends = [data.get(CONF_ORS_START) or {}, *(data.get(CONF_ORS_VIAS) or []), data.get(CONF_ORS_DESTINATION) or {}]
+        return [(float(p["latitude"]), float(p["longitude"])) for p in ends if p.get("latitude") is not None]
+
+    async def _refresh_live_route(self) -> None:
+        """Ask TomTom for the route as the traffic makes it right now, and
+        put the search on it.
+
+        The route's times go under self.live for the two sensors whatever
+        happens to its line; the line is swapped only when it is a
+        different one, so an unchanged route costs nothing downstream. A
+        changed one moves the search corridor with it and - after the first
+        route of this run, which is only the start of knowing - fires
+        EVENT_ROUTE_CHANGED. A failed request keeps the route the search
+        has, says so in the log, and leaves the error with the sensors.
+        """
+        key = self.entry.data.get(CONF_TOMTOM_API_KEY) or await async_load_saved_key(
+            self.hass, ROUTE_SERVICE_TOMTOM
+        )
+        points = self._live_points()
+        if len(points) < 2:
+            return
+        try:
+            route = await TomTomClient(self.hass, key, self.entry_id).async_route(points)
+        except ORSError as err:
+            _LOGGER.warning("%s: TomTom gave no route this time: %s", self.displayname, err)
+            self.live = {**(self.live or {}), "error": str(err)}
+            return
+        now = dt_util.now()
+        self.live = {
+            "duration": route.get("duration"),
+            "delay": route.get("delay"),
+            "duration_no_traffic": route.get("duration_no_traffic"),
+            "distance": route.get("distance"),
+            "at": now,
+            "error": None,
+        }
+        signature = tuple((round(lat, 4), round(lon, 4)) for lat, lon in route["points"])
+        if signature == self._route_signature:
+            return
+        first = self._route_signature is None
+        self._route_signature = signature
+        self.waypoints = [{"latitude": lat, "longitude": lon} for lat, lon in route["points"]]
+        self._route_line = RouteLine(route["points"])
+        if route.get("distance"):
+            self.corridor_width = corridor_width_for(route["distance"])
+        self.route_changed_at = now
+        if first:
+            return
+        self.hass.bus.async_fire(
+            EVENT_ROUTE_CHANGED,
+            {
+                "config_entry_id": self.entry_id,
+                "area": self.displayname,
+                "distance": route.get("distance"),
+                "duration": route.get("duration"),
+                "delay": route.get("delay"),
+            },
+        )
 
     def _resolve_centre(self) -> None:
         """In tracker mode, put the tracker's current position into

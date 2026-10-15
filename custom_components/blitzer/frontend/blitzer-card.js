@@ -79,7 +79,6 @@
       edLayoutHelp: "Portrait stacks the map over the list, landscape puts them side by side. Minimal is one line with what is new, and the reports behind it in a pop-up.",
       miniLabelTotal: "total",
       miniLabelNew: "new",
-      miniLabelDelay: "delay",
       edMiniIconHelp: "Any MDI name, drawn in front of the number. Empty leaves the number on its own.",
       edMiniIconColorHelp: "Empty takes the colour of the number beside it.",
       edMiniIconSizeHelp: "How large the symbol is drawn, e.g. 22px. Empty keeps its usual size.",
@@ -110,8 +109,27 @@
       edPopNewBgHelp: "Background color behind that NEW tag.",
       edMiniTap: "Tap action",
       edMiniTapHelp: "What a tap on either of the two numbers does. On \"Default\" it opens the pop-up on the reports that number counts, which is what the format is for.",
-      edMiniTotal: "Show the total",
-      edMiniTotalHelp: "The part of the minimal line counting how many reports the area has at all. Off leaves the line to the other parts.",
+      edMiniGroupButtons: "Buttons",
+      edMiniGroupButtonsHelp: "The parts of the minimal line, left to right. Each is a button that opens the pop-up on what it shows.",
+      edMiniGroupPop: "Pop-up",
+      edMiniGroupPopHelp: "What the pop-up behind the line shows.",
+      edMiniNew: "New",
+      edMiniNewHelp: "How many of the reports are new.",
+      edMiniDelay: "Delay",
+      edMiniDelayHelp: "What the jams among the reports cost, in minutes.",
+      edMiniTravel: "Travel time",
+      edMiniTravelHelp: "How long a route TomTom keeps live takes right now, coloured by its delay. Nothing on other entries.",
+      edElMiniTravel: "Travel time on the line",
+      edElMiniTravelHelp: "The part of the minimal line saying how long the route takes right now. Its symbol, its background and its text each take a colour by how much of the time is traffic: one below the yellow threshold, one from it, one from the red threshold on.",
+      edMiniTravelLevelOk: "Below yellow",
+      edMiniTravelLevelWarn: "From yellow",
+      edMiniTravelLevelAlert: "From red",
+      edMiniTravelIconColorHelp: "The symbol's colour at this level. Empty takes the line's usual grey below yellow, and the threshold's own colour from it.",
+      edMiniTravelColorHelp: "The time's colour at this level. Empty takes the line's usual text colour below yellow, and the threshold's own colour from it.",
+      edMiniTravelFillHelp: "The fill behind the part at this level. Empty leaves it clear below yellow, and tints it in the threshold's own colour from it.",
+      edMiniTravelFontHelp: "Font size for the travel time on the line.",
+      edMiniTotal: "Total",
+      edMiniTotalHelp: "How many reports the area has.",
       layoutPortrait: "Portrait",
       layoutLandscape: "Landscape",
       layoutMinimal: "Minimal",
@@ -133,17 +151,23 @@
       edNothing: "Text when nothing is reported",
       edNothingHelp: "What the card says when the area has nothing to show. Empty keeps its own wording.",
       edShowDelay: "Show what the jams cost",
-      edShowDelayHelp: "The red badge beside the NEW one, adding up the delay of every report on this card that carries one - and narrowing the card to those reports when it is clicked. In the minimal format it is the third part of the line instead, which opens the pop-up on those reports. Off, the delay stays in each report's own summary and nothing is added up.",
+      edShowDelayHelp: "The badge beside the NEW one, adding up the delay of every report on this card that carries one - and narrowing the card to those reports when it is clicked. Off, the delay stays in each report's own summary and nothing is added up.",
       edShowNew: "Show and mark new reports",
-      edShowNewHelp: "Marks fresh reports as NEW, and draws the new part of the minimal line. How long something counts as new is set on the area in Home Assistant - one window for controls, one for hazards.",
+      edShowNewHelp: "The NEW badge beside the title, counting fresh reports, and the NEW tag on each of them in the list. How long something counts as new is set on the area in Home Assistant - one window for controls, one for hazards.",
       edSubIcon: "Icon",
-      edSubIconHelp: "Any Material Design icon, drawn in front of the line. Empty draws none.",
+      edSubIconHelp: "Any Material Design icon, drawn in front of the line. Empty draws none. Not drawn under a live route's travel time, where the traffic line leads instead.",
       edSubIconColor: "Icon color",
       edSubIconColorHelp: "Empty takes the colour of the line itself.",
       edSubIconSize: "Icon size",
       edSubIconSizeHelp: "A font size, like the one above: the icon is drawn as tall as a capital letter of it. Empty follows the line itself.",
       edShowSub: "Show the subtitle line",
-      edShowSubHelp: "The line under the title. Off drops it and everything it says.",
+      edShowSubHelp: "The line under the title - on a route TomTom keeps live, the line under its travel time. Off drops it and everything it says.",
+      edShowTravelTimePop: "Show the travel time",
+      edShowTravelTimePopHelp: "On a route TomTom keeps live: how long it takes right now, large in the pop-up - right of its map, above its list - with the refresh button beside it and under it how much of that is traffic. The line itself does not show it.",
+      edTrafficSwitch: "Offer the Traffic flow switch",
+      edTrafficSwitchHelp: "The switch under the two above that shows or hides the traffic flow on the map for the moment, with the button beside it that says when the flow was last fetched and fetches it again. Off, the flow is drawn without either. Only while the traffic flow is on under General.",
+      edShowTravelTime: "Show the travel time",
+      edShowTravelTimeHelp: "On a route TomTom keeps live: how long it takes right now, large under the title with the refresh button beside it, and under that how much of it is traffic. The subtitle line's parts then follow on that line. Other entries have no travel time and keep the subtitle line as it is.",
       edGroupContent: "Content",
       edGroupRows: "List",
       edCollapse: "Fold the rest away",
@@ -214,14 +238,30 @@
       edAreaPickerBackgroundHelp: "The dropdown's own filled background.",
       edAreaPickerBg: "Background color",
       edAreaPickerBgHelp: "Background color of the area dropdown.",
-      edElFilterPicker: "Filter dropdown",
-      edElFilterPickerHelp: "How the dropdown that picks what is shown is drawn.",
-      edFilterPickerColorHelp: "Text color for the filter dropdown.",
-      edFilterPickerFontHelp: "Font size for the filter dropdown.",
-      edFilterPickerBackground: "Show background",
-      edFilterPickerBackgroundHelp: "The dropdown's own filled background.",
-      edFilterPickerBg: "Background color",
-      edFilterPickerBgHelp: "Background color of the filter dropdown.",
+      edElSwitch: "Switches",
+      edElSwitchHelp: "The switches under the area dropdown: controls, hazards and the traffic flow.",
+      edSwitchColorHelp: "Text color of the switches' labels.",
+      edSwitchFontHelp: "Font size of the switches' labels.",
+      edSwitchTrack: "Switch color",
+      edSwitchTrackHelp: "The color of a switch that is on. Empty takes the theme's.",
+      edElTravelTime: "Travel time",
+      edElTravelTimeHelp: "The large travel time of a route TomTom keeps live.",
+      edTravelTimeColorHelp: "Text color of the travel time.",
+      edTravelTimeFontHelp: "Font size of the travel time.",
+      edElDelayLine: "Traffic delay",
+      edElDelayLineHelp: "The line under the travel time that says how much of it is traffic - colored by how much: below the first threshold in the first color, from it in the second, from the second threshold in the third.",
+      edDelayWarn: "Yellow from",
+      edDelayWarnHelp: "Minutes of delay from which the line takes the second color - yellow unless it is changed below.",
+      edDelayAlert: "Red from",
+      edDelayAlertHelp: "Minutes of delay from which the line takes the third color - red unless it is changed below.",
+      edDelayOkColor: "Color below yellow",
+      edDelayOkColorHelp: "No delay, or less than the yellow threshold. Empty takes the theme's success color.",
+      edDelayWarnColor: "Color from yellow",
+      edDelayWarnColorHelp: "From the yellow threshold on. Empty takes the theme's warning color.",
+      edDelayAlertColor: "Color from red",
+      edDelayAlertColorHelp: "From the red threshold on. Empty takes the theme's error color.",
+      edDelayLineFontHelp: "Font size of the traffic delay line.",
+      minutesUnit: "min",
       edElCount: "Number of reports shown",
       edElCountHelp: "The badge next to the title saying how many reports are on screen.",
       edCountColorHelp: "Text color for the number.",
@@ -230,28 +270,34 @@
       edCountBackgroundHelp: "Show a rounded background behind the number.",
       edCountBg: "Background color",
       edCountBgHelp: "Background color behind the number.",
-      edElRefresh: "Refresh button",
-      edElRefreshHelp: "The button at the end of the subtitle line that fetches the area again.",
-      edRefreshIconHelp: "Any Material Design icon. Empty draws none, which leaves the button nothing to press.",
-      edRefreshColor: "Color",
-      edRefreshColorHelp: "Empty takes the colour of the line it sits on.",
-      edRefreshSize: "Size",
-      edRefreshSizeHelp: "A font size: the symbol is drawn as tall as a capital letter of it. Empty follows the line itself.",
+      edElRefresh: "Refresh buttons",
+      edElRefreshHelp: "The buttons that fetch again, each with how long ago it last did: the area's - beside a live route's travel time, otherwise at the end of the subtitle line - and the traffic flow's.",
+      edRefreshIconHelp: "Any Material Design icon. Empty draws none.",
+      edRefreshColor: "Icon color",
+      edRefreshColorHelp: "Empty takes the color of the button's text.",
+      edRefreshSize: "Icon size",
+      edRefreshSizeHelp: "A font size: the symbol is drawn as tall as a capital letter of it. Empty follows the button's text.",
+      edRefreshTextColorHelp: "Text color of the time in the buttons.",
+      edRefreshFontHelp: "Font size of the time in the buttons.",
+      edRefreshFrame: "Show background",
+      edRefreshFrameHelp: "A soft grey pill behind each button, in the theme's own shade. Off leaves the symbol and the time on the card itself.",
+      edRefreshBg: "Background color",
+      edRefreshBgHelp: "Replaces that grey. Empty keeps the theme's.",
       edShowRefresh: "Show a refresh button",
-      edShowRefreshHelp: "A button at the end of this line that fetches the area again straight away. Worth having above all where the area polls on demand only - an update interval of 0.",
+      edShowRefreshHelp: "A button that fetches the area again straight away, with how long ago it last did - at the end of this line, or beside a live route's travel time. Worth having above all where the area polls on demand only - an update interval of 0.",
       refreshNow: "Fetch this area again",
       edShowCount: "Show the number of reports",
       edShowCountHelp: "The badge next to the title, saying how many reports are on screen. The NEW badge beside it is untouched.",
       edElSub: "Subtitle line",
-      edElSubHelp: "The line under the title, and which of its three parts it says.",
+      edElSubHelp: "The line under the title, and which of its three parts it says. On a route TomTom keeps live it is the line under the travel time, starting with how much of that is traffic - coloured on its own, see Traffic delay - and those parts after it.",
       edSubColorHelp: "Text color for the subtitle line.",
       edSubFontHelp: "Font size for the subtitle line.",
       edSubArea: "Name of the area",
       edSubAreaHelp: "The area, route or tracker the card is showing.",
-      edSubMode: "How it searches",
-      edSubModeHelp: "Whether the area is a radius or a route.",
+      edSubMode: "How it searches, or the route's length",
+      edSubModeHelp: "The word for how the area searches - radius, route or tracker. On a route TomTom keeps live, with its travel time shown large, the route's length right now stands here instead - the way it goes changes with the traffic, and its length with it.",
       edSubUpdated: "Last update",
-      edSubUpdatedHelp: "How long ago the integration last fetched.",
+      edSubUpdatedHelp: "How long ago the integration last fetched - written in the refresh button while that is shown.",
       edElNew: "New marker",
       edElNewHelp: "How the NEW badge and the NEW tag in the list are drawn.",
       edNewColorHelp: "Text color for the NEW marker.",
@@ -333,7 +379,7 @@
       presetBlueGrey: "Blue grey",
       edAreas: "Areas and routes",
       edAreasHelp: "Leave empty to offer every configured area.",
-      edFilterHelp: "Which half is selected when the card is first opened. Anyone can change it afterwards.",
+      edFilterHelp: "What the card shows when it is first opened. Anyone can switch it afterwards.",
       edGroupContentReports: "Reports",
       edGroupContentReportsHelp: "Which of the area's reports the card shows.",
       edMax: "Maximum number of reports",
@@ -347,8 +393,8 @@
       refModeEntity: "A person, a tracker or a zone",
       edAreaPicker: "Offer the area dropdown",
       edAreaPickerHelp: "Switch off to pin the card to one area.",
-      edFilterPicker: "Offer the filter dropdown",
-      edFilterPickerHelp: "Switch off to pin the card to the filter chosen below.",
+      edFilterPicker: "Offer the Controls and Hazards switches",
+      edFilterPickerHelp: "Two switches under the area dropdown. Switch off to pin the card to the filter chosen below.",
       edSort: "Sort order",
       edSortHelp: "The order the reports stand in - in the list, and in the pop-up of the minimal format. It decides which of them survive when the number is capped, too.",
       sortDistance: "Nearest first",
@@ -393,14 +439,38 @@
       edFollowMapHelp: "The map then shows the whole area and the list shows what is inside the visible part of it - for following a route. Switched off, the map mirrors the list instead. In the minimal format this is the pop-up's map and the list beside it.",
       edMapRoute: "Show the route on the map",
       edMapRouteHelp: "For a route entry - waypoints or start/destination - the route itself, drawn under the reports and fitted into view when the card first draws it. Its color and width are under Layout -> Map.",
+      edMapScale: "Show a scale bar",
+      edMapScaleHelp: "A scale bar in the map's bottom left corner, in the unit your Home Assistant measures in - metres and kilometres, or feet and miles. In the minimal format on the pop-up's map.",
       edMapAlways: "Keep the map when nothing is reported",
       edMapAlwaysHelp: "Shows the map even while the area has nothing to report, fitted to the area as it is set up - the circle around its centre, or around the tracker, drawn as a dashed line - or to the route. Off takes the map down until something is reported again. Worth keeping on with the traffic flow, which has something to show on an empty map.",
+      liveTime: (minutes, delay) => (delay > 0 ? `${minutes} min (+${delay})` : `${minutes} min`),
+      // A live route's travel time, large: minutes up to an hour, hours and
+      // minutes above it, the way the delay badge counts.
+      travelTime: (n) =>
+        n < 60 ? `${n} min` : n % 60 ? `${Math.floor(n / 60)} h ${n % 60} min` : `${Math.floor(n / 60)} h`,
+      // The same on a line too narrow for words: "2:19 h", "45 min".
+      travelTimeShort: (n) =>
+        n < 60 ? `${n} min` : `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")} h`,
+      travelTimeTip: "Travel time right now, with the traffic of the moment",
+      liveDelay: (sum) => `incl. ${sum} traffic`,
+      liveFree: "free flow, no delay",
+      liveDelayTip: "Already part of the travel time: what the traffic adds to the way on a free road.",
+      // The refresh buttons' own words: how long ago, nothing else.
+      agoNever: "not yet",
+      agoNow: "just now",
+      agoMin: (n) => `${n} min ago`,
+      agoHours: (n) => `${n} h ago`,
+      switchControls: "Controls",
+      switchHazards: "Hazards",
+      switchControlsTip: "Show the controls",
+      switchHazardsTip: "Show the hazards",
+      bothOff: "Controls and hazards are both switched off.",
       trafficLine: "Traffic flow",
       trafficOff: "off",
       trafficSwitch: "Show the traffic flow on the map",
       trafficRefresh: "Fetch the traffic flow again",
       edMapTraffic: "Show the traffic flow",
-      edMapTrafficHelp: "Colours the roads by how traffic is moving on them, from green to dark red, with the colours and speed steps of Blitzer.de's own map. Not polled: fetched for the view this map shows while the card is on screen - one request per view, one more after a pan or a zoom, a fresh one every three minutes while it stays visible, none while nobody looks. On a route entry only the route itself, in its direction of travel. The card then carries a line under its subtitle with a switch to show or hide the flow for the moment, the time of the last fetch and a refresh button. Counted on the area's request counter. Needs Home Assistant 2026.10 or newer; the switch is greyed out on older versions.",
+      edMapTrafficHelp: "Colours the roads by how traffic is moving on them, from green to dark red, with the colours and speed steps of Blitzer.de's own map. Not polled: fetched for the view this map shows while the card is on screen - one request per view, one more after a pan or a zoom, a fresh one every three minutes while it stays visible, none while nobody looks. On a route entry only the route itself, in its direction of travel. The card then carries a switch under the ones for controls and hazards that shows or hides the flow for the moment, and beside it a button with the time of the last fetch that fetches it again. Counted on the area's request counter. Needs Home Assistant 2026.10 or newer; the switch is greyed out on older versions.",
       edMapClosures: "Draw closures along the road",
       edMapClosuresHelp: "An official road closure comes with the stretch of road it closes; drawn as a red band along it, the way Blitzer.de's own map draws them, under its symbol.",
       edRowClosure: "Closure period",
@@ -464,7 +534,6 @@
       edLayoutHelp: "Hochformat stellt die Karte über die Liste, Querformat nebeneinander. Minimalformat ist eine Zeile mit dem, was neu ist, und den Meldungen dahinter in einem Pop-up.",
       miniLabelTotal: "gesamt",
       miniLabelNew: "neu",
-      miniLabelDelay: "Stau",
       edMiniIconHelp: "Ein beliebiger MDI-Name, gezeichnet vor der Zahl. Leer steht die Zahl für sich.",
       edMiniIconColorHelp: "Leer übernimmt die Farbe der Zahl daneben.",
       edMiniIconSizeHelp: "Wie groß das Symbol gezeichnet wird, z. B. 22px. Leer bleibt es bei seiner üblichen Größe.",
@@ -495,8 +564,27 @@
       edPopNewBgHelp: "Hintergrundfarbe hinter diesem NEU-Zeichen.",
       edMiniTap: "Klick-Aktion",
       edMiniTapHelp: "Was ein Klick auf eine der beiden Zahlen tut. Bei \"Standard\" öffnet er das Pop-up mit den Meldungen, die diese Zahl zählt - wofür das Format gedacht ist.",
-      edMiniTotal: "Gesamtanzahl anzeigen",
-      edMiniTotalHelp: "Der Teil der Minimalzeile, der zählt, wie viele Meldungen der Bereich überhaupt hat. Aus überlässt die Zeile den anderen Teilen.",
+      edMiniGroupButtons: "Buttons",
+      edMiniGroupButtonsHelp: "Die Teile der Minimalzeile, von links nach rechts. Jeder ist eine Schaltfläche, die das Pop-up auf das öffnet, was er zeigt.",
+      edMiniGroupPop: "Pop-up",
+      edMiniGroupPopHelp: "Was das Pop-up hinter der Zeile zeigt.",
+      edMiniNew: "Neue Meldungen",
+      edMiniNewHelp: "Wie viele der Meldungen neu sind.",
+      edMiniDelay: "Verzögerung",
+      edMiniDelayHelp: "Was die Staus unter den Meldungen kosten, in Minuten.",
+      edMiniTravel: "Fahrzeit",
+      edMiniTravelHelp: "Wie lange eine Route, die TomTom live hält, gerade dauert, gefärbt nach der Verzögerung. Bei anderen Einträgen nichts.",
+      edElMiniTravel: "Fahrzeit in der Zeile",
+      edElMiniTravelHelp: "Der Teil der Minimalzeile, der nennt, wie lange die Route gerade dauert. Symbol, Hintergrund und Schrift bekommen je eine Farbe danach, wie viel der Zeit Verkehr ist: eine unter der Gelb-Schwelle, eine ab ihr, eine ab der Rot-Schwelle.",
+      edMiniTravelLevelOk: "Unter Gelb",
+      edMiniTravelLevelWarn: "Ab Gelb",
+      edMiniTravelLevelAlert: "Ab Rot",
+      edMiniTravelIconColorHelp: "Die Farbe des Symbols auf dieser Stufe. Leer übernimmt unter Gelb das übliche Grau der Zeile, ab Gelb die Farbe der Schwelle.",
+      edMiniTravelColorHelp: "Die Farbe der Zeit auf dieser Stufe. Leer übernimmt unter Gelb die übliche Textfarbe der Zeile, ab Gelb die Farbe der Schwelle.",
+      edMiniTravelFillHelp: "Die Füllung hinter dem Teil auf dieser Stufe. Leer lässt sie unter Gelb frei und tönt sie ab Gelb in der Farbe der Schwelle.",
+      edMiniTravelFontHelp: "Schriftgröße für die Fahrzeit in der Zeile.",
+      edMiniTotal: "Gesamtanzahl",
+      edMiniTotalHelp: "Wie viele Meldungen der Bereich hat.",
       layoutPortrait: "Hochformat",
       layoutLandscape: "Querformat",
       layoutMinimal: "Minimalformat",
@@ -518,17 +606,23 @@
       edNothing: "Text ohne Meldungen",
       edNothingHelp: "Was die Karte sagt, wenn der Bereich nichts zu zeigen hat. Leer behält ihren eigenen Wortlaut.",
       edShowDelay: "Zeigen, was die Staus kosten",
-      edShowDelayHelp: "Das rote Abzeichen neben dem NEU-Abzeichen, das die Verzögerung aller Meldungen dieser Karte zusammenzählt - und die Karte beim Klick darauf auf diese Meldungen filtert. Im Minimalformat ist es stattdessen der dritte Teil der Zeile, der das Fenster auf diese Meldungen öffnet. Aus bleibt die Verzögerung in der Zusammenfassung jeder einzelnen Meldung, und nichts wird zusammengezählt.",
+      edShowDelayHelp: "Das Abzeichen neben dem NEU-Abzeichen, das die Verzögerung aller Meldungen dieser Karte zusammenzählt - und die Karte beim Klick darauf auf diese Meldungen filtert. Aus bleibt die Verzögerung in der Zusammenfassung jeder einzelnen Meldung, und nichts wird zusammengezählt.",
       edShowNew: "Neue Meldungen anzeigen und markieren",
-      edShowNewHelp: "Markiert frische Meldungen als NEU und zeichnet den Neu-Teil der Minimalzeile. Wie lange etwas als neu gilt, steht am Bereich in Home Assistant - je ein Zeitraum für Kontrollen und für Gefahren.",
+      edShowNewHelp: "Das NEU-Abzeichen neben dem Titel, das frische Meldungen zählt, und das NEU-Zeichen an jeder davon in der Liste. Wie lange etwas als neu gilt, steht am Bereich in Home Assistant - je ein Zeitraum für Kontrollen und für Gefahren.",
       edSubIcon: "Symbol",
-      edSubIconHelp: "Ein beliebiges Material-Design-Symbol, gezeichnet vor der Zeile. Leer zeichnet keines.",
+      edSubIconHelp: "Ein beliebiges Material-Design-Symbol, gezeichnet vor der Zeile. Leer zeichnet keines. Unter der Fahrzeit einer Live-Route entfällt es, dort beginnt die Zeile mit der Verkehrsangabe.",
       edSubIconColor: "Symbolfarbe",
       edSubIconColorHelp: "Leer übernimmt die Farbe der Zeile selbst.",
       edSubIconSize: "Symbolgröße",
       edSubIconSizeHelp: "Eine Schriftgröße wie oben: das Symbol wird so hoch wie ein Großbuchstabe davon. Leer folgt der Zeile selbst.",
       edShowSub: "Unterzeile anzeigen",
-      edShowSubHelp: "Die Zeile unter dem Titel. Aus entfällt sie mitsamt allem, was sie nennt.",
+      edShowSubHelp: "Die Zeile unter dem Titel - bei einer Route, die TomTom live hält, die Zeile unter der Fahrzeit. Aus entfällt sie mitsamt allem, was sie nennt.",
+      edShowTravelTimePop: "Fahrzeit anzeigen",
+      edShowTravelTimePopHelp: "Bei einer Route, die TomTom live hält: wie lange sie gerade dauert, groß im Pop-up - rechts der Karte, über der Liste - mit dem Aktualisieren-Knopf daneben und darunter, wie viel davon Verkehr ist. Die Zeile selbst zeigt sie nicht.",
+      edTrafficSwitch: "Schalter für Verkehrsfluss anbieten",
+      edTrafficSwitchHelp: "Der Schalter unter den beiden oberen, der den Verkehrsfluss auf der Karte vorübergehend ein- und ausblendet, mit dem Knopf daneben, der die Zeit des letzten Abrufs nennt und ihn neu abruft. Aus wird der Fluss ohne beides gezeichnet. Nur, solange unter Allgemein der Verkehrsfluss an ist.",
+      edShowTravelTime: "Fahrzeit anzeigen",
+      edShowTravelTimeHelp: "Bei einer Route, die TomTom live hält: wie lange sie gerade dauert, groß unter dem Titel mit dem Aktualisieren-Knopf daneben, und darunter, wie viel davon Verkehr ist. Die Teile der Unterzeile folgen dann in dieser Zeile. Andere Einträge haben keine Fahrzeit und behalten die Unterzeile, wie sie ist.",
       edGroupContent: "Inhalt",
       edGroupRows: "Liste",
       edCollapse: "Rest einklappen",
@@ -599,14 +693,30 @@
       edAreaPickerBackgroundHelp: "Der eigene gefüllte Hintergrund der Auswahlliste.",
       edAreaPickerBg: "Hintergrundfarbe",
       edAreaPickerBgHelp: "Hintergrundfarbe der Bereichsauswahl.",
-      edElFilterPicker: "Filterauswahl",
-      edElFilterPickerHelp: "Wie die Auswahlliste für das Gezeigte gezeichnet wird.",
-      edFilterPickerColorHelp: "Textfarbe für die Filterauswahl.",
-      edFilterPickerFontHelp: "Schriftgröße für die Filterauswahl.",
-      edFilterPickerBackground: "Hintergrund anzeigen",
-      edFilterPickerBackgroundHelp: "Der eigene gefüllte Hintergrund der Auswahlliste.",
-      edFilterPickerBg: "Hintergrundfarbe",
-      edFilterPickerBgHelp: "Hintergrundfarbe der Filterauswahl.",
+      edElSwitch: "Schalter",
+      edElSwitchHelp: "Die Schalter unter der Bereichsauswahl: Kontrollen, Gefahren und Verkehrsfluss.",
+      edSwitchColorHelp: "Textfarbe der Beschriftungen der Schalter.",
+      edSwitchFontHelp: "Schriftgröße der Beschriftungen der Schalter.",
+      edSwitchTrack: "Schalterfarbe",
+      edSwitchTrackHelp: "Die Farbe eines eingeschalteten Schalters. Leer übernimmt die des Themes.",
+      edElTravelTime: "Fahrzeit",
+      edElTravelTimeHelp: "Die große Fahrzeit einer Route, die TomTom live hält.",
+      edTravelTimeColorHelp: "Textfarbe der Fahrzeit.",
+      edTravelTimeFontHelp: "Schriftgröße der Fahrzeit.",
+      edElDelayLine: "Verzögerung",
+      edElDelayLineHelp: "Die Zeile unter der Fahrzeit, die sagt, wie viel davon Verkehr ist - gefärbt danach, wie viel: unter der ersten Schwelle in der ersten Farbe, ab ihr in der zweiten, ab der zweiten Schwelle in der dritten.",
+      edDelayWarn: "Gelb ab",
+      edDelayWarnHelp: "Minuten Verzögerung, ab denen die Zeile die zweite Farbe bekommt - Gelb, solange sie unten nicht geändert ist.",
+      edDelayAlert: "Rot ab",
+      edDelayAlertHelp: "Minuten Verzögerung, ab denen die Zeile die dritte Farbe bekommt - Rot, solange sie unten nicht geändert ist.",
+      edDelayOkColor: "Farbe unter Gelb",
+      edDelayOkColorHelp: "Keine Verzögerung oder weniger als die Gelb-Schwelle. Leer übernimmt die Erfolgsfarbe des Themes.",
+      edDelayWarnColor: "Farbe ab Gelb",
+      edDelayWarnColorHelp: "Ab der Gelb-Schwelle. Leer übernimmt die Warnfarbe des Themes.",
+      edDelayAlertColor: "Farbe ab Rot",
+      edDelayAlertColorHelp: "Ab der Rot-Schwelle. Leer übernimmt die Fehlerfarbe des Themes.",
+      edDelayLineFontHelp: "Schriftgröße der Verzögerungszeile.",
+      minutesUnit: "Min",
       edElCount: "Anzahl angezeigter Meldungen",
       edElCountHelp: "Das Abzeichen neben dem Titel, das nennt, wie viele Meldungen gerade zu sehen sind.",
       edCountColorHelp: "Textfarbe für die Anzahl.",
@@ -615,28 +725,34 @@
       edCountBackgroundHelp: "Zeigt einen abgerundeten Hintergrund hinter der Anzahl an.",
       edCountBg: "Hintergrundfarbe",
       edCountBgHelp: "Hintergrundfarbe hinter der Anzahl.",
-      edElRefresh: "Aktualisieren-Knopf",
-      edElRefreshHelp: "Der Knopf am Ende der Unterzeile, der den Bereich neu abruft.",
-      edRefreshIconHelp: "Ein beliebiges Material-Design-Symbol. Leer zeichnet keines, dann hat der Knopf nichts zum Drücken.",
-      edRefreshColor: "Farbe",
-      edRefreshColorHelp: "Leer übernimmt die Farbe der Zeile, in der er steht.",
-      edRefreshSize: "Größe",
-      edRefreshSizeHelp: "Eine Schriftgröße: das Symbol wird so hoch wie ein Großbuchstabe davon. Leer folgt der Zeile selbst.",
+      edElRefresh: "Aktualisieren-Knöpfe",
+      edElRefreshHelp: "Die Knöpfe, die neu abrufen, jeder mit der Zeit seit dem letzten Abruf: der des Bereichs - neben der Fahrzeit einer Live-Route, sonst am Ende der Unterzeile - und der des Verkehrsflusses.",
+      edRefreshIconHelp: "Ein beliebiges Material-Design-Symbol. Leer zeichnet keines.",
+      edRefreshColor: "Symbolfarbe",
+      edRefreshColorHelp: "Leer übernimmt die Farbe des Knopftexts.",
+      edRefreshSize: "Symbolgröße",
+      edRefreshSizeHelp: "Eine Schriftgröße: das Symbol wird so hoch wie ein Großbuchstabe davon. Leer folgt dem Knopftext.",
+      edRefreshTextColorHelp: "Textfarbe der Zeit in den Knöpfen.",
+      edRefreshFontHelp: "Schriftgröße der Zeit in den Knöpfen.",
+      edRefreshFrame: "Hintergrund anzeigen",
+      edRefreshFrameHelp: "Eine dezent graue Pille hinter jedem Knopf, im Grauton des Themes. Aus lässt Symbol und Zeit auf der Karte selbst stehen.",
+      edRefreshBg: "Hintergrundfarbe",
+      edRefreshBgHelp: "Ersetzt dieses Grau. Leer behält das des Themes.",
       edShowRefresh: "Aktualisieren-Knopf anzeigen",
-      edShowRefreshHelp: "Ein Knopf am Ende dieser Zeile, der den Bereich sofort neu abruft. Vor allem dort nützlich, wo der Bereich nur auf Zuruf abfragt - Aktualisierungsintervall 0.",
+      edShowRefreshHelp: "Ein Knopf, der den Bereich sofort neu abruft, mit der Zeit seit dem letzten Abruf - am Ende dieser Zeile oder neben der Fahrzeit einer Live-Route. Vor allem dort nützlich, wo der Bereich nur auf Zuruf abfragt - Aktualisierungsintervall 0.",
       refreshNow: "Diesen Bereich neu abrufen",
       edShowCount: "Anzahl der Meldungen anzeigen",
       edShowCountHelp: "Das Abzeichen neben dem Titel, das nennt, wie viele Meldungen gerade zu sehen sind. Das NEU-Abzeichen daneben bleibt davon unberührt.",
       edElSub: "Unterzeile",
-      edElSubHelp: "Die Zeile unter dem Titel und welche ihrer drei Angaben sie nennt.",
+      edElSubHelp: "Die Zeile unter dem Titel und welche ihrer drei Angaben sie nennt. Bei einer Route, die TomTom live hält, ist es die Zeile unter der Fahrzeit: vorn, wie viel davon Verkehr ist - eigens gefärbt, siehe Verzögerung - und dahinter diese Angaben.",
       edSubColorHelp: "Textfarbe für die Unterzeile.",
       edSubFontHelp: "Schriftgröße für die Unterzeile.",
       edSubArea: "Name des Bereichs",
       edSubAreaHelp: "Der Bereich, die Route oder der Tracker, den die Karte zeigt.",
-      edSubMode: "Art der Suche",
-      edSubModeHelp: "Ob der Bereich ein Radius oder eine Route ist.",
+      edSubMode: "Art der Suche oder Routenlänge",
+      edSubModeHelp: "Das Wort dafür, wie der Bereich sucht - Radius, Route oder Tracker. Bei einer Route, die TomTom live hält und deren Fahrzeit groß steht, steht hier stattdessen ihre aktuelle Länge - der Weg wechselt mit dem Verkehr und seine Länge mit ihm.",
       edSubUpdated: "Letzte Aktualisierung",
-      edSubUpdatedHelp: "Wie lange die letzte Abfrage der Integration her ist.",
+      edSubUpdatedHelp: "Wie lange die letzte Abfrage der Integration her ist - im Aktualisieren-Knopf, solange er gezeigt wird.",
       edElNew: "Neu-Markierung",
       edElNewHelp: "Wie das NEU-Abzeichen und das NEU-Zeichen in der Liste gezeichnet werden.",
       edNewColorHelp: "Textfarbe für die Neu-Markierung.",
@@ -718,7 +834,7 @@
       presetBlueGrey: "Blaugrau",
       edAreas: "Bereiche und Routen",
       edAreasHelp: "Leer lassen, um jeden eingerichteten Bereich anzubieten.",
-      edFilterHelp: "Welche Hälfte beim Öffnen ausgewählt ist. Umschalten kann sie danach jeder.",
+      edFilterHelp: "Was die Karte beim Öffnen zeigt. Umschalten kann danach jeder.",
       edGroupContentReports: "Meldungen",
       edGroupContentReportsHelp: "Welche Meldungen des Bereichs die Karte zeigt.",
       edMax: "Maximale Anzahl Meldungen",
@@ -732,8 +848,8 @@
       refModeEntity: "Person, Tracker oder Zone",
       edAreaPicker: "Bereichsauswahl anbieten",
       edAreaPickerHelp: "Ausschalten, um die Karte auf einen Bereich festzulegen.",
-      edFilterPicker: "Filterauswahl anbieten",
-      edFilterPickerHelp: "Ausschalten, um die Karte auf den unten gewählten Filter festzulegen.",
+      edFilterPicker: "Schalter für Kontrollen und Gefahren anbieten",
+      edFilterPickerHelp: "Zwei Schalter unter der Bereichsauswahl. Ausschalten, um die Karte auf den unten gewählten Filter festzulegen.",
       edSort: "Sortierung",
       edSortHelp: "In welcher Reihenfolge die Meldungen stehen - in der Liste und im Pop-up des Minimalformats. Sie entscheidet auch, welche übrig bleiben, wenn die Anzahl begrenzt ist.",
       sortDistance: "Nächste zuerst",
@@ -778,14 +894,34 @@
       edFollowMapHelp: "Die Karte zeigt dann den ganzen Bereich und die Liste, was im sichtbaren Ausschnitt liegt - zum Verfolgen einer Route. Ausgeschaltet spiegelt die Karte stattdessen die Liste. In der Minimal-Variante sind das die Karte des Pop-ups und die Liste daneben.",
       edMapRoute: "Route in der Karte einzeichnen",
       edMapRouteHelp: "Bei einem Routen-Eintrag - Wegpunkte oder Start/Ziel - die Route selbst, unter den Meldungen gezeichnet und beim ersten Aufbau der Karte ins Bild gerückt. Farbe und Breite stehen unter Layout -> Karte.",
+      edMapScale: "Maßstab anzeigen",
+      edMapScaleHelp: "Eine Maßstabsleiste unten links in der Karte, in der Einheit, in der dein Home Assistant misst - Meter und Kilometer oder Fuß und Meilen. Im Minimalformat auf der Karte des Pop-ups.",
       edMapAlways: "Karte auch ohne Meldungen zeigen",
       edMapAlwaysHelp: "Zeigt die Karte auch, solange der Bereich nichts zu melden hat, eingepasst auf den Bereich, wie er eingerichtet ist - der Kreis um seinen Mittelpunkt oder um den Tracker, gestrichelt eingezeichnet - oder auf die Route. Aus nimmt die Karte weg, bis wieder etwas gemeldet wird. Mit dem Verkehrsfluss lohnt sich An: der hat auch auf einer leeren Karte etwas zu zeigen.",
+      liveTime: (minutes, delay) => (delay > 0 ? `${minutes} Min. (+${delay})` : `${minutes} Min.`),
+      travelTime: (n) =>
+        n < 60 ? `${n} Min` : n % 60 ? `${Math.floor(n / 60)} Std ${n % 60} Min` : `${Math.floor(n / 60)} Std`,
+      travelTimeShort: (n) =>
+        n < 60 ? `${n} Min` : `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")} h`,
+      travelTimeTip: "Fahrzeit jetzt gerade, mit dem Verkehr des Moments",
+      liveDelay: (sum) => `inkl. ${sum} Verkehr`,
+      liveFree: "freie Fahrt, keine Verzögerung",
+      liveDelayTip: "Schon in der Fahrzeit enthalten: was der Verkehr zur Fahrt auf freier Straße hinzufügt.",
+      agoNever: "noch nicht",
+      agoNow: "gerade eben",
+      agoMin: (n) => `vor ${n} Min.`,
+      agoHours: (n) => `vor ${n} Std.`,
+      switchControls: "Kontrollen",
+      switchHazards: "Gefahren",
+      switchControlsTip: "Kontrollen zeigen",
+      switchHazardsTip: "Gefahren zeigen",
+      bothOff: "Kontrollen und Gefahren sind beide ausgeschaltet.",
       trafficLine: "Verkehrsfluss",
       trafficOff: "aus",
       trafficSwitch: "Verkehrsfluss auf der Karte zeigen",
       trafficRefresh: "Verkehrsfluss neu abrufen",
       edMapTraffic: "Verkehrsfluss anzeigen",
-      edMapTrafficHelp: "Färbt die Straßen danach, wie der Verkehr darauf fließt, von Grün bis Dunkelrot, mit den Farben und Geschwindigkeitsstufen der Karte von Blitzer.de. Wird nicht abgefragt wie die Meldungen, sondern für den Ausschnitt dieser Karte geholt, solange die Karte zu sehen ist - ein Request je Ausschnitt, einer mehr nach Verschieben oder Zoomen, alle drei Minuten ein frischer, keiner, solange niemand hinschaut. Bei einem Routen-Eintrag nur die Route selbst, in Fahrtrichtung. Die Karte bekommt dann unter dem Untertitel eine Zeile mit einem Schalter, der den Fluss vorübergehend ein- und ausblendet, der Zeit des letzten Abrufs und einem Knopf zum Neuabrufen. Zählt auf dem Anfragen-Zähler des Bereichs mit. Braucht Home Assistant 2026.10 oder neuer; auf älteren Versionen ist der Schalter ausgegraut.",
+      edMapTrafficHelp: "Färbt die Straßen danach, wie der Verkehr darauf fließt, von Grün bis Dunkelrot, mit den Farben und Geschwindigkeitsstufen der Karte von Blitzer.de. Wird nicht abgefragt wie die Meldungen, sondern für den Ausschnitt dieser Karte geholt, solange die Karte zu sehen ist - ein Request je Ausschnitt, einer mehr nach Verschieben oder Zoomen, alle drei Minuten ein frischer, keiner, solange niemand hinschaut. Bei einem Routen-Eintrag nur die Route selbst, in Fahrtrichtung. Die Karte bekommt dann unter den Schaltern für Kontrollen und Gefahren einen Schalter, der den Fluss vorübergehend ein- und ausblendet, und daneben einen Knopf mit der Zeit des letzten Abrufs, der ihn neu abruft. Zählt auf dem Anfragen-Zähler des Bereichs mit. Braucht Home Assistant 2026.10 oder neuer; auf älteren Versionen ist der Schalter ausgegraut.",
       edMapClosures: "Sperrungen entlang der Straße einzeichnen",
       edMapClosuresHelp: "Eine amtliche Sperrung bringt den gesperrten Straßenabschnitt mit; als rotes Band darauf gezeichnet, wie die Karte von Blitzer.de selbst es tut, unter ihrem Symbol.",
       edRowClosure: "Sperrzeitraum",
@@ -883,6 +1019,31 @@
     mini_delay_letter_spacing: "",
     mini_delay_fill_color: "var(--blitzer-delay-background, var(--error-color, #db4437))",
     mini_delay_fill_opacity: 14,
+    // The fourth part, on a route TomTom keeps live: how long it takes right
+    // now. Its symbol, its fill and its text each have a colour per level
+    // of delay - below the yellow threshold, from it, and from the red one
+    // (delay_warn_minutes / delay_alert_minutes). Empty is the stylesheet's
+    // own: plain below yellow, the threshold's colour from it, the fill
+    // tinted at the same opacity the other parts use.
+    mini_show_travel: true,
+    mini_travel_icon: "mdi:car-clock",
+    mini_travel_icon_size: "",
+    mini_travel_ok_icon_color: "",
+    mini_travel_ok_color: "",
+    mini_travel_ok_fill_color: "",
+    mini_travel_warn_icon_color: "",
+    mini_travel_warn_color: "",
+    mini_travel_warn_fill_color: "",
+    mini_travel_alert_icon_color: "",
+    mini_travel_alert_color: "",
+    mini_travel_alert_fill_color: "",
+    mini_travel_fill_opacity: 14,
+    mini_travel_font_size: "",
+    mini_travel_bold: false,
+    mini_travel_italic: false,
+    mini_travel_uppercase: false,
+    mini_travel_underline: false,
+    mini_travel_letter_spacing: "",
     // The same starting look as the NEW tag in the card's own list: bold,
     // in capitals, on its pill.
     pop_new_color: "",
@@ -920,6 +1081,9 @@
     reference: "",
     show_area_picker: true,
     show_filter_picker: true,
+    // The traffic flow's own switch and refresh, under the two above. Off,
+    // the flow is drawn without them - see map_traffic for the flow itself.
+    show_traffic_switch: true,
     area_select_color: "",
     area_select_background: true,
     area_select_background_color: "",
@@ -929,15 +1093,16 @@
     area_select_uppercase: false,
     area_select_underline: false,
     area_select_letter_spacing: "",
-    filter_select_color: "",
-    filter_select_background: true,
-    filter_select_background_color: "",
-    filter_select_font_size: "",
-    filter_select_bold: false,
-    filter_select_italic: false,
-    filter_select_uppercase: false,
-    filter_select_underline: false,
-    filter_select_letter_spacing: "",
+    // The switches under the area dropdown - controls, hazards, the
+    // traffic flow: their labels, and the colour of one that is on.
+    switch_color: "",
+    switch_font_size: "",
+    switch_bold: false,
+    switch_italic: false,
+    switch_uppercase: false,
+    switch_underline: false,
+    switch_letter_spacing: "",
+    switch_track_color: "",
     // The card's own heading, and how it is drawn. Switched off, the whole
     // title line goes - and with it its Layout settings, which would then
     // style something nobody sees.
@@ -980,6 +1145,41 @@
     refresh_icon: "mdi:refresh",
     refresh_icon_color: "",
     refresh_icon_size: "",
+    // The time it last fetched is written in the button, and the button is
+    // a rounded frame unless that is switched off - for the area's refresh
+    // and the traffic flow's alike.
+    refresh_color: "",
+    refresh_font_size: "",
+    refresh_bold: false,
+    refresh_italic: false,
+    refresh_uppercase: false,
+    refresh_underline: false,
+    refresh_letter_spacing: "",
+    refresh_background: true,
+    refresh_background_color: "",
+    // A route TomTom keeps live: its travel time large under the title, and
+    // under it what of that is traffic, coloured by two thresholds in
+    // minutes - below the first in the first colour, then the second, then
+    // from the second threshold on the third.
+    show_travel_time: true,
+    travel_time_color: "",
+    travel_time_font_size: "",
+    travel_time_bold: false,
+    travel_time_italic: false,
+    travel_time_uppercase: false,
+    travel_time_underline: false,
+    travel_time_letter_spacing: "",
+    delay_warn_minutes: 5,
+    delay_alert_minutes: 15,
+    delay_ok_color: "",
+    delay_warn_color: "",
+    delay_alert_color: "",
+    delay_line_font_size: "",
+    delay_line_bold: false,
+    delay_line_italic: false,
+    delay_line_uppercase: false,
+    delay_line_underline: false,
+    delay_line_letter_spacing: "",
     show_sub: true,
     sub_show_area: true,
     sub_show_mode: true,
@@ -1063,6 +1263,9 @@
     // An official closure's stretch of road, as a band on the map.
     map_closures: true,
     map_always: true,
+    // A scale bar in the map's bottom left corner, drawn by the card itself
+    // so that both map engines show the same one.
+    map_scale: true,
     map_traffic: false,
     traffic_width: 1.5,
     traffic_opacity: 50,
@@ -1184,6 +1387,13 @@
       }
       delete merged.mini_popup_map;
     }
+    // The filter was a dropdown with a look of its own. It is two switches
+    // now, dressed under Layout -> Switches, and the dropdown's settings
+    // describe nothing any more - they drop out the next time the editor
+    // saves.
+    for (const key of Object.keys(merged)) {
+      if (key.startsWith("filter_select_")) delete merged[key];
+    }
     return merged;
   }
 
@@ -1296,6 +1506,91 @@
     } catch (err) {
       // A Leaflet without that scheduler has nothing to guard.
     }
+  }
+
+  // A scale bar in the map's bottom left corner: a bracket as wide as a
+  // round number of metres or feet at the map's current scale, redrawn on
+  // every move. Drawn by hand rather than with either engine's own control:
+  // Leaflet's and MapLibre's differ in look and are reached differently, and
+  // the width of the view in metres is the whole of what either knows. The
+  // bar's width is the view's width in pixels divided by its width in
+  // metres across the middle - exact enough for a bar that is rounded to
+  // 1, 2, 3 or 5 of a power of ten anyway. Removed with the handles.
+  function scaleBar(h, imperial) {
+    const container = h && typeof h.container === "function" ? h.container() : null;
+    if (!container) return null;
+    const el = document.createElement("div");
+    el.className = "blitzer-scale";
+    const line = document.createElement("div");
+    line.className = "blitzer-scale-line";
+    el.appendChild(line);
+    container.appendChild(el);
+    // Leaflet's own rounding: the largest of 1, 2, 3, 5 times a power of
+    // ten that fits.
+    const round = (num) => {
+      const pow = Math.pow(10, String(Math.floor(num)).length - 1);
+      const d = num / pow;
+      return pow * (d >= 10 ? 10 : d >= 5 ? 5 : d >= 3 ? 3 : d >= 2 ? 2 : 1);
+    };
+    const update = () => {
+      try {
+        const b = h.bounds();
+        const width = container.clientWidth;
+        if (!b || !(width > 0)) return;
+        const lat = (b.north + b.south) / 2;
+        const metres = distanceKm(lat, b.west, lat, b.east) * 1000;
+        const perPixel = metres / width;
+        if (!(perPixel > 0)) return;
+        // At most 70 px wide: a small bar, read at a glance, not a ruler.
+        const most = perPixel * 70;
+        let text;
+        let px;
+        if (imperial) {
+          const feet = most * 3.28084;
+          if (feet > 5280) {
+            const miles = round(feet / 5280);
+            text = `${miles} mi`;
+            px = (miles * 5280) / 3.28084 / perPixel;
+          } else {
+            const f = round(feet);
+            text = `${f} ft`;
+            px = f / 3.28084 / perPixel;
+          }
+        } else {
+          const m = round(most);
+          text = m >= 1000 ? `${m / 1000} km` : `${m} m`;
+          px = m / perPixel;
+        }
+        line.style.width = `${Math.round(px)}px`;
+        line.textContent = text;
+      } catch (err) {
+        // The map went away underneath; the next move redraws or the bar
+        // is removed with it.
+      }
+    };
+    h.on("move", update);
+    h.on("zoom", update);
+    let observer = null;
+    try {
+      observer = new ResizeObserver(update);
+      observer.observe(container);
+    } catch (err) {
+      // Without one the bar is still redrawn on every move.
+    }
+    update();
+    return {
+      update,
+      remove: () => {
+        try {
+          h.off("move", update);
+          h.off("zoom", update);
+        } catch (err) {
+          // Already gone with its map.
+        }
+        if (observer) observer.disconnect();
+        el.remove();
+      },
+    };
   }
 
   function mapHandles(haMap) {
@@ -2190,6 +2485,8 @@
       const entry = hass.entities[entityId];
       if (!entry || entry.device_id !== deviceId) continue;
       const isHazard = source.endsWith("_hazards");
+      // "none" is both switches off: nothing of either.
+      if (filter === "none") continue;
       if (filter === "controls" && isHazard) continue;
       if (filter === "hazards" && !isHazard) continue;
 
@@ -2275,6 +2572,18 @@
       controls: read("new_minutes_controls"),
       hazards: read("new_minutes_hazards"),
     };
+  }
+
+  // The same, in the refresh buttons' own words: how long ago, nothing else -
+  // the button says what it does.
+  function agoText(str, iso) {
+    if (!iso) return str.agoNever;
+    const then = Date.parse(iso);
+    if (Number.isNaN(then)) return str.agoNever;
+    const mins = Math.floor((Date.now() - then) / 60000);
+    if (mins < 1) return str.agoNow;
+    if (mins < 60) return str.agoMin(mins);
+    return str.agoHours(Math.floor(mins / 60));
   }
 
   function updatedText(str, iso) {
@@ -2915,7 +3224,10 @@
             <div class="pop-traffic"></div>
             <div class="pop-body">
               <div class="pop-map"></div>
-              <div class="pop-list"></div>
+              <div class="pop-side">
+                <div class="pop-live" hidden></div>
+                <div class="pop-list"></div>
+              </div>
             </div>
           </dialog>
         </ha-card>`;
@@ -3151,6 +3463,7 @@
         this._built = true;
         return;
       }
+      this._syncScale("main");
       this._renderHead(str, areas, area, areaId);
       this._renderList(str);
       this._built = true;
@@ -3175,16 +3488,30 @@
         !value && !this._miniTapAction && !(scope === "all" && this._popHasEmptyMap());
       // What is written is not always what decides whether there is anything
       // there: the delay part says "+22 min", and a string is never nought.
-      const half = (what, scope, prefix, value, label, count = value) => {
-        const style = elementStyle(this._config, prefix);
+      // `level` is the travel time's: its colours are read per level of
+      // delay - `${prefix}_${level}_color` and the like - where the other
+      // parts have one of each.
+      // `short` is the travel time's other wording, for a line too narrow
+      // for the long one: both are drawn, the stylesheet shows one.
+      const half = (what, scope, prefix, value, label, count = value, level = "", short = "") => {
+        const config = level
+          ? {
+              ...this._config,
+              [`${prefix}_color`]: this._config[`${prefix}_${level}_color`],
+              [`${prefix}_icon_color`]: this._config[`${prefix}_${level}_icon_color`],
+              [`${prefix}_fill_color`]: this._config[`${prefix}_${level}_fill_color`],
+            }
+          : this._config;
+        const style = elementStyle(config, prefix);
         // The fill goes on a layer of its own rather than on the button, for
         // the same reason the card's background does: an opacity set on the
         // button would take the number and the word down with it.
         const fill = [];
-        const colour = this._config[`${prefix}_fill_color`];
-        const half = { mini_new: "mini-new", mini_delay: "mini-delay" }[prefix] || "mini-total";
+        const colour = config[`${prefix}_fill_color`];
+        const half =
+          { mini_new: "mini-new", mini_delay: "mini-delay", mini_travel: "mini-travel" }[prefix] || "mini-total";
         if (colour) fill.push(`--blitzer-${half}-fill-color: ${colour}`);
-        const percent = Number(this._config[`${prefix}_fill_opacity`]);
+        const percent = Number(config[`${prefix}_fill_opacity`]);
         if (Number.isFinite(percent) && percent !== 100) {
           fill.push(`--blitzer-${half}-fill-opacity: ${Math.max(0, Math.min(100, percent)) / 100}`);
         }
@@ -3201,13 +3528,16 @@
         return `<button type="button" class="mini-half ${what}${dead(count, scope) ? " empty" : ""}"
                  data-scope="${scope}"${dead(count, scope) ? " disabled" : ""}
                  style="${escapeHtml(fill.join("; "))}">
-          ${miniIconHtml(this._config, prefix)}
-          <span class="mini-value" style="${escapeHtml(style)}">${escapeHtml(
+          ${miniIconHtml(config, prefix)}
+          <span class="mini-value${short ? " long" : ""}" style="${escapeHtml(style)}">${escapeHtml(
             String(value)
           )}</span>
-          <span class="mini-label" style="${escapeHtml(wordStyle)}">${escapeHtml(
-            label
-          )}</span>
+          ${short
+            ? `<span class="mini-value short" style="${escapeHtml(style)}">${escapeHtml(short)}</span>`
+            : ""}
+          ${label
+            ? `<span class="mini-label" style="${escapeHtml(wordStyle)}">${escapeHtml(label)}</span>`
+            : ""}
         </button>`;
       };
       // Each part on its own switch, and none stands in for another: with
@@ -3228,14 +3558,32 @@
       // And what those reports cost in time. Drawn at nought too, quiet the
       // way the new part is: a line that gained and lost a third of itself
       // every time a jam cleared would move everything under it each time.
+      // No word beside it: "+21 min" says what it is, and the word did not
+      // fit beside it on a card of ordinary width.
       if (this._config.show_delay !== false) {
         halves.push(
           half(this._delayTotal ? "delay" : "delay quiet", "delay", "mini_delay",
-               str.delaySum(this._delayTotal), str.miniLabelDelay, this._delayTotal)
+               str.delaySum(this._delayTotal), "", this._delayTotal)
+        );
+      }
+      // And, on a route TomTom keeps live, how long it takes right now -
+      // coloured by how much of that is traffic, the way the line under a
+      // head's travel time is. It leads to everything: the time is the
+      // whole route's. Nothing on an entry without a travel time.
+      const sensor = this._config.mini_show_travel !== false ? totalSensor(this._hass, this._areaId()) : null;
+      const attrs = (sensor && sensor.attributes) || {};
+      if (Number.isFinite(attrs.travel_time_minutes)) {
+        const level = this._delayLevel(Number(attrs.traffic_delay_minutes) || 0);
+        halves.push(
+          half(`travel level-${level}`, "all", "mini_travel",
+               str.travelTime(attrs.travel_time_minutes), "", 1, level,
+               str.travelTimeShort(attrs.travel_time_minutes))
         );
       }
       // Three parts need the room two had; the words go first (see .mini.three).
+      // Four share it by what each has to say, and step down sooner.
       this._miniEl.classList.toggle("three", halves.length > 2);
+      this._miniEl.classList.toggle("four", halves.length > 3);
       this._miniEl.innerHTML = halves.join("");
       for (const button of this._miniEl.querySelectorAll(".mini-half")) {
         button.addEventListener("click", () => {
@@ -3367,6 +3715,7 @@
       const wantsList = this._config.show_list !== false;
       this._popEl.querySelector(".pop-body").classList.toggle("solo", wantsMap !== wantsList);
       this._fillPopTrafficLine();
+      this._fillPopLive(str);
       this._fillPopList(str);
       this._syncPopMap(rows);
     }
@@ -3491,6 +3840,7 @@
         }
         this._popHandles = h;
         this._popHaMap = haMap;
+        this._syncScale("pop");
         this._paintPopRoute();
         this._paintArea(h, this._popRowsCache, "_popAreaDrawn", "_popAreaSettle");
         this._paintClosures(h, this._popRowsCache, "_popClosuresDrawn");
@@ -3579,6 +3929,10 @@
       this._removeArea("_popAreaDrawn", "_popAreaSettle");
       this._removeClosures("_popClosuresDrawn");
       this._clearTraffic("pop");
+      if (this._popScale) {
+        this._popScale.remove();
+        this._popScale = undefined;
+      }
       this._popHandles = undefined;
       this._popHaMap = undefined;
       this._onPopMapClick = undefined;
@@ -3656,27 +4010,78 @@
           : area.model === "Tracker"
           ? str.tracker
           : str.radius;
-      // Each part on its own switch; with all three off the line goes too,
-      // rather than leaving an empty row under the title.
-      const subText = this._config.show_sub === false ? "" : [
-        this._config.sub_show_area === false ? "" : area.name,
-        this._config.sub_show_mode === false ? "" : mode,
-        this._config.sub_show_updated === false ? "" : updated,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+      // A route TomTom keeps live says how long it takes right now - large,
+      // under the title, with the area's refresh beside it - and under that
+      // how much of it is traffic, followed by the subtitle line's parts.
+      // Every other entry keeps the subtitle line with the refresh at its
+      // end. Either way the button carries the time of the last fetch while
+      // the line's "Last update" is on, and the line says it in words only
+      // where there is no button to say it.
+      const attrs = (sensor && sensor.attributes) || {};
+      const liveMinutes = attrs.travel_time_minutes;
+      const liveDelay = Number(attrs.traffic_delay_minutes) || 0;
+      const hasLive = Number.isFinite(liveMinutes);
+      const bigLive = hasLive && this._config.show_travel_time !== false;
+      const showSub = this._config.show_sub !== false;
+      const showUpdated = this._config.sub_show_updated !== false;
+      const refreshHtml =
+        this._config.show_refresh !== false && (bigLive || showSub)
+          ? refreshPillHtml(
+              this._config,
+              "refresh",
+              str.refreshNow,
+              showUpdated
+                ? `<span class="ago">${escapeHtml(agoText(str, sensor && sensor.attributes.last_update))}</span>`
+                : ""
+            )
+          : "";
+      const updatedPart = showUpdated && !refreshHtml ? updated : "";
+      let lineHtml = "";
+      if (bigLive) {
+        const parts = showSub
+          ? [
+              this._config.sub_show_area === false ? "" : area.name,
+              this._config.sub_show_mode === false ? "" : this._routeLength(attrs.route_distance_km),
+              updatedPart,
+            ]
+          : [];
+        lineHtml = this._liveHtml(str, attrs, refreshHtml, parts);
+      } else {
+        // Each part on its own switch; with all of them off and no button
+        // the line goes too, rather than leaving an empty row under the
+        // title. A live route whose travel time is not shown large says it
+        // here, beside the mode, where the route is named.
+        const live = hasLive ? str.liveTime(liveMinutes, liveDelay) : "";
+        const subText = showSub
+          ? [
+              this._config.sub_show_area === false ? "" : area.name,
+              this._config.sub_show_mode === false ? "" : [mode, live].filter(Boolean).join(" "),
+              updatedPart,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : "";
+        lineHtml = showSub && (subText || refreshHtml)
+          ? `<div class="sub" style="${escapeHtml(elementStyle(this._config, "sub"))}">${
+              leadIconHtml(this._config, "sub")
+            }<span>${escapeHtml(subText)}</span>${refreshHtml}</div>`
+          : "";
+      }
 
-      // Last on the line that says when the card last looked, because that is
-      // the sentence it answers: asking for a fresh look. Drawn even with all
-      // three parts of that line switched off - the line is then the button
-      // alone, which is still a line worth having.
-      const refresh =
-        this._config.show_refresh === false || this._config.show_sub === false
-          ? ""
-          : `<button type="button" class="refresh" data-what="refresh"
-                title="${escapeHtml(str.refreshNow)}">${
-               leadIconHtml(this._config, "refresh")
-             }</button>`;
+      // Under the area dropdown, in two columns: controls beside hazards,
+      // and under them the traffic flow's switch beside its refresh - so
+      // that button starts where the hazards switch does and grows to the
+      // right with what it says.
+      const toggles = [];
+      if (this._config.show_filter_picker) {
+        toggles.push(
+          switchHtml("controls", str.switchControls,
+            this._filter === "all" || this._filter === "controls", this._config, str.switchControlsTip),
+          switchHtml("hazards", str.switchHazards,
+            this._filter === "all" || this._filter === "hazards", this._config, str.switchHazardsTip)
+        );
+      }
+      toggles.push(...this._trafficCells(str, "main"));
       this._headEl.innerHTML = `
         <div class="head-left">
           <div class="title">
@@ -3701,25 +4106,14 @@
                  >${escapeHtml(str.delaySum(this._delayTotal))}</button>`
               : ""}
           </div>
-          ${subText || refresh
-            ? `<div class="sub" style="${escapeHtml(elementStyle(this._config, "sub"))}">${
-                leadIconHtml(this._config, "sub")
-              }<span>${escapeHtml(subText)}</span>${refresh}</div>`
-            : ""}
-          ${this._trafficLineHtml(str)}
+          ${lineHtml}
         </div>
         <div class="pickers">
           ${this._config.show_area_picker
             ? selectHtml("area", areas.map((a) => ({ value: a.id, label: a.name })), areaId,
                 elementStyle(this._config, "area_select"))
             : ""}
-          ${this._config.show_filter_picker
-            ? selectHtml("filter", [
-                { value: "all", label: str.filterAll },
-                { value: "controls", label: str.filterControls },
-                { value: "hazards", label: str.filterHazards },
-              ], this._filter, elementStyle(this._config, "filter_select"))
-            : ""}
+          ${toggles.length ? `<div class="toggles">${toggles.join("")}</div>` : ""}
         </div>`;
 
       const refreshButton = this._headEl.querySelector('[data-what="refresh"]');
@@ -3762,16 +4156,117 @@
           this._render();
         });
       }
-      const filterSelect = this._headEl.querySelector('select[data-what="filter"]');
-      if (filterSelect) {
-        filterSelect.addEventListener("change", (ev) => {
-          this._filter = ev.target.value;
+      // The two switches stand for the filter the dropdown used to pick:
+      // both on is everything, one on is that half, both off is nothing.
+      const controlsSwitch = this._headEl.querySelector('input[data-what="controls"]');
+      const hazardsSwitch = this._headEl.querySelector('input[data-what="hazards"]');
+      if (controlsSwitch && hazardsSwitch) {
+        const pick = () => {
+          const c = controlsSwitch.checked;
+          const h = hazardsSwitch.checked;
+          this._filter = c && h ? "all" : c ? "controls" : h ? "hazards" : "none";
           this._storage("filter", this._filter);
           this._render();
-        });
+        };
+        controlsSwitch.addEventListener("change", pick);
+        hazardsSwitch.addEventListener("change", pick);
       }
 
       this._fitIcons();
+    }
+
+    // A live route's travel time, large, with the area's refresh beside it,
+    // and under it how much of that is traffic followed by `parts` - in the
+    // card's head, and in the minimal format's pop-up above its list. The
+    // line's colour is the delay's level: below the yellow threshold, from
+    // it, or from the red one, each colour from Layout -> Traffic delay.
+    // Which of the three levels a delay is at: "ok" below the yellow
+    // threshold, "warn" from it, "alert" from the red one - the two under
+    // Layout -> Traffic delay, shared by every part coloured by delay.
+    _delayLevel(delay) {
+      const warnAt = Number.isFinite(Number(this._config.delay_warn_minutes))
+        ? Number(this._config.delay_warn_minutes) : 5;
+      const alertAt = Number.isFinite(Number(this._config.delay_alert_minutes))
+        ? Number(this._config.delay_alert_minutes) : 15;
+      return delay >= alertAt ? "alert" : delay >= warnAt ? "warn" : "ok";
+    }
+
+    _liveHtml(str, attrs, refreshHtml, parts) {
+      const minutes = attrs.travel_time_minutes;
+      const delay = Number(attrs.traffic_delay_minutes) || 0;
+      const level = this._delayLevel(delay);
+      const levelColor = this._config[`delay_${level}_color`];
+      const delayStyle = [levelColor ? `color: ${levelColor}` : "", elementStyle(this._config, "delay_line")]
+        .filter(Boolean)
+        .join("; ");
+      return `
+        <div class="live">
+          <span class="travel-time" title="${escapeHtml(str.travelTimeTip)}"
+                style="${escapeHtml(elementStyle(this._config, "travel_time"))}">${escapeHtml(str.travelTime(minutes))}</span>${refreshHtml}
+        </div>
+        <div class="sub live-sub" style="${escapeHtml(elementStyle(this._config, "sub"))}"><span
+            class="delay-line level-${level}" title="${escapeHtml(str.liveDelayTip)}"
+            style="${escapeHtml(delayStyle)}">${escapeHtml(
+              delay > 0 ? str.liveDelay(str.delaySum(delay)) : str.liveFree
+            )}</span>${(parts || []).filter(Boolean).map((p) => ` · ${escapeHtml(p)}`).join("")}</div>`;
+    }
+
+    // The minimal format's pop-up has no head, so a live route's travel time
+    // goes where its list is: right of the map, above the list - or under
+    // the map on a narrow screen. The route's name and length follow the
+    // delay as in the head, and the area's refresh stands beside the time.
+    // With the list switched off it stays, on its own beside the map.
+    _fillPopLive(str) {
+      const side = this._popEl.querySelector(".pop-side");
+      const box = this._popEl.querySelector(".pop-live");
+      const areaId = this._areaId();
+      const area = blitzerAreas(this._hass, this._config.areas).find((a) => a.id === areaId);
+      const sensor = totalSensor(this._hass, areaId);
+      const attrs = (sensor && sensor.attributes) || {};
+      const live =
+        !!area && Number.isFinite(attrs.travel_time_minutes) && this._config.show_travel_time !== false;
+      if (live) {
+        const refresh =
+          this._config.show_refresh === false
+            ? ""
+            : refreshPillHtml(
+                this._config,
+                "refresh",
+                str.refreshNow,
+                this._config.sub_show_updated === false
+                  ? ""
+                  : `<span class="ago">${escapeHtml(agoText(str, attrs.last_update))}</span>`
+              );
+        box.innerHTML = this._liveHtml(str, attrs, refresh, [area.name, this._routeLength(attrs.route_distance_km)]);
+        const button = box.querySelector('[data-what="refresh"]');
+        if (button) button.addEventListener("click", () => this._refresh(button, areaId));
+      } else {
+        box.innerHTML = "";
+      }
+      box.hidden = !live;
+      const listOff = this._config.show_list === false;
+      side.classList.toggle("live-only", listOff);
+      side.hidden = listOff && !live;
+      this._fitIcons();
+    }
+
+    // A live route's length as the line under its travel time says it: in
+    // the unit the system measures in, whole above a hundred, to a tenth
+    // below. Empty while the integration has not said it.
+    _routeLength(km) {
+      const value = Number(km);
+      if (km === null || km === undefined || !Number.isFinite(value)) return "";
+      const imperial =
+        this._hass.config && this._hass.config.unit_system && this._hass.config.unit_system.length === "mi";
+      const amount = imperial ? value * 0.621371 : value;
+      const lang = (this._hass.locale && this._hass.locale.language) || this._hass.language || "en";
+      let text;
+      try {
+        text = new Intl.NumberFormat(lang, { maximumFractionDigits: amount >= 100 ? 0 : 1 }).format(amount);
+      } catch (err) {
+        text = String(Math.round(amount));
+      }
+      return `${text} ${imperial ? "mi" : "km"}`;
     }
 
     // Sizes the subtitle line's icon so that its drawing - not its box - is
@@ -4027,6 +4522,21 @@
           "  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);",
           "}",
           ".leaflet-control-attribution a { color: inherit !important; text-decoration: none !important; }",
+          // The card's own scale bar - see scaleBar. Over the fade (800 on
+          // Leaflet, 1 on MapLibre), under the buttons; the card's text
+          // colour on a wash of its background, so it reads on either map.
+          ".blitzer-scale {",
+          "  position: absolute; left: 18px; bottom: 13px; z-index: 900; pointer-events: none;",
+          "  font: 500 8px/1.1 var(--paper-font-body1_-_font-family, var(--ha-font-family-body, Roboto, sans-serif));",
+          "  color: var(--primary-text-color);",
+          "}",
+          "#map.maplibregl-map .blitzer-scale { z-index: 2; }",
+          ".blitzer-scale-line {",
+          "  box-sizing: border-box; border: 1.5px solid currentColor; border-top: none;",
+          "  padding: 1px 3px 1px; white-space: nowrap; overflow: hidden; text-align: center;",
+          "  background: rgba(255, 255, 255, 0.55);",
+          "  background: color-mix(in srgb, var(--card-background-color) 60%, transparent);",
+          "}",
           // Collapsed: the whole line at font-size 0, which takes the links
           // with it, and an "i" drawn in its place.
           ".leaflet-control-attribution {",
@@ -4268,6 +4778,7 @@
         }
         this._handles = h;
         this._haMap = haMap;
+        this._syncScale("main");
         this._paintRoute();
         this._paintArea();
         this._paintClosures();
@@ -4357,7 +4868,9 @@
       const entryId = device && (device.config_entries || [])[0];
       if (!entryId || !this._hass.callWS) return Promise.resolve(null);
       const sensor = totalSensor(this._hass, areaId);
-      const sig = entryId + "|" + (sensor ? sensor.last_changed : "");
+      // A live route is asked for again whenever it last became a different
+      // one, which the sensor says - its count can stay the same meanwhile.
+      const sig = entryId + "|" + (sensor ? sensor.last_changed : "") + "|" + ((sensor && sensor.attributes.route_changed) || "");
       if (this._routeAsked !== sig) {
         this._routeAsked = sig;
         this._routePromise = this._hass
@@ -4398,37 +4911,40 @@
     }
 
     // Whether the traffic flow is on offer at all: the option on, and a map
-    // that can draw it. The line under the subtitle is drawn then, with its
-    // switch; _trafficShown is that switch, undefined until it is touched.
+    // that can draw it. Its switch and refresh are drawn then, under the
+    // area dropdown; _trafficShown is that switch, undefined until it is
+    // touched.
     _trafficOffered(slot = "main") {
       const hasMap = slot === "pop" ? this._config.show_map !== false : this._wantsMap;
       return this._config.map_traffic === true && hasMap && haAtLeast(this._hass, 2026, 10);
     }
 
-    // The line under the subtitle: the switch, when the flow was last
-    // fetched, and a refresh of its own. Updated in place by
-    // _renderTrafficLine as time passes and fetches come in.
-    _trafficLineHtml(str, slot = "main") {
-      if (!this._trafficOffered(slot)) return "";
+    // The traffic flow's switch and its refresh, the two of them as the
+    // cells of the head's switch grid. The refresh says how long ago the
+    // flow was fetched - updated in place by _renderTrafficLine as time
+    // passes and fetches come in - and "off" while it is switched off, then
+    // as a plain label, since there is nothing to fetch.
+    _trafficCells(str, slot = "main") {
+      if (!this._trafficOffered(slot) || this._config.show_traffic_switch === false) return [];
       const on = this._trafficShown !== false;
-      return `<div class="traffic-line" style="${escapeHtml(elementStyle(this._config, "sub"))}">
-        <label class="traffic-switch" title="${escapeHtml(str.trafficSwitch)}">
-          <input type="checkbox" data-what="traffic-switch"${on ? " checked" : ""}>
-          <span class="track"></span>
-        </label>
-        <span class="traffic-text">${escapeHtml(this._trafficLineText(str, slot))}</span>
-        ${on
-          ? `<button type="button" class="refresh" data-what="traffic-refresh"
-                title="${escapeHtml(str.trafficRefresh)}">${leadIconHtml(this._config, "refresh")}</button>`
-          : ""}
-      </div>`;
+      const text = `<span class="ago traffic-text">${escapeHtml(this._trafficLineText(str, slot))}</span>`;
+      return [
+        switchHtml("traffic-switch", str.trafficLine, on, this._config, str.trafficSwitch),
+        refreshPillHtml(this._config, "traffic-refresh", str.trafficRefresh, text, !on),
+      ];
+    }
+
+    // The pop-up's line: the same two, side by side.
+    _trafficLineHtml(str, slot = "main") {
+      const cells = this._trafficCells(str, slot);
+      return cells.length ? `<div class="traffic-line">${cells.join("")}</div>` : "";
     }
 
     _trafficLineText(str, slot = "main") {
-      if (this._trafficShown === false) return `${str.trafficLine} · ${str.trafficOff}`;
+      if (this._trafficShown === false) return str.trafficOff;
       const when = this[this._trafficSlot(slot).at];
       const at = when ? new Date(when).toISOString() : "";
-      return `${str.trafficLine} · ${updatedText(str, at)}`;
+      return agoText(str, at);
     }
 
     // Both lines, each with its own map's time: the card's under the
@@ -4479,6 +4995,26 @@
       box.innerHTML = this._trafficLineHtml(t(this._hass), "pop");
       box.hidden = !box.firstElementChild;
       this._bindTrafficLine(box, "pop");
+    }
+
+    // The scale bar on one of the maps, as the option says: drawn once the
+    // map's handles are there, taken away when the option goes off, and
+    // left alone otherwise - a redraw of the card must not blink it.
+    _syncScale(slot = "main") {
+      const handles = slot === "pop" ? "_popHandles" : "_handles";
+      const bar = slot === "pop" ? "_popScale" : "_scale";
+      const h = this[handles];
+      const wanted = !!h && this._config.map_scale !== false;
+      if (this[bar] && !wanted) {
+        this[bar].remove();
+        this[bar] = undefined;
+      }
+      if (wanted && !this[bar]) {
+        const imperial =
+          !!this._hass && !!this._hass.config && !!this._hass.config.unit_system &&
+          this._hass.config.unit_system.length === "mi";
+        this[bar] = scaleBar(h, imperial);
+      }
     }
 
     _trafficSlot(slot) {
@@ -4864,6 +5400,10 @@
         this._moveRender = undefined;
       }
       this._viewSig = undefined;
+      if (this._scale) {
+        this._scale.remove();
+        this._scale = undefined;
+      }
       this._handles = undefined;
       this._haMap = undefined;
       this._onMove = undefined;
@@ -4924,9 +5464,12 @@
       }
       // A wording of one's own replaces both sentences: whoever writes one
       // means it to be what the card says when it has nothing to show.
+      // Both switches off is not an empty area, and says so.
       const emptyText =
-        this._config.no_reports_text ||
-        (this._following && this._bounds && this._total ? str.nothingInView : str.nothing);
+        this._filter === "none"
+          ? str.bothOff
+          : this._config.no_reports_text ||
+            (this._following && this._bounds && this._total ? str.nothingInView : str.nothing);
       // Folded, only the first few are drawn - the rest are not built at all
       // rather than built and hidden, so a hundred entries behind the fold
       // cost nothing until they are asked for.
@@ -5256,6 +5799,18 @@
       // head, which the minimal format does not have.
       hidden: (config) => config.show_delay === false || config.layout === "minimal",
     },
+    // A live route's travel time, under the badges. The line under it -
+    // what of it is traffic - has a block of its own straight after this
+    // one, built by hand: it has thresholds and three colours.
+    travel_time: {
+      label: "edElTravelTime",
+      help: "edElTravelTimeHelp",
+      colorHelp: "edTravelTimeColorHelp",
+      fontHelp: "edTravelTimeFontHelp",
+      fallback: "var(--primary-text-color)",
+      // Kept in the minimal format: its pop-up shows the time too.
+      hidden: (config) => config.show_travel_time === false,
+    },
     area_select: {
       label: "edElAreaPicker",
       help: "edElAreaPickerHelp",
@@ -5300,13 +5855,16 @@
       // Gone with the line it describes - and the minimal format draws none.
       hidden: (config) => config.show_sub === false || config.layout === "minimal",
     },
-    // Straight after the line it stands at the end of. Nothing but a symbol,
-    // so it has no colour or typeface of its own beyond the symbol's.
+    // Straight after the line it stands at the end of: the area's refresh,
+    // and the traffic flow's with it - both are the same rounded button with
+    // the time of the last fetch in it. The symbol first, then the words,
+    // then the frame they sit in, the way the button reads.
     refresh: {
       label: "edElRefresh",
       help: "edElRefreshHelp",
-      noColor: true,
-      noFont: true,
+      colorHelp: "edRefreshTextColorHelp",
+      fontHelp: "edRefreshFontHelp",
+      fallback: "var(--secondary-text-color)",
       icon: {
         key: "refresh_icon",
         label: "edSubIcon",
@@ -5319,10 +5877,37 @@
         },
         size: { key: "refresh_icon_size", label: "edRefreshSize", help: "edRefreshSizeHelp" },
       },
+      bgToggle: { key: "refresh_background", label: "edRefreshFrame", help: "edRefreshFrameHelp" },
+      extra: {
+        key: "refresh_background_color",
+        label: "edRefreshBg",
+        help: "edRefreshBgHelp",
+        fallback: "var(--secondary-background-color)",
+      },
+      // Gone only once neither button is drawn: the area's is switched off
+      // and the traffic flow's is not on offer.
       hidden: (config) =>
-        config.show_refresh === false ||
-        config.show_sub === false ||
-        config.layout === "minimal",
+        config.show_refresh === false &&
+        (config.map_traffic !== true || config.show_traffic_switch === false),
+    },
+    // The switches under the area dropdown. Their labels are text like any
+    // other, and the one colour of their own is the track of one that is on.
+    switch: {
+      label: "edElSwitch",
+      help: "edElSwitchHelp",
+      colorHelp: "edSwitchColorHelp",
+      fontHelp: "edSwitchFontHelp",
+      fallback: "var(--primary-text-color)",
+      extra: {
+        key: "switch_track_color",
+        label: "edSwitchTrack",
+        help: "edSwitchTrackHelp",
+        fallback: "var(--switch-checked-track-color, var(--primary-color))",
+      },
+      hidden: (config) =>
+        config.layout === "minimal" ||
+        (config.show_filter_picker === false &&
+          (config.map_traffic !== true || config.show_traffic_switch === false)),
     },
     // Everything a list entry is made of, in the order it is drawn.
     highlight: {
@@ -5442,26 +6027,6 @@
       noFont: true,
       tab: "list",
       hidden: (config) => config.show_row_stars === false,
-    },
-    filter_select: {
-      label: "edElFilterPicker",
-      help: "edElFilterPickerHelp",
-      colorHelp: "edFilterPickerColorHelp",
-      fontHelp: "edFilterPickerFontHelp",
-      fallback: "var(--primary-text-color)",
-      bgToggle: {
-        key: "filter_select_background",
-        label: "edFilterPickerBackground",
-        help: "edFilterPickerBackgroundHelp",
-      },
-      extra: {
-        key: "filter_select_background_color",
-        label: "edFilterPickerBg",
-        help: "edFilterPickerBgHelp",
-        fallback: "var(--card-background-color)",
-      },
-      hidden: (config) =>
-        config.show_filter_picker === false || config.layout === "minimal",
     },
   };
 
@@ -5826,6 +6391,96 @@
       suffix.textContent = "px";
       width.appendChild(suffix);
       block.appendChild(this._fieldRow(str.edRouteWidth, str.edRouteWidthHelp, width, true));
+      return block;
+    }
+
+    // The minimal line's travel time: its symbol, the two thresholds, and
+    // for each of the three levels the symbol's colour, the text's and the
+    // fill's; then the fill's opacity and the font. Built by hand -
+    // DESIGN_ELEMENTS has one of each colour, and this has three of each.
+    _miniTravelBlock(str) {
+      const block = document.createElement("div");
+      block.className = "design-element";
+      block.dataset.design = "mini_travel";
+      block.dataset.withMiniTravel = "";
+      block.appendChild(this._groupLabelRow(str.edElMiniTravel, str.edElMiniTravelHelp));
+      block.appendChild(
+        this._fieldRow(str.edSubIcon, str.edMiniIconHelp, this._picker("mini_travel_icon", { icon: {} }), true)
+      );
+      block.appendChild(
+        this._fieldRow(
+          str.edSubIconSize, str.edMiniIconSizeHelp,
+          this._textInput("mini_travel_icon_size", str.edFontPlaceholder), true
+        )
+      );
+      const minutes = (key) => {
+        const wrap = document.createElement("div");
+        wrap.className = "unit-input-wrap";
+        wrap.appendChild(this._numberInput(key, 0, 600));
+        const suffix = document.createElement("span");
+        suffix.className = "unit-suffix";
+        suffix.textContent = str.minutesUnit;
+        wrap.appendChild(suffix);
+        return wrap;
+      };
+      block.appendChild(this._fieldRow(str.edDelayWarn, str.edDelayWarnHelp, minutes("delay_warn_minutes"), true));
+      block.appendChild(this._fieldRow(str.edDelayAlert, str.edDelayAlertHelp, minutes("delay_alert_minutes"), true));
+      for (const [level, label] of [
+        ["ok", "edMiniTravelLevelOk"],
+        ["warn", "edMiniTravelLevelWarn"],
+        ["alert", "edMiniTravelLevelAlert"],
+      ]) {
+        const heading = this._fieldRow(str[label], "", null, true);
+        heading.classList.add("level-heading");
+        block.appendChild(heading);
+        block.appendChild(
+          this._colorRow(`mini_travel_${level}_icon_color`, str.edSubIconColor, str.edMiniTravelIconColorHelp, str)
+        );
+        block.appendChild(
+          this._colorRow(`mini_travel_${level}_color`, str.edFontColor, str.edMiniTravelColorHelp, str)
+        );
+        block.appendChild(
+          this._colorRow(`mini_travel_${level}_fill_color`, str.edMiniBg, str.edMiniTravelFillHelp, str)
+        );
+      }
+      const wrap = document.createElement("div");
+      wrap.className = "unit-input-wrap";
+      wrap.appendChild(this._numberInput("mini_travel_fill_opacity", 0, 100));
+      const suffix = document.createElement("span");
+      suffix.className = "unit-suffix";
+      suffix.textContent = "%";
+      wrap.appendChild(suffix);
+      block.appendChild(this._fieldRow(str.edMiniBgOpacity, str.edMiniBgOpacityHelp, wrap, true));
+      block.appendChild(this._fontRows("mini_travel", str.edFont, str.edMiniTravelFontHelp, str));
+      return block;
+    }
+
+    // The line under a live route's travel time: from how many minutes of
+    // delay it turns yellow and red, the three colours, and its font.
+    // Built by hand - DESIGN_ELEMENTS has one colour per element, and this
+    // has three that take turns.
+    _delayLineBlock(str) {
+      const block = document.createElement("div");
+      block.className = "design-element";
+      block.dataset.design = "delay_line";
+      block.dataset.withTravelTime = "";
+      block.appendChild(this._groupLabelRow(str.edElDelayLine, str.edElDelayLineHelp));
+      const minutes = (key) => {
+        const wrap = document.createElement("div");
+        wrap.className = "unit-input-wrap";
+        wrap.appendChild(this._numberInput(key, 0, 600));
+        const suffix = document.createElement("span");
+        suffix.className = "unit-suffix";
+        suffix.textContent = str.minutesUnit;
+        wrap.appendChild(suffix);
+        return wrap;
+      };
+      block.appendChild(this._fieldRow(str.edDelayWarn, str.edDelayWarnHelp, minutes("delay_warn_minutes"), true));
+      block.appendChild(this._fieldRow(str.edDelayAlert, str.edDelayAlertHelp, minutes("delay_alert_minutes"), true));
+      block.appendChild(this._colorRow("delay_ok_color", str.edDelayOkColor, str.edDelayOkColorHelp, str));
+      block.appendChild(this._colorRow("delay_warn_color", str.edDelayWarnColor, str.edDelayWarnColorHelp, str));
+      block.appendChild(this._colorRow("delay_alert_color", str.edDelayAlertColor, str.edDelayAlertColorHelp, str));
+      block.appendChild(this._fontRows("delay_line", str.edFont, str.edDelayLineFontHelp, str));
       return block;
     }
 
@@ -6298,20 +6953,42 @@
         const count = this._toggleRow("show_count", str.edShowCount, str.edShowCountHelp);
         count.dataset.withoutMinimal = "";
         body.appendChild(count);
-        const miniTotal = this._toggleRow("mini_show_total", str.edMiniTotal, str.edMiniTotalHelp);
-        miniTotal.dataset.withMinimal = "";
-        body.appendChild(miniTotal);
 
-        body.appendChild(this._toggleRow("show_new", str.edShowNew, str.edShowNewHelp));
+        // The minimal format's own two groups: the line's four parts, each
+        // named for what it shows, then what the pop-up behind them shows.
+        // The new and delay switches are the same keys the head's badges
+        // answer to, offered under their own names here.
+        const minimalOnly = (row) => {
+          row.dataset.withMinimal = "";
+          body.appendChild(row);
+          return row;
+        };
+        minimalOnly(this._groupLabelRow(str.edMiniGroupButtons, str.edMiniGroupButtonsHelp, false));
+        minimalOnly(this._toggleRow("mini_show_total", str.edMiniTotal, str.edMiniTotalHelp));
+        minimalOnly(this._toggleRow("show_new", str.edMiniNew, str.edMiniNewHelp));
+        minimalOnly(this._toggleRow("show_delay", str.edMiniDelay, str.edMiniDelayHelp));
+        minimalOnly(this._toggleRow("mini_show_travel", str.edMiniTravel, str.edMiniTravelHelp));
 
+        const newRow = this._toggleRow("show_new", str.edShowNew, str.edShowNewHelp);
+        newRow.dataset.withoutMinimal = "";
+        body.appendChild(newRow);
         // Under it, because the two stand next to each other wherever they
-        // are drawn: the badges beside the title in a head, the second and
-        // third part of the line where there is none.
-        body.appendChild(this._toggleRow("show_delay", str.edShowDelay, str.edShowDelayHelp));
+        // are drawn: the badges beside the title in a head.
+        const delayRow = this._toggleRow("show_delay", str.edShowDelay, str.edShowDelayHelp);
+        delayRow.dataset.withoutMinimal = "";
+        body.appendChild(delayRow);
 
         // The line under the title: whether it is drawn at all, then each of
         // the three things it can say, indented beneath that. The minimal
         // format draws no such line, so it is not offered one.
+        // A live route's travel time, large under the title. Before the
+        // line under it, which it then takes the parts of.
+        // In the minimal format the same setting is offered further down,
+        // among the pop-up's rows and named for it: the switches here say
+        // what the line is made of, and the line never shows the time.
+        const travel = this._toggleRow("show_travel_time", str.edShowTravelTime, str.edShowTravelTimeHelp);
+        travel.dataset.withoutMinimal = "";
+        body.appendChild(travel);
         const sub = this._toggleRow("show_sub", str.edShowSub, str.edShowSubHelp);
         sub.dataset.withoutMinimal = "";
         body.appendChild(sub);
@@ -6330,12 +7007,21 @@
         }
         // Whether there is a map at all. Its looks stay under Layout -> Map,
         // and "the list follows it" is a property of the list.
+        // The minimal format's second group: the map, the list and the
+        // travel time are the pop-up's there.
+        const popHead = this._groupLabelRow(str.edMiniGroupPop, str.edMiniGroupPopHelp, false);
+        popHead.dataset.withMinimal = "";
+        body.appendChild(popHead);
         body.appendChild(this._toggleRow("show_map", str.edShowMap, str.edShowMapHelp));
         // Whether the map stays while there is nothing to put on it.
         const alwaysRow = this._toggleRow("map_always", str.edMapAlways, str.edMapAlwaysHelp);
         alwaysRow.classList.add("sub-field-row", "sub-toggle-row");
         alwaysRow.dataset.withMap = "";
         body.appendChild(alwaysRow);
+        const scaleRow = this._toggleRow("map_scale", str.edMapScale, str.edMapScaleHelp);
+        scaleRow.classList.add("sub-field-row", "sub-toggle-row");
+        scaleRow.dataset.withMap = "";
+        body.appendChild(scaleRow);
         // Whether a route entry's route is drawn on it - indented under the
         // map switch, since without a map there is nothing to draw it on.
         // Its looks are under Layout -> Map.
@@ -6356,12 +7042,18 @@
         trafficRow.dataset.withMap = "";
         trafficRow.dataset.needsCluster = "";
         body.appendChild(trafficRow);
-        body.appendChild(this._toggleRow("show_list", str.edShowList, str.edShowListHelp));
-        // Last, because it is the one setting here that is about the map and
-        // the list together rather than about either on its own.
+        // What a click on the map does to the list: under the map, since it
+        // is the map that is clicked.
         const highlight = this._toggleRow("map_highlight", str.edMapHighlight, str.edMapHighlightHelp);
+        highlight.classList.add("sub-field-row", "sub-toggle-row");
         highlight.dataset.withMap = "";
         body.appendChild(highlight);
+        body.appendChild(this._toggleRow("show_list", str.edShowList, str.edShowListHelp));
+        const travelPop = this._toggleRow(
+          "show_travel_time", str.edShowTravelTimePop, str.edShowTravelTimePopHelp
+        );
+        travelPop.dataset.withMinimal = "";
+        body.appendChild(travelPop);
       }
 
       if (groupKey === "content") {
@@ -6381,6 +7073,11 @@
         pair.appendChild(
           this._contentBlock(str.edGroupContentFilter, str.edFilterHelp, [
             this._toggleRow("show_filter_picker", str.edFilterPicker, str.edFilterPickerHelp),
+            (() => {
+              const row = this._toggleRow("show_traffic_switch", str.edTrafficSwitch, str.edTrafficSwitchHelp);
+              row.dataset.withTraffic = "";
+              return row;
+            })(),
             this._bareRow(
               this._select("filter", [
                 { value: "all", label: str.filterAll },
@@ -6519,6 +7216,8 @@
         for (const [prefix, el] of Object.entries(DESIGN_ELEMENTS)) {
           if (el.tab !== wanted) continue;
           body.appendChild(this._designElement(prefix, el, str));
+          if (prefix === "mini_delay") body.appendChild(this._miniTravelBlock(str));
+          if (prefix === "travel_time") body.appendChild(this._delayLineBlock(str));
         }
       }
 
@@ -6871,6 +7570,29 @@
       this.shadowRoot.querySelectorAll("[data-with-sub]").forEach((row) => {
         row.hidden = minimal || this._config.show_sub === false || inOffTab(row);
       });
+      // The delay line's thresholds and colours, with the travel time it
+      // stands under.
+      this.shadowRoot.querySelectorAll("[data-with-travel-time]").forEach((row) => {
+        row.hidden = this._config.show_travel_time === false || inOffTab(row);
+      });
+      this.shadowRoot.querySelectorAll("[data-with-mini-travel]").forEach((row) => {
+        row.hidden = !minimal || this._config.mini_show_travel === false || inOffTab(row);
+      });
+      // The minimal line's travel time: what each colour falls back to is
+      // what the stylesheet draws at that level without one.
+      for (const [key, fallback] of [
+        ["mini_travel_ok_icon_color", "var(--secondary-text-color)"],
+        ["mini_travel_ok_color", "var(--primary-text-color)"],
+        ["mini_travel_ok_fill_color", "var(--ha-card-background, var(--card-background-color))"],
+        ["mini_travel_warn_icon_color", "var(--warning-color, #ffa600)"],
+        ["mini_travel_warn_color", "var(--warning-color, #ffa600)"],
+        ["mini_travel_warn_fill_color", "var(--warning-color, #ffa600)"],
+        ["mini_travel_alert_icon_color", "var(--error-color, #db4437)"],
+        ["mini_travel_alert_color", "var(--error-color, #db4437)"],
+        ["mini_travel_alert_fill_color", "var(--error-color, #db4437)"],
+      ]) {
+        this._syncColorRow(key, this._config[key] || "", fallback, str);
+      }
       // Nothing to aim without a map.
       this.shadowRoot.querySelectorAll("[data-with-map]").forEach((row) => {
         row.hidden = !this._wantsMapHere() || inOffTab(row);
@@ -6961,6 +7683,15 @@
       this._syncColorRow(
         "cluster_text_color", this._config.cluster_text_color || "", "var(--text-primary-color)", str
       );
+      // What each delay colour falls back to is the theme colour the line
+      // is drawn in without one.
+      for (const [key, fallback] of [
+        ["delay_ok_color", "var(--success-color, #43a047)"],
+        ["delay_warn_color", "var(--warning-color, #ffa600)"],
+        ["delay_alert_color", "var(--error-color, #db4437)"],
+      ]) {
+        this._syncColorRow(key, this._config[key] || "", fallback, str);
+      }
       // No number to type while the list is not capped at all.
       this.shadowRoot.querySelectorAll("[data-with-max]").forEach((row) => {
         row.hidden = this._config.show_max !== true || inOffTab(row);
@@ -7276,6 +8007,9 @@
     .group-label-row + .sub-field-row { margin-top: 0; }
     .group-label-row { cursor: pointer; }
     .group-label-row.plain-label-row { cursor: default; }
+    /* A heading over a run of switches in a tab, the way a content block's
+       is over its rows: set off from the row above it. */
+    .group-body > .plain-label-row { margin-top: 14px; margin-bottom: 4px; }
     .group-label-row:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
     .design-chevron {
       --mdc-icon-size: 16px;
@@ -7476,6 +8210,33 @@
     );
   }
 
+  // One of the head's switches: a track and its label, the checkbox inside
+  // carrying what it is for. The track's colour when on comes from Layout ->
+  // Switches, through a custom property so the stylesheet keeps the rest.
+  function switchHtml(what, label, on, config, title) {
+    const track = config.switch_track_color
+      ? ` style="--blitzer-switch-on: ${escapeHtml(config.switch_track_color)}"`
+      : "";
+    return `<label class="switch" title="${escapeHtml(title || label)}"${track}>
+        <input type="checkbox" data-what="${what}"${on ? " checked" : ""}>
+        <span class="track"></span>
+        <span class="switch-label" style="${escapeHtml(elementStyle(config, "switch"))}">${escapeHtml(label)}</span>
+      </label>`;
+  }
+
+  // A refresh: its symbol, then what is inside it - the time of the last
+  // fetch - in a rounded frame. `off` draws the same shape as a plain label,
+  // for a traffic flow that is switched off and has nothing to fetch.
+  function refreshPillHtml(config, what, title, innerHtml, off) {
+    const cls = `refresh pill${config.refresh_background === false ? " bare" : ""}${off ? " off" : ""}`;
+    const style = escapeHtml(elementStyle(config, "refresh"));
+    const body = `${leadIconHtml(config, "refresh")}${innerHtml || ""}`;
+    return off
+      ? `<span class="${cls}" style="${style}">${body}</span>`
+      : `<button type="button" class="${cls}" data-what="${what}"
+            title="${escapeHtml(title)}" style="${style}">${body}</button>`;
+  }
+
   function selectHtml(what, options, selected, style) {
     const opts = options
       .map(
@@ -7601,10 +8362,11 @@
     // element has always been both of. The pop-up's tag is pop_new above.
     new: { name: "new", selector: ".badge.new, .listwrap .new-tag" },
     delay: { name: "delay", selector: ".badge.delay" },
+    travel_time: { name: "travel-time", selector: ".travel-time" },
     area_select: { name: "area-select", selector: 'select[data-what="area"]' },
-    filter_select: { name: "filter-select", selector: 'select[data-what="filter"]' },
+    switch: { name: "switch", selector: ".switch-label" },
     sub: { name: "sub", selector: ".sub", icon: ".sub .fit-icon" },
-    refresh: { name: "refresh", icon: ".refresh .fit-icon" },
+    refresh: { name: "refresh", selector: ".refresh.pill", icon: ".refresh .fit-icon" },
     row_picture: { name: "row-picture", selector: ".pic img", size: ["width", "height"] },
     line1: { name: "row-line1", selector: ".line1" },
     line2: { name: "row-line2", selector: ".line2", icon: ".line2 .fit-icon" },
@@ -7796,6 +8558,24 @@
     /* With nothing new there is nothing to interrupt a glance for, so the
        accent stands down until there is - the fill with it. */
     .mini-half.new.quiet::before,
+    /* The travel time, coloured by its level of delay: plain below the
+       yellow threshold, the threshold's colour from it - symbol, time and a
+       tint behind them, each replaceable under Layout. */
+    .mini-half.travel::before {
+      background: var(--blitzer-mini-travel-fill-color, transparent);
+      opacity: var(--blitzer-mini-travel-fill-opacity, 1);
+    }
+    .mini-half.travel.level-warn::before {
+      background: var(--blitzer-mini-travel-fill-color, var(--warning-color, #ffa600));
+    }
+    .mini-half.travel.level-alert::before {
+      background: var(--blitzer-mini-travel-fill-color, var(--error-color, #db4437));
+    }
+    .mini-half.travel.level-warn ha-icon,
+    .mini-half.travel.level-warn .mini-value { color: var(--warning-color, #ffa600); }
+    .mini-half.travel.level-alert ha-icon,
+    .mini-half.travel.level-alert .mini-value { color: var(--error-color, #db4437); }
+    .mini-half.travel .mini-value { white-space: nowrap; }
     .mini-half.delay.quiet::before { background: none; }
     .mini-half.new.quiet ha-icon,
     .mini-half.new.quiet .mini-value,
@@ -7810,6 +8590,7 @@
     .mini-half.empty:hover,
     .mini-half.new.quiet:hover,
     .mini-half.delay.quiet:hover { background: none; }
+    .mini-half.travel.level-ok:hover { background: rgba(127, 127, 127, 0.1); }
     /* Too narrow for words: the numbers and their symbols carry it alone.
        Three parts share the room two had, so their words go sooner. */
     @container (max-width: 250px) {
@@ -7829,6 +8610,32 @@
     }
     @container (max-width: 230px) {
       .mini.three .mini-half ha-icon { display: none; }
+    }
+    /* Four parts: the travel time is words as well as a number, so the
+       parts take the room each needs rather than a quarter apiece - the
+       three numbers never give way, the time does - and the steps the
+       three take at 270 and 230 come at 440 and 360, where the time also
+       goes to its short wording ("2:19 h"). Narrower still, it is cut with
+       an ellipsis rather than laid over its neighbour. A line of fewer
+       parts takes the short wording at 230 with the three's last step. */
+    .mini.four .mini-half { flex: 0 0 auto; }
+    .mini.four .mini-half.travel { flex: 1 1 auto; min-width: 0; }
+    .mini-half.travel .mini-value { overflow: hidden; text-overflow: ellipsis; }
+    .mini-value.short { display: none; }
+    @container (max-width: 440px) {
+      .mini.four .mini-value { font-size: 17px; }
+      .mini.four .mini-half { gap: 6px; padding: 0 6px; }
+      .mini.four .mini-half ha-icon { --mdc-icon-size: 18px; width: 18px; height: 18px; }
+    }
+    @container (max-width: 360px) {
+      .mini.four .mini-half ha-icon { display: none; }
+      .mini.four .mini-value { font-size: 15px; }
+      .mini.four .mini-value.long { display: none; }
+      .mini.four .mini-value.short { display: inline; }
+    }
+    @container (max-width: 230px) {
+      .mini .mini-value.long { display: none; }
+      .mini .mini-value.short { display: inline; }
     }
     /* The reports behind that line. A dialog rather than a panel of our own:
        the browser draws it above everything, so the card being one row tall
@@ -7880,11 +8687,21 @@
     .pop-map { flex: 1 1 0; min-width: 0; position: relative;
                border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; }
     .pop-map > * { height: 100%; }
-    .pop-list { flex: 1 1 0; min-width: 0; overflow-y: auto; overflow-x: hidden; }
+    /* Right of the map: a live route's travel time over the list, the list
+       scrolling under it while the time stays. Without a list the time
+       keeps only the room it needs, and the map takes the rest. */
+    .pop-side { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .pop-side[hidden], .pop-live[hidden] { display: none; }
+    .pop-side.live-only { flex: 0 0 auto; }
+    .pop-live { flex: 0 0 auto; padding-bottom: 10px; margin-bottom: 4px;
+                border-bottom: 1px solid var(--divider-color); }
+    .pop-side.live-only .pop-live { border-bottom: none; }
+    .pop-live .live { margin-top: 0; }
+    .pop-list { flex: 1 1 auto; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; }
     @media (max-width: 800px) {
       .pop-body { flex-direction: column; }
       .pop-map { flex: 0 0 40%; }
-      .pop-list { flex: 1 1 auto; }
+      .pop-side { flex: 1 1 auto; }
       /* Alone in there, the map takes the height it would have shared. */
       .pop-body.solo .pop-map { flex: 1 1 auto; }
     }
@@ -7903,6 +8720,19 @@
     .refresh { display: inline; padding: 0; border: none; background: none;
                font: inherit; color: inherit; cursor: pointer; }
     .refresh .fit-icon { margin: 0 0 0 6px; }
+    /* The rounded button every refresh is now: the symbol on the text's
+       baseline - inline-block, not flex, for the same reason as the line
+       above - then how long ago. Without its frame it keeps the padding, so
+       switching the frame off moves nothing. */
+    .refresh.pill { display: inline-block; padding: 3px 10px; border-radius: 999px; border: none;
+                    background: var(--secondary-background-color);
+                    font-size: .8rem; line-height: 1.4;
+                    color: var(--secondary-text-color); white-space: nowrap; }
+    .refresh.pill.bare { background: none; }
+    .refresh.pill .fit-icon { margin: 0 6px 0 0; }
+    .refresh.pill .fit-icon:last-child { margin-right: 0; }
+    .refresh.pill.off { cursor: default; color: var(--disabled-text-color, var(--secondary-text-color)); }
+    .sub .refresh.pill { margin-left: 8px; }
     .refresh:hover { color: var(--primary-text-color); }
     .refresh:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px;
                              border-radius: 4px; }
@@ -7970,26 +8800,36 @@
        box, so the line's own leading pushed the artwork half a line down
        inside the box, where overflow:hidden then cut it in half. */
     .sub { font-size: .8rem; color: var(--secondary-text-color); margin-top: 2px; }
-    .traffic-line {
-      font-size: .8rem; color: var(--secondary-text-color); margin-top: 4px;
-      display: flex; align-items: center; gap: 6px;
+    /* The pop-up's traffic flow: its switch and its refresh side by side. */
+    .traffic-line { margin-top: 4px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    /* A live route's travel time, large, with the area's refresh beside it,
+       and under it the line saying how much of it is traffic - coloured by
+       the thresholds under Layout -> Traffic delay. */
+    .live { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+    .travel-time { font-size: 2rem; font-weight: 500; line-height: 1.15; white-space: nowrap;
+                   color: var(--primary-text-color); }
+    .delay-line.level-ok { color: var(--success-color, #43a047); }
+    .delay-line.level-warn { color: var(--warning-color, #ffa600); }
+    .delay-line.level-alert { color: var(--error-color, #db4437); }
+    /* The switches under the area dropdown, two to a row: controls beside
+       hazards, the traffic flow's switch beside its refresh. Two auto columns
+       started at the left, so the refresh begins exactly where the hazards
+       switch does and only ever grows to the right. */
+    .toggles { display: grid; grid-template-columns: auto auto; justify-content: start;
+               align-items: center; column-gap: 18px; row-gap: 10px; }
+    .toggles > .refresh.pill { justify-self: start; }
+    .switch { position: relative; display: inline-flex; align-items: center; gap: 8px;
+              cursor: pointer; font-size: .9rem; color: var(--primary-text-color); white-space: nowrap; }
+    .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .switch .track { position: relative; flex-shrink: 0; width: 34px; height: 18px; border-radius: 9px;
+                     background: var(--disabled-text-color, #ccc); transition: .2s; }
+    .switch .track::before { content: ""; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px;
+                             border-radius: 50%; background: #fff; transition: .2s; }
+    .switch input:checked + .track {
+      background: var(--blitzer-switch-on, var(--switch-checked-track-color, var(--primary-color)));
     }
-    .traffic-switch {
-      position: relative; display: inline-block; width: 26px; height: 14px;
-      flex-shrink: 0; cursor: pointer;
-    }
-    .traffic-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
-    .traffic-switch .track {
-      position: absolute; inset: 0; border-radius: 14px; transition: .2s;
-      background: var(--disabled-text-color, #ccc);
-    }
-    .traffic-switch .track::before {
-      content: ""; position: absolute; width: 10px; height: 10px; left: 2px; top: 2px;
-      border-radius: 50%; background: #fff; transition: .2s;
-    }
-    .traffic-switch input:checked + .track { background: var(--primary-color); }
-    .traffic-switch input:checked + .track::before { transform: translateX(12px); }
-    .traffic-switch input:focus-visible + .track { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+    .switch input:checked + .track::before { transform: translateX(16px); }
+    .switch input:focus-visible + .track { outline: 2px solid var(--primary-color); outline-offset: 2px; }
     ha-icon.fit-icon {
       display: inline-block;
       vertical-align: baseline;
@@ -8000,20 +8840,19 @@
       height: 1cap;
       margin-right: 6px;
     }
-    /* Stacked, area over filter, both stretched to the wider one's width so
-       the pair reads as one block rather than two loose controls. */
-    .pickers { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+    /* Stacked, the area dropdown over the switches, the dropdown stretched
+       to the column's width so the two read as one block rather than loose
+       controls. */
+    .pickers { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
     .pickers select { width: 100%; }
     /* A card narrower than this - the ordinary portrait card in a dashboard
-       column - has no room for the dropdowns beside the title, and squeezing
-       them in there is what put the count badge on top of the name. Below a
-       threshold they take a row of their own, side by side, and the title
+       column - has no room for the dropdown and the switches beside the
+       title, and squeezing them in there is what put the count badge on top
+       of the name. Below a threshold they go under the title, and the title
        gets the full width back. The query asks the card, not the window, so
        it holds wherever the card is put. */
     @container (max-width: 440px) {
       .head { grid-template-columns: minmax(0, 1fr); }
-      .pickers { flex-direction: row; }
-      .pickers select { flex: 1 1 0; min-width: 0; }
     }
     select { font: inherit; font-size: .85rem; padding: 4px 8px; border-radius: 8px;
              color: var(--primary-text-color); background: var(--card-background-color);

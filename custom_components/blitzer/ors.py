@@ -81,7 +81,9 @@ MAX_CORRIDOR_M = 5000
 # of its own rather than copied into every route entry: typed once, it is not
 # asked for again, and changed once, it changes for every route using it.
 # Private, so only Home Assistant can read the file - it is a credential.
-_STORE_KEY = f"{DOMAIN}.openrouteservice"
+# One store per routing service: openrouteservice's under the name it has
+# always had, TomTom's beside it (see tomtom.py).
+_STORE_KEYS = {"ors": f"{DOMAIN}.openrouteservice", "tomtom": f"{DOMAIN}.tomtom"}
 _STORE_VERSION = 1
 _STORE_DATA = f"{DOMAIN}_ors_store"
 
@@ -304,28 +306,31 @@ class ORSClient:
         return routes
 
 
-def _store(hass: HomeAssistant) -> Store:
-    """One Store instance for the key, so two flows cannot write past each other."""
-    store = hass.data.get(_STORE_DATA)
+def _store(hass: HomeAssistant, service: str = "ors") -> Store:
+    """One Store instance per service, so two flows cannot write past each other."""
+    stores = hass.data.setdefault(_STORE_DATA, {})
+    store = stores.get(service)
     if store is None:
-        store = hass.data[_STORE_DATA] = Store(
-            hass, _STORE_VERSION, _STORE_KEY, private=True, atomic_writes=True
+        store = stores[service] = Store(
+            hass, _STORE_VERSION, _STORE_KEYS[service], private=True, atomic_writes=True
         )
     return store
 
 
-async def async_load_saved_key(hass: HomeAssistant) -> str | None:
-    """The key saved for further routes, if one was."""
-    data = await _store(hass).async_load()
+async def async_load_saved_key(hass: HomeAssistant, service: str = "ors") -> str | None:
+    """The key saved for further routes with this service, if one was."""
+    data = await _store(hass, service).async_load()
     return (data or {}).get("api_key") or None
 
 
-async def async_save_key(hass: HomeAssistant, api_key: str) -> None:
-    await _store(hass).async_save({"api_key": api_key})
+async def async_save_key(hass: HomeAssistant, api_key: str, service: str = "ors") -> None:
+    await _store(hass, service).async_save({"api_key": api_key})
 
 
-async def async_forget_key(hass: HomeAssistant) -> None:
-    await _store(hass).async_remove()
+async def async_forget_key(hass: HomeAssistant, service: str | None = None) -> None:
+    """Drop a saved key - or, with no service named, every one of them."""
+    for name in [service] if service else list(_STORE_KEYS):
+        await _store(hass, name).async_remove()
     hass.data.pop(_STORE_DATA, None)
 
 

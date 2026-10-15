@@ -9,6 +9,23 @@
                 "route_ors": "🛣️ Route (Start/Ziel) *"
             }
         },
+        "route_service": {
+            "options": {
+                "ors": "🗺️ openrouteservice - die Route einmal, beim Einrichten",
+                "tomtom": "🚦 TomTom - die Route bei jeder Abfrage, mit dem Verkehr des Moments"
+            }
+        },
+        "live_days": {
+            "options": {
+                "mon": "Montag",
+                "tue": "Dienstag",
+                "wed": "Mittwoch",
+                "thu": "Donnerstag",
+                "fri": "Freitag",
+                "sat": "Samstag",
+                "sun": "Sonntag"
+            }
+        },
         "control_form": {
             "options": {
                 "mobile": "Mobile",
@@ -68,6 +85,21 @@
             },
             "delivered_count": {
                 "name": "Gelieferte Meldungen"
+            },
+            "travel_time": {
+                "name": "Fahrzeit"
+            },
+            "traffic_delay": {
+                "name": "Verzögerung"
+            },
+            "route_length": {
+                "name": "Streckenlänge"
+            },
+            "tomtom_requests": {
+                "name": "TomTom-Abfragen diesen Monat"
+            },
+            "tomtom_requests_total": {
+                "name": "TomTom-Abfragen diesen Monat, alle Einträge"
             }
         },
         "number": {
@@ -94,7 +126,7 @@
                     "search_mode": "Suchart"
                 },
                 "data_description": {
-                    "search_mode": "\\* braucht einen kostenlosen API-Key von openrouteservice – wie du ihn bekommst, steht auf dem nächsten Schritt."
+                    "search_mode": "\\* braucht einen kostenlosen API-Key eines Routen-Dienstes - openrouteservice, oder TomTom für eine Route, die dem Verkehr folgt. Die nächsten Schritte erklären, wie du ihn bekommst."
                 }
             },
             "area": {
@@ -213,6 +245,21 @@
                     "ors_save_key": "API-Key für weitere Routen speichern"
                 }
             },
+            "ors_service": {
+                "title": "Routen-Dienst",
+                "description": "Welcher Dienst berechnet die Route?\n\n**openrouteservice** berechnet sie einmal beim Einrichten, danach bleibt sie, wie sie ist - er kennt die Straßen, nicht den Verkehr.\n\n**TomTom** berechnet sie bei jeder Abfrage neu, mit dem Verkehr des Moments: den Weg, der gerade am schnellsten ist, wie lange er dauert und wie viel davon Verzögerung ist. Gesucht wird dann entlang dieser Route. Beide brauchen einen kostenlosen API-Key.",
+                "data": {
+                    "route_service": "Routen-Dienst"
+                }
+            },
+            "tomtom_key": {
+                "title": "TomTom",
+                "description": "Die Route berechnet TomTom, bei jeder Abfrage, mit dem Verkehr des Moments. Dafür ist ein API-Key nötig, den es kostenlos gibt - ohne Zahlungsmethode:\n\n1. Registriere dich auf [developer.tomtom.com]({url}).\n2. Direkt danach steht im Dashboard unter **API & SDK Keys** bereits ein Key, *My First API key*, mit allen APIs freigeschaltet - darunter die Routing API, die Geocoding API und die Reverse Geocoding API, die drei, die hier gebraucht werden. Kopiere ihn mit dem Knopf daneben.\n3. Füge ihn hier ein.\n\nIst bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere TomTom-Route verwendet, ohne erneut abgefragt zu werden.",
+                "data": {
+                    "ors_api_key": "API-Key",
+                    "ors_save_key": "API-Key für weitere Routen speichern"
+                }
+            },
             "ors_start": {
                 "title": "Start",
                 "description": "Wo beginnt die Route?",
@@ -307,6 +354,7 @@
                 "data": {
                     "route_tolerance": "Abstand zur Route (Meter)",
                     "ors_return_route": "Auch den Rückweg anlegen",
+                    "ors_return_name": "Name des Rückwegs",
                     "type": "Kontrollen",
                     "kinds": "Kontrollarten",
                     "hazards": "Gefahren"
@@ -335,7 +383,52 @@
                     }
                 },
                 "data_description": {
-                    "ors_return_route": "Ein zweiter Eintrag, Ziel nach Start, ebenfalls von openrouteservice berechnet - auf der Autobahn ist der Rückweg die andere Fahrbahn, und ein Stau auf der einen ist keiner auf der anderen. Benannt wie dieser Eintrag, mit „Rückweg“ dahinter."
+                    "ors_return_route": "Ein zweiter Eintrag, Ziel nach Start, vom selben Dienst berechnet - auf der Autobahn ist der Rückweg die andere Fahrbahn, und ein Stau auf der einen ist keiner auf der anderen. Benannt wie dieser Eintrag, mit „Rückweg“ dahinter.",
+                    "ors_return_name": "Nur beim Anlegen des Rückwegs verwendet. Vorbelegt mit dem Namen dieses Eintrags und „Rückweg“ dahinter; ein anderer Name macht daraus zum Beispiel „Heim“ und „Arbeit“."
+                }
+            },
+            "tomtom_route": {
+                "title": "Deine Route, jetzt gerade",
+                "description": "{start} → {destination}, {vias} Via-Punkte: {distance} km, gerade etwa {duration} Min., davon {delay} Min. Verzögerung. Die Route wird bei jeder Abfrage neu berechnet; die Karte zeigt die, die der Verkehr in diesem Moment am schnellsten macht.",
+                "data": {
+                    "route_tolerance": "Abstand zur Route (Meter)",
+                    "ors_return_route": "Auch den Rückweg anlegen",
+                    "ors_return_name": "Name des Rückwegs",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren",
+                    "live_days": "Tage, an denen die Route aktuell gehalten wird",
+                    "live_from": "Von",
+                    "live_until": "Bis",
+                    "live_back_from": "Von (Rückweg)",
+                    "live_back_until": "Bis (Rückweg)"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optionale Einstellungen Kontrollen",
+                        "data": {
+                            "count": "Maximale Anzahl der Kontrollen",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
+                        }
+                    }
+                },
+                "data_description": {
+                    "ors_return_route": "Ein zweiter Eintrag, Ziel nach Start, vom selben Dienst berechnet - auf der Autobahn ist der Rückweg die andere Fahrbahn, und ein Stau auf der einen ist keiner auf der anderen. Benannt wie dieser Eintrag, mit „Rückweg“ dahinter.",
+                    "ors_return_name": "Nur beim Anlegen des Rückwegs verwendet. Vorbelegt mit dem Namen dieses Eintrags und „Rückweg“ dahinter; ein anderer Name macht daraus zum Beispiel „Heim“ und „Arbeit“."
                 }
             },
             "ors_alternatives": {
@@ -359,13 +452,14 @@
         },
         "error": {
             "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte.",
-            "invalid_api_key": "openrouteservice hat den API-Key nicht akzeptiert.",
-            "quota_exceeded": "Das openrouteservice-Kontingent dieses Keys ist vorerst aufgebraucht. Versuche es später erneut.",
+            "invalid_api_key": "Der Routen-Dienst hat den API-Key nicht akzeptiert.",
+            "quota_exceeded": "Das Kontingent dieses Keys beim Routen-Dienst ist vorerst aufgebraucht. Versuche es später noch einmal.",
             "address_not_found": "Zu dieser Adresse wurde kein Ort gefunden.",
             "point_not_routable": "Einer der Punkte liegt zu weit von einer Straße entfernt. Verschiebe ihn näher an eine.",
-            "no_route": "openrouteservice hat keine Straße gefunden, die diese Punkte verbindet.",
-            "route_too_long": "Die Route ist für openrouteservice zu lang oder hat zu viele Punkte.",
-            "cannot_connect": "openrouteservice war nicht erreichbar.",
+            "no_route": "Der Routen-Dienst hat keine Straße gefunden, die diese Punkte verbindet.",
+            "route_too_long": "Die Route ist für den Routen-Dienst zu lang oder hat zu viele Punkte.",
+            "return_name_taken": "Einen Eintrag mit diesem Namen gibt es schon - dieser hier eingeschlossen.",
+            "cannot_connect": "Der Routen-Dienst ist nicht erreichbar.",
             "zone_without_position": "Diese Zone hat keine Position.",
             "api_key_required": "Gib einen API-Key ein."
         }
@@ -411,7 +505,8 @@
                     "edit_settings": "Sucheinstellungen bearbeiten (Korridorbreite, Typen, Filter)",
                     "edit_route": "Route ändern (Start, Ziel, Via-Punkte)",
                     "edit_ors_settings": "Sucheinstellungen bearbeiten (Abstand zur Route, Typen, Filter)",
-                    "edit_ors_key": "openrouteservice-API-Key ändern"
+                    "edit_route_service": "Routen-Dienst wechseln (openrouteservice oder TomTom)",
+                    "edit_ors_key": "API-Key des Routen-Dienstes ändern"
                 }
             },
             "area": {
@@ -538,6 +633,21 @@
                     "ors_save_key": "API-Key für weitere Routen speichern"
                 }
             },
+            "ors_service": {
+                "title": "Routen-Dienst",
+                "description": "Welcher Dienst berechnet die Route?\n\n**openrouteservice** berechnet sie einmal beim Einrichten, danach bleibt sie, wie sie ist - er kennt die Straßen, nicht den Verkehr.\n\n**TomTom** berechnet sie bei jeder Abfrage neu, mit dem Verkehr des Moments: den Weg, der gerade am schnellsten ist, wie lange er dauert und wie viel davon Verzögerung ist. Gesucht wird dann entlang dieser Route. Beide brauchen einen kostenlosen API-Key.",
+                "data": {
+                    "route_service": "Routen-Dienst"
+                }
+            },
+            "tomtom_key": {
+                "title": "TomTom",
+                "description": "Die Route berechnet TomTom, bei jeder Abfrage, mit dem Verkehr des Moments. Dafür ist ein API-Key nötig, den es kostenlos gibt - ohne Zahlungsmethode:\n\n1. Registriere dich auf [developer.tomtom.com]({url}).\n2. Direkt danach steht im Dashboard unter **API & SDK Keys** bereits ein Key, *My First API key*, mit allen APIs freigeschaltet - darunter die Routing API, die Geocoding API und die Reverse Geocoding API, die drei, die hier gebraucht werden. Kopiere ihn mit dem Knopf daneben.\n3. Füge ihn hier ein.\n\nIst bereits ein Key gespeichert, lass das Feld leer, um ihn zu behalten. Ein gespeicherter Key wird für jede weitere TomTom-Route verwendet, ohne erneut abgefragt zu werden.",
+                "data": {
+                    "ors_api_key": "API-Key",
+                    "ors_save_key": "API-Key für weitere Routen speichern"
+                }
+            },
             "ors_start": {
                 "title": "Start",
                 "description": "Wo beginnt die Route?",
@@ -659,6 +769,44 @@
                     }
                 }
             },
+            "tomtom_route": {
+                "title": "Deine Route, jetzt gerade",
+                "description": "{start} → {destination}, {vias} Via-Punkte: {distance} km, gerade etwa {duration} Min., davon {delay} Min. Verzögerung. Die Route wird bei jeder Abfrage neu berechnet; die Karte zeigt die, die der Verkehr in diesem Moment am schnellsten macht.",
+                "data": {
+                    "route_tolerance": "Abstand zur Route (Meter)",
+                    "type": "Kontrollen",
+                    "kinds": "Kontrollarten",
+                    "hazards": "Gefahren",
+                    "live_days": "Tage, an denen die Route aktuell gehalten wird",
+                    "live_from": "Von",
+                    "live_until": "Bis",
+                    "live_back_from": "Von (Rückweg)",
+                    "live_back_until": "Bis (Rückweg)"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optionale Einstellungen Kontrollen",
+                        "data": {
+                            "count": "Maximale Anzahl der Kontrollen",
+                            "update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "condition": "Nur bestätigte Kontrollen anzeigen",
+                            "blacklist": "Blacklist (kommagetrennte Kontroll-IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optionale Einstellungen Gefahren",
+                        "data": {
+                            "hazard_count": "Maximale Anzahl der Gefahren",
+                            "hazard_update_interval": "Aktualisierungsintervall (Minuten, 0 = nur manuell)",
+                            "hazard_new_minutes": "Als neu zählen für (Minuten, 0 = aus)",
+                            "hazard_selector": "Whitelist (kommagetrennte Städtenamen)",
+                            "hazard_blacklist": "Blacklist (kommagetrennte Gefahren-IDs)"
+                        }
+                    }
+                }
+            },
             "ors_alternatives": {
                 "title": "Welcher Weg?",
                 "description": "openrouteservice bietet {count} Routen von {start} nach {destination}, die schnellste zuerst. Die Karte zeichnet sie nummeriert: die erste als Route, die anderen gestrichelt.",
@@ -675,13 +823,13 @@
         },
         "error": {
             "route_needs_two_waypoints": "Eine Route benötigt mindestens zwei Wegpunkte.",
-            "invalid_api_key": "openrouteservice hat den API-Key nicht akzeptiert.",
-            "quota_exceeded": "Das openrouteservice-Kontingent dieses Keys ist vorerst aufgebraucht. Versuche es später erneut.",
+            "invalid_api_key": "Der Routen-Dienst hat den API-Key nicht akzeptiert.",
+            "quota_exceeded": "Das Kontingent dieses Keys beim Routen-Dienst ist vorerst aufgebraucht. Versuche es später noch einmal.",
             "address_not_found": "Zu dieser Adresse wurde kein Ort gefunden.",
             "point_not_routable": "Einer der Punkte liegt zu weit von einer Straße entfernt. Verschiebe ihn näher an eine.",
-            "no_route": "openrouteservice hat keine Straße gefunden, die diese Punkte verbindet.",
-            "route_too_long": "Die Route ist für openrouteservice zu lang oder hat zu viele Punkte.",
-            "cannot_connect": "openrouteservice war nicht erreichbar.",
+            "no_route": "Der Routen-Dienst hat keine Straße gefunden, die diese Punkte verbindet.",
+            "route_too_long": "Die Route ist für den Routen-Dienst zu lang oder hat zu viele Punkte.",
+            "cannot_connect": "Der Routen-Dienst ist nicht erreichbar.",
             "zone_without_position": "Diese Zone hat keine Position.",
             "api_key_required": "Gib einen API-Key ein."
         },

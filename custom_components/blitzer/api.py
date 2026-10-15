@@ -82,6 +82,28 @@ def traffic_detail_zoom(box: tuple, zoom: int) -> int:
     return best
 
 
+# How far past the route's own extent its traffic is still asked for: the
+# corridor's width and a little, in degrees - about 2 km.
+ROUTE_VIEW_MARGIN = 0.02
+
+
+def route_view(edges: tuple, waypoints) -> tuple | None:
+    """A map view cut down to a route: the view's box intersected with the
+    route's own, widened a little. None when the view does not reach the
+    route at all, or the route has no points."""
+    lats = [float(p["latitude"]) for p in waypoints or [] if p.get("latitude") is not None]
+    lons = [float(p["longitude"]) for p in waypoints or [] if p.get("longitude") is not None]
+    if not lats or not lons:
+        return None
+    south = max(edges[0], min(lats) - ROUTE_VIEW_MARGIN)
+    west = max(edges[1], min(lons) - ROUTE_VIEW_MARGIN)
+    north = min(edges[2], max(lats) + ROUTE_VIEW_MARGIN)
+    east = min(edges[3], max(lons) + ROUTE_VIEW_MARGIN)
+    if south >= north or west >= east:
+        return None
+    return (south, west, north, east)
+
+
 def traffic_box(south: float, west: float, north: float, east: float):
     """The box to ask the traffic endpoint for, snapped outward to the grid;
     None for a box that is no box, or one too large to be a map view - a

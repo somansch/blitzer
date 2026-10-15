@@ -7,7 +7,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant.components import websocket_api
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
@@ -34,6 +34,7 @@ from .const import (
     CONF_ORS_VIAS,
     CONF_ROUTE_DISTANCE,
     CONF_ROUTE_DURATION,
+    CONF_ROUTE_SERVICE,
     CONF_SEARCH_MODE,
     CONF_WAYPOINTS,
     ROUTE_MODES,
@@ -43,12 +44,15 @@ from .const import (
     SERVICE_REFRESH,
     SERVICE_REFRESH_CONTROLS,
     SERVICE_REFRESH_HAZARDS,
+    ROUTE_SERVICE_TOMTOM,
+    TOMTOM_TOTAL_OWNER,
 )
-from .api import APIConnectionError, traffic_box
+from .api import APIConnectionError, route_view, traffic_box
 from .route_match import traffic_along_route
 from .bundle import CARD_RESOURCE_PATHS, async_install_blueprints, async_register_card
 from .lovelace_resource import async_unregister as async_unregister_resource
 from .ors import async_forget_key
+from .tomtom import async_get_usage
 from .coordinator import (
     BlitzerdeAPIData,
     BlitzerdeCoordinator,
@@ -145,7 +149,18 @@ async def websocket_traffic(
     if runtime is None:
         connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "Not a Blitzer.de entry")
         return
-    box = traffic_box(msg["south"], msg["west"], msg["north"], msg["east"])
+    # On a route entry only the route's roads are kept, so only the route's
+    # own box is worth asking for: the view cut down to it. A pop-up map
+    # that shows the whole route at once is a view far larger than the
+    # route itself, and used to be refused as too large.
+    narrow = runtime.coordinator.traffic_filter()
+    edges = (msg["south"], msg["west"], msg["north"], msg["east"])
+    if narrow is not None:
+        edges = route_view(edges, runtime.coordinator.waypoints)
+        if edges is None:
+            connection.send_result(msg["id"], {"data": None, "reason": "outside"})
+            return
+    box = traffic_box(*edges)
     if box is None:
         connection.send_result(msg["id"], {"data": None, "reason": "too_large"})
         return
@@ -157,7 +172,6 @@ async def websocket_traffic(
     # On a route entry, only the route's own roads: the view's others are
     # not what that card is about. Geometry over hundreds of runs, so in
     # the executor like the route filter itself.
-    narrow = runtime.coordinator.traffic_filter()
     if narrow is not None and data is not None:
         data = await hass.async_add_executor_job(traffic_along_route, data, box, narrow[0], narrow[1])
     if age == 0:
@@ -209,6 +223,13 @@ def websocket_route(
     data = entry.data
     mode = data.get(CONF_SEARCH_MODE)
     waypoints = data.get(CONF_WAYPOINTS) or []
+    # A live route is the coordinator's, not the entry's: the one the
+    # traffic made fastest at the last poll, with its times.
+    runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    coordinator = runtime.coordinator if runtime else None
+    live = coordinator.live if coordinator and coordinator.live else None
+    if live and coordinator.waypoints:
+        waypoints = coordinator.waypoints
     if mode not in ROUTE_MODES or not waypoints:
         area = {"points": None, "mode": mode}
         if mode == SEARCH_MODE_TRACKER:
@@ -239,8 +260,19 @@ def websocket_route(
             "start": end(data.get(CONF_ORS_START) if ors else waypoints[0]),
             "destination": end(data.get(CONF_ORS_DESTINATION) if ors else waypoints[-1]),
             "vias": [[v["latitude"], v["longitude"]] for v in data.get(CONF_ORS_VIAS, [])],
-            "distance": data.get(CONF_ROUTE_DISTANCE),
-            "duration": data.get(CONF_ROUTE_DURATION),
+            "distance": live["distance"] if live and live.get("distance") is not None else data.get(CONF_ROUTE_DISTANCE),
+            "duration": live["duration"] if live and live.get("duration") is not None else data.get(CONF_ROUTE_DURATION),
+            **(
+                {
+                    "live": {
+                        "delay": live.get("delay"),
+                        "duration_no_traffic": live.get("duration_no_traffic"),
+                        "at": live["at"].isoformat() if live.get("at") else None,
+                    }
+                }
+                if live
+                else {}
+            ),
         },
     )
 
@@ -269,7 +301,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         # The API client sets `connected` on its first successful response,
         # so a False here means the initial fetch never got one - retry setup
         # rather than leaving the entry up with nothing in it.
-        if not coordinator.api.connected:
+        # Only where a fetch was attempted at all: a live route outside its
+        # hours, or a manual-only entry, asks nothing on its first pass.
+        if coordinator.attempted_fetch and not coordinator.api.connected:
             raise ConfigEntryNotReady
 
     # Initialise a listener for config flow options changes.
@@ -284,6 +318,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     # Setup platforms (based on the list of entity types in PLATFORMS defined above)
     # This calls the async_setup method in each of your entity type files.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS);
+    # An entry that stopped being a TomTom route took the month's total with
+    # it; another one carries it from here.
+    _async_carry_tomtom_total(hass)
 
     # Registered once for the domain, not per entry - guarded since
     # async_setup_entry runs again for every additional area/route.
@@ -434,9 +471,13 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         config_entry, PLATFORMS
     )
 
-    # Remove the config entry from the hass data object.
+    # Remove the config entry from the hass data object. The month's
+    # TomTom total goes with the entry that carried it; see
+    # _async_carry_tomtom_total for who takes it on.
     if unload_ok:
         hass.data[DOMAIN].pop(config_entry.entry_id)
+        if hass.data[DOMAIN].get(TOMTOM_TOTAL_OWNER) == config_entry.entry_id:
+            hass.data[DOMAIN].pop(TOMTOM_TOTAL_OWNER)
 
     # Return that unloading was successful.
     return unload_ok
@@ -451,11 +492,32 @@ async def async_remove_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     way: it points at a file this integration serves, so it is ours to take
     back out rather than leave in somebody's resource list.
     """
+    if config_entry.data.get(CONF_ROUTE_SERVICE) == ROUTE_SERVICE_TOMTOM:
+        (await async_get_usage(hass)).forget(config_entry.entry_id)
+    _async_carry_tomtom_total(hass)
     if hass.config_entries.async_entries(DOMAIN):
         return
 
     await async_forget_key(hass)
     await async_unregister_resource(hass, CARD_RESOURCE_PATHS)
+
+
+@callback
+def _async_carry_tomtom_total(hass: HomeAssistant) -> None:
+    """Give the month's TomTom total a carrier again once the entry that
+    carried it is gone - removed, or no longer a TomTom route: the first
+    TomTom entry that is up is reloaded and takes it on. One still setting
+    up claims it by itself, so only loaded ones are looked at."""
+    runtime = hass.data.get(DOMAIN) or {}
+    if runtime.get(TOMTOM_TOTAL_OWNER):
+        return
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if (
+            entry.data.get(CONF_ROUTE_SERVICE) == ROUTE_SERVICE_TOMTOM
+            and entry.state is ConfigEntryState.LOADED
+        ):
+            hass.async_create_task(hass.config_entries.async_reload(entry.entry_id))
+            return
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):

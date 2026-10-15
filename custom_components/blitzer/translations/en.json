@@ -9,6 +9,23 @@
                 "route_ors": "🛣️ Route (start/destination) *"
             }
         },
+        "route_service": {
+            "options": {
+                "ors": "🗺️ openrouteservice - the route once, when it is set up",
+                "tomtom": "🚦 TomTom - the route on every poll, with the traffic of the moment"
+            }
+        },
+        "live_days": {
+            "options": {
+                "mon": "Monday",
+                "tue": "Tuesday",
+                "wed": "Wednesday",
+                "thu": "Thursday",
+                "fri": "Friday",
+                "sat": "Saturday",
+                "sun": "Sunday"
+            }
+        },
         "control_form": {
             "options": {
                 "mobile": "Mobile",
@@ -68,6 +85,21 @@
             },
             "delivered_count": {
                 "name": "Delivered reports"
+            },
+            "travel_time": {
+                "name": "Travel time"
+            },
+            "traffic_delay": {
+                "name": "Traffic delay"
+            },
+            "route_length": {
+                "name": "Route length"
+            },
+            "tomtom_requests": {
+                "name": "TomTom requests this month"
+            },
+            "tomtom_requests_total": {
+                "name": "TomTom requests this month, all entries"
             }
         },
         "number": {
@@ -94,7 +126,7 @@
                     "search_mode": "Search mode"
                 },
                 "data_description": {
-                    "search_mode": "\\* needs a free openrouteservice API key - the next screen tells you how to get one."
+                    "search_mode": "\\* needs a free API key from a routing service - openrouteservice, or TomTom for a route that follows the traffic. The next screens tell you how to get one."
                 }
             },
             "area": {
@@ -213,6 +245,21 @@
                     "ors_save_key": "Save the key for further routes"
                 }
             },
+            "ors_service": {
+                "title": "Routing service",
+                "description": "Which service works the route out?\n\n**openrouteservice** works it out once, when the route is set up, and it stays as it is - it knows the roads, not the traffic.\n\n**TomTom** works it out again on every poll, with the traffic of the moment: the way that is fastest right now, how long it takes, and how much of that is delay. The search then runs along that route. Both need a free API key.",
+                "data": {
+                    "route_service": "Routing service"
+                }
+            },
+            "tomtom_key": {
+                "title": "TomTom",
+                "description": "The route is worked out by TomTom, on every poll, with the traffic of the moment. It needs an API key, which is free - no payment method:\n\n1. Sign up at [developer.tomtom.com]({url}).\n2. Right after that, **API & SDK Keys** in the dashboard already lists a key, *My First API key*, with every API enabled - the Routing API, the Geocoding API and the Reverse Geocoding API among them, the three used here. Copy it with the button beside it.\n3. Paste it here.\n\nIf a key is already saved, leave the field empty to keep it. A saved key is used for every further TomTom route without being asked for again.",
+                "data": {
+                    "ors_api_key": "API key",
+                    "ors_save_key": "Save the key for further routes"
+                }
+            },
             "ors_start": {
                 "title": "Start",
                 "description": "Where does the route start?",
@@ -307,6 +354,7 @@
                 "data": {
                     "route_tolerance": "Distance from the route (meters)",
                     "ors_return_route": "Also create the way back",
+                    "ors_return_name": "Name of the way back",
                     "type": "Controls",
                     "kinds": "Control types",
                     "hazards": "Hazards"
@@ -335,7 +383,52 @@
                     }
                 },
                 "data_description": {
-                    "ors_return_route": "A second entry, destination to start, worked out by openrouteservice as well - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added."
+                    "ors_return_route": "A second entry, destination to start, worked out by the same service - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added.",
+                    "ors_return_name": "Only used when the way back is created. Filled with this entry's name and \"return\" added; type another to call it something else - \"Home\" and \"Work\", say."
+                }
+            },
+            "tomtom_route": {
+                "title": "Your route, right now",
+                "description": "{start} → {destination}, {vias} via points: {distance} km, about {duration} min right now, {delay} min of it delay. The route is worked out again on every poll; the map shows the one the traffic makes fastest at this moment.",
+                "data": {
+                    "route_tolerance": "Distance from the route (meters)",
+                    "ors_return_route": "Also create the way back",
+                    "ors_return_name": "Name of the way back",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards",
+                    "live_days": "Days the route is kept up to date",
+                    "live_from": "From",
+                    "live_until": "Until",
+                    "live_back_from": "From (way back)",
+                    "live_back_until": "Until (way back)"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optional settings for controls",
+                        "data": {
+                            "count": "Number of controls",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
+                        }
+                    }
+                },
+                "data_description": {
+                    "ors_return_route": "A second entry, destination to start, worked out by the same service - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added.",
+                    "ors_return_name": "Only used when the way back is created. Filled with this entry's name and \"return\" added; type another to call it something else - \"Home\" and \"Work\", say."
                 }
             },
             "ors_alternatives": {
@@ -359,13 +452,14 @@
         },
         "error": {
             "route_needs_two_waypoints": "A route needs at least two waypoints.",
-            "invalid_api_key": "openrouteservice did not accept the API key.",
-            "quota_exceeded": "The openrouteservice quota of this key is used up for now. Try again later.",
+            "invalid_api_key": "The routing service did not accept the API key.",
+            "quota_exceeded": "The routing service's quota of this key is used up for now. Try again later.",
             "address_not_found": "No place was found for this address.",
             "point_not_routable": "One of the points is too far from a road. Move it closer to one.",
-            "no_route": "openrouteservice found no road connecting these points.",
-            "route_too_long": "The route is too long for openrouteservice, or has too many points.",
-            "cannot_connect": "openrouteservice could not be reached.",
+            "no_route": "The routing service found no road connecting these points.",
+            "route_too_long": "The route is too long for the routing service, or has too many points.",
+            "return_name_taken": "An entry of that name exists already - this one included.",
+            "cannot_connect": "The routing service could not be reached.",
             "zone_without_position": "This zone has no position.",
             "api_key_required": "Enter an API key."
         }
@@ -411,7 +505,8 @@
                     "edit_settings": "Edit search settings (corridor width, types, filters)",
                     "edit_route": "Change the route (start, destination, via points)",
                     "edit_ors_settings": "Edit search settings (distance from the route, types, filters)",
-                    "edit_ors_key": "Change the openrouteservice API key"
+                    "edit_route_service": "Change the routing service (openrouteservice or TomTom)",
+                    "edit_ors_key": "Change the routing service's API key"
                 }
             },
             "area": {
@@ -538,6 +633,21 @@
                     "ors_save_key": "Save the key for further routes"
                 }
             },
+            "ors_service": {
+                "title": "Routing service",
+                "description": "Which service works the route out?\n\n**openrouteservice** works it out once, when the route is set up, and it stays as it is - it knows the roads, not the traffic.\n\n**TomTom** works it out again on every poll, with the traffic of the moment: the way that is fastest right now, how long it takes, and how much of that is delay. The search then runs along that route. Both need a free API key.",
+                "data": {
+                    "route_service": "Routing service"
+                }
+            },
+            "tomtom_key": {
+                "title": "TomTom",
+                "description": "The route is worked out by TomTom, on every poll, with the traffic of the moment. It needs an API key, which is free - no payment method:\n\n1. Sign up at [developer.tomtom.com]({url}).\n2. Right after that, **API & SDK Keys** in the dashboard already lists a key, *My First API key*, with every API enabled - the Routing API, the Geocoding API and the Reverse Geocoding API among them, the three used here. Copy it with the button beside it.\n3. Paste it here.\n\nIf a key is already saved, leave the field empty to keep it. A saved key is used for every further TomTom route without being asked for again.",
+                "data": {
+                    "ors_api_key": "API key",
+                    "ors_save_key": "Save the key for further routes"
+                }
+            },
             "ors_start": {
                 "title": "Start",
                 "description": "Where does the route start?",
@@ -659,6 +769,44 @@
                     }
                 }
             },
+            "tomtom_route": {
+                "title": "Your route, right now",
+                "description": "{start} → {destination}, {vias} via points: {distance} km, about {duration} min right now, {delay} min of it delay. The route is worked out again on every poll; the map shows the one the traffic makes fastest at this moment.",
+                "data": {
+                    "route_tolerance": "Distance from the route (meters)",
+                    "type": "Controls",
+                    "kinds": "Control types",
+                    "hazards": "Hazards",
+                    "live_days": "Days the route is kept up to date",
+                    "live_from": "From",
+                    "live_until": "Until",
+                    "live_back_from": "From (way back)",
+                    "live_back_until": "Until (way back)"
+                },
+                "sections": {
+                    "optional": {
+                        "name": "Optional settings for controls",
+                        "data": {
+                            "count": "Number of controls",
+                            "update_interval": "Update interval (minutes, 0 = manual only)",
+                            "new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "selector": "Whitelist (comma-separated city names)",
+                            "condition": "Only show confirmed",
+                            "blacklist": "Blacklist (comma-separated control IDs)"
+                        }
+                    },
+                    "hazard_optional": {
+                        "name": "Optional settings for hazards",
+                        "data": {
+                            "hazard_count": "Number of hazards",
+                            "hazard_update_interval": "Update interval (minutes, 0 = manual only)",
+                            "hazard_new_minutes": "Counts as new for (minutes, 0 = off)",
+                            "hazard_selector": "Whitelist (comma-separated city names)",
+                            "hazard_blacklist": "Blacklist (comma-separated hazard IDs)"
+                        }
+                    }
+                }
+            },
             "ors_alternatives": {
                 "title": "Which way?",
                 "description": "openrouteservice offers {count} routes from {start} to {destination}, fastest first. The map draws them numbered: the first as the route, the others dashed.",
@@ -675,13 +823,13 @@
         },
         "error": {
             "route_needs_two_waypoints": "A route needs at least two waypoints.",
-            "invalid_api_key": "openrouteservice did not accept the API key.",
-            "quota_exceeded": "The openrouteservice quota of this key is used up for now. Try again later.",
+            "invalid_api_key": "The routing service did not accept the API key.",
+            "quota_exceeded": "The routing service's quota of this key is used up for now. Try again later.",
             "address_not_found": "No place was found for this address.",
             "point_not_routable": "One of the points is too far from a road. Move it closer to one.",
-            "no_route": "openrouteservice found no road connecting these points.",
-            "route_too_long": "The route is too long for openrouteservice, or has too many points.",
-            "cannot_connect": "openrouteservice could not be reached.",
+            "no_route": "The routing service found no road connecting these points.",
+            "route_too_long": "The route is too long for the routing service, or has too many points.",
+            "cannot_connect": "The routing service could not be reached.",
             "zone_without_position": "This zone has no position.",
             "api_key_required": "Enter an API key."
         },

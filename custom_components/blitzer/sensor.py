@@ -9,13 +9,15 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, SEARCH_MODE_ROUTE_ORS
+from .const import DOMAIN, ROUTE_SERVICE_TOMTOM, SEARCH_MODE_ROUTE_ORS, TOMTOM_TOTAL_OWNER
 from .coordinator import BlitzerdeCoordinator
+from .tomtom import SIGNAL_TOMTOM_USAGE, TomTomUsage, async_get_usage
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,6 +105,22 @@ async def async_setup_entry(
         SensorRequestCount(coordinator),
         SensorDeliveredCount(coordinator),
     ]
+    if coordinator.route_service == ROUTE_SERVICE_TOMTOM:
+        # A live route says how long it takes right now, and how much of
+        # that is the traffic's doing - and how often it asked this month.
+        usage = await async_get_usage(hass)
+        sensors.extend([
+            SensorTravelTime(coordinator),
+            SensorTrafficDelay(coordinator),
+            SensorRouteLength(coordinator),
+            SensorTomTomRequests(coordinator, usage),
+        ])
+        # The total across every entry is one sensor, carried by whichever
+        # TomTom entry set up first - see TOMTOM_TOTAL_OWNER.
+        runtime = hass.data[DOMAIN]
+        if runtime.get(TOMTOM_TOTAL_OWNER) in (None, config_entry.entry_id):
+            runtime[TOMTOM_TOTAL_OWNER] = config_entry.entry_id
+            sensors.append(SensorTomTomTotal(usage))
 
     # Create the sensors.
     async_add_entities(sensors)
@@ -186,6 +204,160 @@ class SensorDeliveredCount(SensorCounterBase):
 
     def _add(self, value: int) -> None:
         self.coordinator.item_count += value
+
+
+class SensorLiveBase(CoordinatorEntity, SensorEntity):
+    """Shared plumbing for the two live-route sensors: minutes out of the
+    seconds TomTom sends, and the block of attributes both carry."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = "min"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _live_field = ""
+
+    def __init__(self, coordinator: BlitzerdeCoordinator, key: str, icon: str) -> None:
+        super().__init__(coordinator)
+        self._attr_device_info = coordinator.device_info
+        self._attr_translation_key = key
+        self._attr_icon = icon
+        self._attr_unique_id = f"{DOMAIN}-{key}-{coordinator.entry_id}"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self.async_write_ha_state()
+
+    @property
+    def native_value(self):
+        live = self.coordinator.live or {}
+        seconds = live.get(self._live_field)
+        return round(seconds / 60) if seconds is not None else None
+
+    @property
+    def extra_state_attributes(self):
+        live = self.coordinator.live or {}
+        minutes = lambda key: round(live[key] / 60) if live.get(key) is not None else None  # noqa: E731
+        distance = live.get("distance")
+        return {
+            "travel_time_minutes": minutes("duration"),
+            "travel_time_no_traffic_minutes": minutes("duration_no_traffic"),
+            "traffic_delay_minutes": minutes("delay"),
+            "distance_km": round(distance / 1000, 1) if distance is not None else None,
+            "computed_at": _iso(live.get("at")),
+            "route_changed_at": _iso(self.coordinator.route_changed_at),
+            "error": live.get("error"),
+        }
+
+
+class SensorTravelTime(SensorLiveBase):
+    """How long the route takes right now, traffic included."""
+
+    _live_field = "duration"
+
+    def __init__(self, coordinator: BlitzerdeCoordinator) -> None:
+        super().__init__(coordinator, "travel_time", "mdi:car-clock")
+
+
+class SensorTrafficDelay(SensorLiveBase):
+    """How much of that is delay - the difference to a free road, whatever
+    stands in it: a jam, roadworks at a crawl, a closure's detour."""
+
+    _live_field = "delay"
+
+    def __init__(self, coordinator: BlitzerdeCoordinator) -> None:
+        super().__init__(coordinator, "traffic_delay", "mdi:traffic-light")
+
+
+class SensorRouteLength(SensorLiveBase):
+    """How long the route is right now, in kilometres - the way the traffic
+    makes fastest changes, and its length with it. Home Assistant shows it
+    in miles on an instance that measures in them."""
+
+    _live_field = "distance"
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = "km"
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, coordinator: BlitzerdeCoordinator) -> None:
+        super().__init__(coordinator, "route_length", "mdi:map-marker-distance")
+
+    @property
+    def native_value(self):
+        metres = (self.coordinator.live or {}).get("distance")
+        return round(metres / 1000, 1) if metres is not None else None
+
+
+def _month_start(month: str):
+    """The first moment of a "YYYY-MM" month, local time - a count's last reset."""
+    try:
+        year, number = (int(part) for part in month.split("-", 1))
+    except (AttributeError, ValueError):
+        return None
+    return dt_util.now().replace(
+        year=year, month=number, day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+
+
+class SensorTomTomBase(SensorEntity):
+    """What went to TomTom this calendar month - see TomTomUsage. A total
+    that starts at nought every month, so last_reset is the month's start."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_icon = "mdi:api"
+    # Whose count: an entry's id, or None for all of them.
+    _entry: str | None = None
+
+    def __init__(self, usage: TomTomUsage) -> None:
+        self._usage = usage
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, SIGNAL_TOMTOM_USAGE, self.async_write_ha_state)
+        )
+
+    @property
+    def native_value(self) -> int:
+        return self._usage.for_entry(self._entry)
+
+    @property
+    def last_reset(self):
+        return _month_start(self._usage.month)
+
+    @property
+    def extra_state_attributes(self):
+        month, count = self._usage.previous_for(self._entry)
+        return {
+            "month": self._usage.month,
+            "previous_month": month or None,
+            "previous_month_requests": count if month else None,
+        }
+
+
+class SensorTomTomRequests(SensorTomTomBase):
+    """This entry's requests to TomTom this month."""
+
+    def __init__(self, coordinator: BlitzerdeCoordinator, usage: TomTomUsage) -> None:
+        super().__init__(usage)
+        self._entry = coordinator.entry_id
+        self._attr_translation_key = "tomtom_requests"
+        self._attr_unique_id = f"{DOMAIN}-tomtom_requests-{coordinator.entry_id}"
+        self._attr_device_info = coordinator.device_info
+
+
+class SensorTomTomTotal(SensorTomTomBase):
+    """Every request to TomTom this month, all entries together - with the
+    lookups of a setup, which have no entry yet. On no device, since it
+    belongs to none of the routes."""
+
+    def __init__(self, usage: TomTomUsage) -> None:
+        super().__init__(usage)
+        self._attr_translation_key = "tomtom_requests_total"
+        self._attr_unique_id = f"{DOMAIN}-tomtom_requests_total"
 
 
 class SensorTotalBase(CoordinatorEntity):
@@ -416,6 +588,22 @@ class SensorGrandTotal(SensorTotalBase):
             # A route's corridor is worked out from its length, not set in a
             # form, so this is the one place its width can be read back.
             attrs["corridor_width"] = self.coordinator.corridor_width
+        live = self.coordinator.live
+        if live:
+            # For the card's line under the title, and for its map: the
+            # moment the live route last became a different one is what
+            # tells it to ask for the route again.
+            attrs["route_service"] = self.coordinator.route_service
+            attrs["travel_time_minutes"] = (
+                round(live["duration"] / 60) if live.get("duration") is not None else None
+            )
+            attrs["traffic_delay_minutes"] = (
+                round(live["delay"] / 60) if live.get("delay") is not None else None
+            )
+            attrs["route_distance_km"] = (
+                round(live["distance"] / 1000, 1) if live.get("distance") is not None else None
+            )
+            attrs["route_changed"] = _iso(self.coordinator.route_changed_at)
         if controls or hazards:
             now = dt_util.now()
             data = self.coordinator.data
