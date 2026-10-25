@@ -8,6 +8,8 @@
 
 > **Unofficial.** Not affiliated with, endorsed by or supported by Blitzer.de. "Blitzer.de" and its symbols belong to their owner.
 
+> **No longer developed.** Its successor is **[TomTom](https://github.com/somansch/tomtom)**: blitzer.de's reports built in, plus TomTom's own jams, closures, roadworks, accidents and road weather in more than 70 countries, Lufop speed cameras, a route planner on the card and 30 languages. Blitzer.de keeps working as it is, but gets no new features.
+
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-card-default.png" alt="The Blitzer card in its three formats: portrait with the map above the list, landscape with them side by side and the traffic flow coloured along its route, and the minimal line counting everything reported, what of it is new, and what the jams among it cost" width="100%">
 
 > **A note on language:** this README is written in English. The integration speaks both, so every button and field below is named **English / Deutsch**. Sample data stays as Blitzer.de sends it, which is German.
@@ -482,7 +484,7 @@ Attributes on each hazard's `geo_location` entity:
 
 A ready-to-use automation [blueprint](custom_components/blitzer/blueprints/automation/blitzer/report_alerts.yaml) covers both of the things people actually want, without writing any YAML.
 
-**It comes with the integration.** After a restart it is waiting under **Settings → Automations & Scenes → Blueprints** / **Einstellungen → Automatisierungen & Szenen → Blueprints**, and **Create automation** / **Automatisierung erstellen** is the whole of what is left to do. A release that changes the blueprint brings the new version with it.
+**It comes with the integration.** After a restart it is waiting under **Settings → Automations & Scenes → Blueprints** / **Einstellungen → Automatisierungen & Szenen → Blueprints**, and **Create automation** / **Automatisierung erstellen** is the whole of what is left to do. A release that changes the blueprint brings the new version with it, as long as your copy is unchanged. A copy you edited is left alone; delete it and restart to get the new one.
 
 Want it on its own, in an instance without the integration? Import it straight from here:
 
@@ -1111,7 +1113,7 @@ Three things, in one download:
 - The **[Blitzer card](#blitzer-card)**. Served by the integration and handed to every dashboard, so there is no file to copy into `www` and no resource to register.
 - The **[Report Alerts blueprint](#blueprint-report-alerts)**, put into `config/blueprints/automation/blitzer/` on start.
 
-That blueprint folder is the integration's own: a copy that has fallen behind is replaced when a release changes the blueprint, which is how a fix reaches you at all. A blueprint of your own belongs under a name of your own.
+A copy in that folder that has fallen behind is replaced when a release changes the blueprint, which is how a fix reaches you at all - but only while it is exactly what the integration put there. A copy you edited is left alone, with a line in the log when a newer version ships.
 
 ### HACS (recommended)
 

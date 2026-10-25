@@ -9,6 +9,7 @@ has them the moment it has the integration.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 
@@ -17,6 +18,7 @@ import yaml
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.setup import async_when_setup
 
 from .const import DOMAIN
@@ -41,6 +43,12 @@ CARD_RESOURCE_PATHS = (
 )
 
 BLUEPRINT_DIR = "blueprints"
+# What was last put in place, per blueprint: the hash of the file as it
+# stood on disk afterwards, and of the version the download carried. The
+# first tells a copy nobody touched from one the user changed; the second
+# tells a new shipped version from the one already reported.
+BLUEPRINT_STORE_KEY = f"{DOMAIN}.blueprints"
+BLUEPRINT_STORE_VERSION = 1
 
 
 async def async_register_card(hass: HomeAssistant) -> None:
@@ -121,31 +129,68 @@ async def async_register_card(hass: HomeAssistant) -> None:
 async def async_install_blueprints(hass: HomeAssistant) -> None:
     """Put every blueprint the download carries where Home Assistant looks.
 
-    The folder is named after this integration, and what is in it is ours:
-    an outdated copy is replaced rather than left standing, which is how a
-    blueprint fix reaches an installation at all. That includes a copy
-    imported from the URL in the README - it is rewritten once, on the
-    update that changes the blueprint, and matches from then on. A blueprint
-    of your own belongs under a name of your own.
+    A missing blueprint is installed. One already there is replaced by a
+    newer version only while it is still exactly what this integration put
+    there - that is how a blueprint fix reaches an installation. A copy you
+    changed is yours: it is left alone, and the log says once when a newer
+    version ships that it was not installed over it.
     """
     source_root = Path(__file__).parent / BLUEPRINT_DIR
     target_root = Path(hass.config.path(BLUEPRINT_DIR))
-    await hass.async_add_executor_job(_install_blueprints, source_root, target_root)
+    store: Store[dict] = Store(hass, BLUEPRINT_STORE_VERSION, BLUEPRINT_STORE_KEY)
+    known = (await store.async_load() or {}).get("blueprints") or {}
+    seen = await hass.async_add_executor_job(
+        _install_blueprints, source_root, target_root, dict(known)
+    )
+    if seen != known:
+        await store.async_save({"blueprints": seen})
 
 
-def _install_blueprints(source_root: Path, target_root: Path) -> None:
-    """The file half of the above, off the event loop."""
+def _digest(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _install_blueprints(
+    source_root: Path, target_root: Path, known: dict[str, dict[str, str]]
+) -> dict[str, dict[str, str]]:
+    """The file half of the above, off the event loop.
+
+    "known" is what the last start left behind, by path below the
+    blueprint folder; what comes back replaces it.
+    """
+    seen: dict[str, dict[str, str]] = {}
     for source in sorted(source_root.rglob("*.yaml")):
-        target = target_root / source.relative_to(source_root)
+        relative = source.relative_to(source_root).as_posix()
+        target = target_root / relative
         shipped = source.read_text(encoding="utf-8")
+        before = known.get(relative) or {}
+        record = {"disk": before.get("disk", ""), "shipped": _digest(shipped)}
 
         if target.is_file():
             try:
                 current = target.read_text(encoding="utf-8")
             except OSError as err:
                 _LOGGER.warning("Could not read blueprint %s: %s", target, err)
+                if before:
+                    seen[relative] = before
                 continue
             if current == shipped or _same_blueprint(current, shipped):
+                # Ours, possibly in Home Assistant's own formatting after an
+                # import from the URL. Remember it as it stands, so a later
+                # version knows it may replace it.
+                seen[relative] = {**record, "disk": _digest(current)}
+                continue
+            if not before or _digest(current) != before.get("disk"):
+                # Changed since it was put there, or there before this
+                # integration kept count: either way not ours to overwrite.
+                if before.get("shipped") != record["shipped"]:
+                    _LOGGER.warning(
+                        "Blueprint %s differs from the one this version of the "
+                        "integration ships and was left as it is. To get the "
+                        "shipped one, delete the file and restart Home Assistant.",
+                        target,
+                    )
+                seen[relative] = record
                 continue
 
         try:
@@ -155,9 +200,13 @@ def _install_blueprints(source_root: Path, target_root: Path) -> None:
             # Worth a line in the log and nothing more: a missing blueprint
             # is a missing convenience, not a broken integration.
             _LOGGER.warning("Could not install blueprint %s: %s", target, err)
+            if before:
+                seen[relative] = before
             continue
 
+        seen[relative] = {**record, "disk": _digest(shipped)}
         _LOGGER.info("Installed blueprint %s", target)
+    return seen
 
 
 class _BlueprintLoader(yaml.SafeLoader):

@@ -1651,7 +1651,13 @@
         return { remove: () => marker.remove() };
       },
       fit: (points, o = {}) => fitRoute(leaflet, L.latLngBounds(points), o.maxZoom),
-      inView: (points) => leaflet.getBounds().contains(L.latLngBounds(points)),
+      inView: (points) => {
+        const size = leaflet.getSize();
+        return points.every((pt) => {
+          const p = leaflet.latLngToContainerPoint(L.latLng(pt[0], pt[1]));
+          return p.x >= 22 && p.y >= 22 && p.x <= size.x - 22 && p.y <= size.y - 22;
+        });
+      },
     });
 
     // Through 2026.9.
@@ -1767,19 +1773,39 @@
       },
       // ha-map's own fit: it pauses the map's auto-fit for good, so nothing
       // of Home Assistant's undoes it later. Its zoom is a ceiling, and the
-      // map's default of 14 is too far out for a short commute.
-      fit: (points, o = {}) => haMap.fitBounds(points, {
-        zoom: o.maxZoom || 17,
-        pad: 0.05,
-        padding: { top: 20, right: 20, bottom: 20, left: 20 },
-      }),
+      // map's default of 14 is too far out for a short commute. The padding
+      // is the room a pin needs: ha-map's markers stand 65px above their
+      // point and 24px to each side, its cluster bubbles 60px above and
+      // 40px to each side - and a report at the top edge of what is fitted
+      // would otherwise lose its pin to the map's edge.
+      // A map too small for that room gets less: MapLibre refuses a fit
+      // whose padding leaves nothing, and the map would stay where it was.
+      fit: (points, o = {}) => {
+        const el = inner.getContainer();
+        const w = el ? el.clientWidth : 0;
+        const h = el ? el.clientHeight : 0;
+        const scale = Math.min(1, w ? (w / 2) / 92 : 1, h ? (h / 2) / 96 : 1);
+        const room = (px) => Math.round(px * scale);
+        haMap.fitBounds(points, {
+          zoom: o.maxZoom || 17,
+          pad: 0.05,
+          padding: { top: room(72), right: room(46), bottom: room(24), left: room(46) },
+        });
+      },
+      // In view with the room the pins need - the fit's padding, less a few
+      // pixels so the fit's own result passes. ha-map fits the map to its
+      // markers once more when it has loaded, with no room at all, and
+      // where the route was known before the map that fit lands after the
+      // route's: the route stays inside, its topmost pins do not.
       inView: (points) => {
-        const lats = points.map((pt) => pt[0]);
-        const lons = points.map((pt) => pt[1]);
-        return (
-          haMap.containsLocation([Math.min(...lats), Math.min(...lons)]) &&
-          haMap.containsLocation([Math.max(...lats), Math.max(...lons)])
-        );
+        const el = inner.getContainer();
+        const w = el ? el.clientWidth : 0;
+        const h = el ? el.clientHeight : 0;
+        if (!w || !h) return true;
+        return points.every((pt) => {
+          const p = inner.project([pt[1], pt[0]]);
+          return p.x >= 38 && p.y >= 64 && p.x <= w - 38 && p.y <= h - 16;
+        });
       },
     };
   }
@@ -2199,7 +2225,7 @@
     try {
       leaflet.invalidateSize(false);
       leaflet.fitBounds(bounds, {
-        padding: [20, 20],
+        padding: [30, 30],
         animate: false,
         ...(maxZoom ? { maxZoom } : {}),
       });
@@ -4414,6 +4440,11 @@
         return;
       }
 
+      // A new map starts from Home Assistant's own fit of its markers, with
+      // no room for their pins - so the route is fitted again on it, whatever
+      // was fitted on the map before.
+      this._routeFitted = undefined;
+
       const mapConfig = {
         type: "map",
         // Home Assistant's map card refuses an empty entity list but takes a
@@ -5194,7 +5225,13 @@
       if (this._routeFitted !== sig) {
         this._routeFitted = sig;
         this._endRouteWatch("_routeSettle");
-        this._routeSettle = fitRouteSettled(h, route.points);
+        // The route and the reports on it: a report sits where the incident
+        // begins, which can be a little off the line's own extent, and on a
+        // small map that little is a pin cut off at the edge.
+        const reports = (this._mapRows || [])
+          .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon))
+          .map((r) => [r.lat, r.lon]);
+        this._routeSettle = fitRouteSettled(h, route.points.concat(reports));
       }
     }
 

@@ -2,6 +2,14 @@
 
 All notable changes to this integration are documented here.
 
+## v4.1.1
+
+**Blitzer.de is no longer developed.** Its successor is [TomTom](https://github.com/somansch/tomtom), with blitzer.de's reports built in and TomTom's own jams, closures, roadworks, accidents and road weather in more than 70 countries, Lufop speed cameras, a route planner on the card and 30 languages. Blitzer.de keeps working as it is, but gets no new features.
+
+### Fixed
+- **A blueprint you changed is no longer overwritten.** The Report Alerts blueprint was written over on every start whenever the copy under `config/blueprints/automation/blitzer/` differed from the shipped one. The integration now remembers what it last installed: a missing copy is installed, an untouched one is updated when a release changes the blueprint, and one you edited is left alone, with a line in the log when a newer version ships.
+- **Every report's pin stays on the map after a switch of entry.** Switching the dropdown to a route could leave the reports at the top of the map without their pins - the symbols appeared only once the map's own focus button had been pressed. Three things were behind it, all in the card. The map was fitted to the route with 20px of room, while Home Assistant's markers stand 65px above their point and its cluster bubbles 60px, so a report at the top edge of the route lost its pin to the map's edge. The fit itself did not run on the map a switch builds: the card remembered the route as already fitted, so only Home Assistant's own fit of the markers, with no room at all, took place. And a report sits where the incident begins, which can be a little off the route's own extent. Now the map is fitted to the route and its reports together, with the room a pin needs, on every map that is built - and the watch that keeps the route in view for a minute after the fit checks for that room too, in pixels, rather than for the route alone.
+
 ## v4.1.0
 
 ### Added
