@@ -2,6 +2,14 @@
 
 All notable changes to this integration are documented here.
 
+## v4.2.0
+
+### Added
+- **An updated card reaches every open page by itself.** A dashboard that is open while Home Assistant restarts is not served again, and the dashboards' resources are read once per page - so a new version of the card used to show up only after a reload, and only after a hard one where a service worker kept the old file. The card's loader, which stays in the page, now asks the integration after every reconnect which version it serves and fetches a newer one into the page; the new file takes over the registered elements and redraws every card and editor on the page, the editor's open panel and tabs included. No reload, no message. The first installation is the one page that cannot do this - it holds nothing of the card yet - and still needs the page loaded once.
+
+### Fixed
+- **The card editor's tooltips open the right way inside a Bubble Card pop-up editor.** Opened from the pencil in Bubble Card's pop-up editor, the page under the dialogs ends up scrolled away; the card then took the page's body, an overflow-hidden box far above the window, for something that clips the dialog, so a tooltip in a top row stayed above its icon, cut off, instead of opening below it. A fixed dialog is not clipped by the page it floats over, and the tooltips now know that.
+
 ## v4.1.1
 
 **Blitzer.de is no longer developed.** Its successor is [TomTom](https://github.com/somansch/tomtom), with blitzer.de's reports built in and TomTom's own jams, closures, roadworks, accidents and road weather in more than 70 countries, Lufop speed cameras, a route planner on the card and 30 languages. Blitzer.de keeps working as it is, but gets no new features.

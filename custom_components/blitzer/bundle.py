@@ -37,6 +37,9 @@ CARD_FILE = "blitzer-card.js"
 CARD_LOADER_FILE = "blitzer-card-loader.js"
 # The two files we serve, by name: an entry in the dashboards' resource list
 # pointing at one of them is ours to keep current - see lovelace_resource.py.
+# Where the version the card is served under is kept, for the websocket
+# command the loader asks after every reconnect - see the loader.
+CARD_VERSION_DATA = f"{DOMAIN}_card_version"
 CARD_RESOURCE_PATHS = (
     f"{CARD_URL_BASE}/{CARD_FILE}",
     f"{CARD_URL_BASE}/{CARD_LOADER_FILE}",
@@ -112,6 +115,7 @@ async def async_register_card(hass: HomeAssistant) -> None:
         return int(max(stamps))
 
     version = await hass.async_add_executor_job(_newest_mtime)
+    hass.data[CARD_VERSION_DATA] = version
     name = CARD_LOADER_FILE if loader.is_file() else CARD_FILE
     url = f"{CARD_URL_BASE}/{name}?v={version}"
     add_extra_js_url(hass, url)

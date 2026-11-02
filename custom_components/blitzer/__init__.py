@@ -49,7 +49,12 @@ from .const import (
 )
 from .api import APIConnectionError, route_view, traffic_box
 from .route_match import traffic_along_route
-from .bundle import CARD_RESOURCE_PATHS, async_install_blueprints, async_register_card
+from .bundle import (
+    CARD_RESOURCE_PATHS,
+    CARD_VERSION_DATA,
+    async_install_blueprints,
+    async_register_card,
+)
 from .lovelace_resource import async_unregister as async_unregister_resource
 from .ors import async_forget_key
 from .tomtom import async_get_usage
@@ -110,7 +115,19 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await async_install_blueprints(hass)
     websocket_api.async_register_command(hass, websocket_route)
     websocket_api.async_register_command(hass, websocket_traffic)
+    websocket_api.async_register_command(hass, websocket_card_version)
     return True
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/card_version"})
+@callback
+def websocket_card_version(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The version the card is served under right now - what the loader in
+    an open page asks after Home Assistant has restarted, to fetch a newer
+    card into that page without anyone reloading it."""
+    connection.send_result(msg["id"], {"version": hass.data.get(CARD_VERSION_DATA) or 0})
 
 
 @websocket_api.websocket_command(

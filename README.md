@@ -1111,6 +1111,7 @@ Three things, in one download:
 
 - The **integration** itself.
 - The **[Blitzer card](#blitzer-card)**. Served by the integration and handed to every dashboard, so there is no file to copy into `www` and no resource to register.
+  After the first installation, load the dashboard page once - a page that is already open holds nothing of the card yet. From then on an update reaches every open page by itself: after Home Assistant restarts, the card checks which version is served and takes the new one over in place, with no reload and no cache to clear.
 - The **[Report Alerts blueprint](#blueprint-report-alerts)**, put into `config/blueprints/automation/blitzer/` on start.
 
 A copy in that folder that has fallen behind is replaced when a release changes the blueprint, which is how a fix reaches you at all - but only while it is exactly what the integration put there. A copy you edited is left alone, with a line in the log when a newer version ships.
