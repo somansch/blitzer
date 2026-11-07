@@ -1,10 +1,12 @@
 # <img src="https://raw.githubusercontent.com/somansch/blitzer/main/custom_components/blitzer/brand/icon.png" width="40" height="40" align="top"> Blitzer.de Integration for Home Assistant - speed controls and traffic hazards on your map
 
-[![GitHub release](https://img.shields.io/github/v/release/somansch/blitzer)](https://github.com/somansch/blitzer/releases/latest)
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
-[![License](https://img.shields.io/github/license/somansch/blitzer)](https://github.com/somansch/blitzer/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/somansch/blitzer/total)](https://github.com/somansch/blitzer/releases)
-[![Downloads@latest](https://img.shields.io/github/downloads/somansch/blitzer/latest/total)](https://github.com/somansch/blitzer/releases/latest)
+[![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-Default-41BDF5?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=white)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=somansch&repository=blitzer&category=Integration)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.7%2B-41BDF5?style=for-the-badge&logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
+[![License](https://img.shields.io/github/license/somansch/blitzer?style=for-the-badge)](https://github.com/somansch/blitzer/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/somansch/blitzer/total?style=for-the-badge&label=Downloads)](https://github.com/somansch/blitzer/releases)
+[![Downloads latest](https://img.shields.io/github/downloads/somansch/blitzer/latest/total?style=for-the-badge&label=Downloads%20latest)](https://github.com/somansch/blitzer/releases/latest)
+[![Version](https://img.shields.io/github/v/release/somansch/blitzer?style=for-the-badge&label=Version&color=e83ef7)](https://github.com/somansch/blitzer/releases/latest)
+[![Buy me a coffee](https://img.shields.io/badge/-Buy%20me%20a%20%E2%98%95%2F%F0%9F%8D%BA-ff6b6b?style=for-the-badge&logo=buymeacoffee&logoColor=white)](https://buymeacoffee.com/ou4lgpvlju)
 
 > **Unofficial.** Not affiliated with, endorsed by or supported by Blitzer.de. "Blitzer.de" and its symbols belong to their owner.
 
@@ -45,7 +47,7 @@ A third thing lives on the card alone, not in an entity: the [traffic flow](#tra
 
 ## Quick start
 
-1. **Install** via [HACS](#hacs-recommended) or [manually](#manual), then restart Home Assistant.
+1. **Install** via [Marketplace (HACS)](#marketplace-hacs) or [manually](#manual), then restart Home Assistant.
 2. Go to **Settings → Devices & Services → Add Integration** / **Einstellungen → Geräte & Dienste → Integration hinzufügen** and search for "Blitzer.de". Name your first entry and pick a search mode ([Adding an area, tracker or route](#adding-an-area-tracker-or-route)).
 3. Choose what to report: the four installation forms, the seventeen [control types](#control-types--kontrollarten), and the ten [hazard types](#hazard-types--gefahren). Hazards stay off until you switch them on.
 4. Put it on a dashboard. **Add card → Blitzer.de** gives you the [card that comes with the integration](#blitzer-card). Or drop the area's `blitzer_<area>_controls` and `blitzer_<area>_hazards` sources into the [map card](#map-card), or use the ready-made [Markdown card](#markdown-card).
@@ -1116,14 +1118,15 @@ Three things, in one download:
 
 A copy in that folder that has fallen behind is replaced when a release changes the blueprint, which is how a fix reaches you at all - but only while it is exactly what the integration put there. A copy you edited is left alone, with a line in the log when a newer version ships.
 
-### HACS (recommended)
+### Marketplace (HACS)
 
-Blitzer.de is part of the default HACS integration list:
+The recommended way. Blitzer.de is in the default list of the Marketplace - the store Home Assistant 2026.11 ships, HACS on earlier versions - so there is no repository to add:
 
-1. Open HACS in Home Assistant
-2. Search for "Blitzer.de"
-3. Click the "Download" button
-4. Restart HA
+[![Open Marketplace repository on My Home Assistant](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=somansch&repository=blitzer&category=Integration)
+
+1. Click the button above, or open Marketplace (HACS) in Home Assistant and search for "Blitzer.de"
+2. Click **Download**
+3. Restart Home Assistant
 
 ### Manual
 
