@@ -222,6 +222,11 @@ class TomTomClient:
 
         if status < 400:
             return body
+        # TomTom counts its free requests per API and answers a used-up one
+        # with 403 "InsufficientFunds" - the key itself is fine, and asking
+        # for another one would not help.
+        if status == 403 and _error_code(body) == "InsufficientFunds":
+            raise ORSQuotaError("TomTom has no free requests left for this key")
         if status in (401, 403):
             raise ORSAuthError("TomTom refused the API key")
         if status == 429:

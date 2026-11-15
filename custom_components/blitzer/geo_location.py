@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 import re
 from math import ceil
@@ -16,6 +17,7 @@ from homeassistant.util import location as location_util
 from homeassistant.util import slugify
 
 from .const import (
+    BLITZER_TZ,
     DOMAIN,
     EVENT_NEW_CONTROL,
     EVENT_NEW_HAZARD,
@@ -282,6 +284,26 @@ def _report_distance(hass, coordinator, lat, lng) -> float | None:
     return hass.config.units.length(meters, UnitOfLength.METERS)
 
 
+def _forget_deleted(registry, entry) -> None:
+    """Drop the record Home Assistant keeps of a removed entity.
+
+    The registry remembers every removed entity for as long as its config
+    entry exists, so that the same thing gets its old id back when it
+    returns. A report that is gone does not return, and an entry sees new
+    ones all day: the list of those records only ever grew. Not a public
+    call, hence the care - where a version does not have it, the record
+    simply stays.
+    """
+    try:
+        deleted = getattr(registry, "deleted_entities", None)
+        key = (entry.domain, entry.platform, entry.unique_id)
+        if deleted is not None and key in deleted:
+            del deleted[key]
+            registry.async_schedule_save()
+    except Exception:  # noqa: BLE001 - housekeeping must never fail a sync
+        _LOGGER.debug("Could not drop the deleted-entity record", exc_info=True)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -301,24 +323,37 @@ async def async_setup_entry(
     control_prefix = f"{DOMAIN}-control-{coordinator.entry_id}-"
     hazard_prefix = f"{DOMAIN}-hazard-{coordinator.entry_id}-"
 
-    def _make_sync(prefix, factory, get_items, event_type, build_payload):
+    def _make_sync(kind, prefix, factory, get_items, event_type, build_payload):
         """Build the add / update / remove pass for one kind of marker.
 
         Cameras and hazards differ only in which list they read, what they
         turn an item into and what they announce, so they share this.
         """
         known: dict[str, BlitzerdeGeoEvent] = {}
-        # Set False after the first sync below - everything reported there is
-        # simply "already there" from the entry's very first data fetch, not
-        # a new detection, so the "new" event only starts firing from the
-        # next poll onwards.
+        # Set False once this half's first fetched list has been taken in -
+        # everything reported there is simply "already there", not a new
+        # detection, so the "new" event only starts firing after it.
+        #
+        # The first fetched list is not the first sync: a half that is only
+        # fetched on demand, and a live route outside its hours, start with
+        # an empty list that was never asked for. Taken for the first one,
+        # it made the first refresh after every restart announce every
+        # report in range.
         first_sync = True
+        # Every report this half has seen in range, shown or not: one that
+        # moves up into the shown ones because another left is not new.
+        seen: set[str] = set()
 
         @callback
         def _sync() -> None:
             """Add newly reported items and remove ones no longer in range."""
-            nonlocal first_sync
-            items = get_items()
+            nonlocal first_sync, seen
+            everything, cap = get_items()
+            items = everything[:cap]
+            fetched = coordinator.last_update[kind] is not None
+            before = seen
+            if fetched:
+                seen = {poi_id(item) for item in everything}
             current_ids = {poi_id(item) for item in items}
             new_entities = []
             new_items = []
@@ -342,9 +377,14 @@ async def async_setup_entry(
             # where the entity's own (async, task-scheduled) teardown hasn't
             # run yet and Home Assistant shows a "restored: true" /
             # unavailable ghost for it in the meantime.
+            # Not before this half has been fetched: the empty list a half
+            # starts with when nothing was asked - on demand only, or a live
+            # route outside its hours - says nothing about what is reported,
+            # and purging on it took every marker out of the registry at each
+            # restart, to be made again under whatever ids were free.
             for entry in list(
                 er.async_entries_for_config_entry(registry, config_entry.entry_id)
-            ):
+            ) if fetched else []:
                 if entry.domain != "geo_location":
                     continue
                 if not entry.unique_id.startswith(prefix):
@@ -354,14 +394,17 @@ async def async_setup_entry(
                     continue
                 known.pop(marker_id, None)
                 registry.async_remove(entry.entity_id)
+                _forget_deleted(registry, entry)
 
             if new_entities:
                 async_add_entities(new_entities)
 
             if not first_sync:
                 for item in new_items:
-                    hass.bus.async_fire(event_type, build_payload(item))
-            first_sync = False
+                    if poi_id(item) not in before:
+                        hass.bus.async_fire(event_type, build_payload(item))
+            if fetched:
+                first_sync = False
 
         return _sync
 
@@ -419,16 +462,18 @@ async def async_setup_entry(
         }
 
     sync_controls = _make_sync(
+        "controls",
         control_prefix,
         BlitzerdeControlEvent,
-        lambda: coordinator.data.controls[: coordinator.controlcount],
+        lambda: (coordinator.data.controls, coordinator.controlcount),
         EVENT_NEW_CONTROL,
         _control_payload,
     )
     sync_hazards = _make_sync(
+        "hazards",
         hazard_prefix,
         BlitzerdeHazardEvent,
-        lambda: coordinator.data.hazards[: coordinator.hazardcount],
+        lambda: (coordinator.data.hazards, coordinator.hazardcount),
         EVENT_NEW_HAZARD,
         _hazard_payload,
     )
@@ -473,7 +518,7 @@ def _short_stamp(raw):
     if not match:
         return text
     year, month, day, hour, minute = (int(part) for part in match.groups()[:5])
-    now = dt_util.now()
+    now = dt_util.now(BLITZER_TZ)
     if (year, month, day) == (now.year, now.month, now.day):
         return f"{hour:02d}:{minute:02d}"
     return f"{day:02d}.{month:02d}.{year:04d}"
@@ -489,8 +534,15 @@ def _full_stamps(item: dict) -> dict:
         raw = item.get(field)
         match = _FULL_STAMP.match(raw.strip()) if isinstance(raw, str) else None
         if match:
-            year, month, day, hour, minute, second = match.groups()
-            stamps[attr] = f"{year}-{month}-{day}T{hour}:{minute}:{second or '00'}"
+            year, month, day, hour, minute, second = (int(part or 0) for part in match.groups())
+            try:
+                # With the offset of the place the stamp is from, so that a
+                # browser or an instance anywhere reads the same moment.
+                stamps[attr] = datetime(
+                    year, month, day, hour, minute, second, tzinfo=BLITZER_TZ
+                ).isoformat()
+            except ValueError:
+                continue
     return stamps
 
 
@@ -512,7 +564,10 @@ class BlitzerdeGeoEvent(GeolocationEvent):
         self._coordinator = coordinator
         self._poi_id = poi_id
         self._attr_device_info = coordinator.device_info
-        self._attr_unit_of_measurement = UnitOfLength.KILOMETERS
+        # The unit the distance is converted to - see _report_distance. It
+        # read "km" on an instance that measures in miles, over a figure in
+        # miles.
+        self._attr_unit_of_measurement = coordinator.hass.config.units.length_unit
         self._extra_attrs: dict[str, Any] = {}
         self._apply(item)
 
@@ -560,11 +615,11 @@ class BlitzerdeGeoEvent(GeolocationEvent):
         if self.hass is not None:
             self.async_write_ha_state()
 
-    async def async_will_remove_from_hass(self) -> None:
-        """Purge the registry entry so gone markers don't linger as orphans."""
-        registry = er.async_get(self.hass)
-        if self.entity_id in registry.entities:
-            registry.async_remove(self.entity_id)
+    # No async_will_remove_from_hass taking the registry entry along. There
+    # was one, and it ran on every removal - also when the entry is merely
+    # unloaded to be loaded again: every reload removed and registered every
+    # marker anew. A report that is gone has its entry removed by _sync, and
+    # Home Assistant removes the entries of a deleted config entry itself.
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

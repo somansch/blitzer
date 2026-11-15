@@ -200,7 +200,9 @@ class BlitzerdeAPI:
     async def _requestPois(self, low_lat: float, low_ng: float, high_lat: float, high_lng: float, types):
         """request blitzer list"""
         pois_types = ','.join(map(str, types))
-        # z=18 avoids clusters. "markers" is the rebuilt map's name for what
+        # z=18 is the deepest zoom there is; a box wider than about 10 km
+        # still comes back with its cameras folded into clusters, which
+        # _iterateAreas resolves. "markers" is the rebuilt map's name for what
         # was "pois.php"; the query and the {pois:...} answer are the same.
         path = f"/karte/api/markers?type={pois_types}&box={low_lat},{low_ng},{high_lat},{high_lng}&z=18"
         response_data = await self._requestCatched(path)
@@ -208,6 +210,11 @@ class BlitzerdeAPI:
         # The endpoint answers an empty box with "pois": null rather than an
         # empty list (the old CDN sent []), so a small or quiet search would
         # otherwise hand a None on to _iterateAreas.
+        # Anything but an object is not an answer this can read - and is a
+        # failed request, not a crash: the poll's failure count and its
+        # repair only see APIConnectionError.
+        if not isinstance(response_data, dict):
+            raise APIConnectionError("Unexpected answer.")
         return response_data.get('pois') or []
 
     async def _resolveCluster(self, area, radius: float, types):
@@ -223,18 +230,30 @@ class BlitzerdeAPI:
         lng = float(area['lng'])
         _LOGGER.debug("resolving cluster: %s", [lat, lng, radius])
         if radius < 1:
-            raise Exception("unable to resolve cluster")
-        return await self.getArea(lat, lng, radius / 10, types)
+            raise APIConnectionError("Unable to resolve a cluster.")
+        # A quarter of the radius, not a tenth: a cluster's members lie up
+        # to about 2.9 km from the point it is drawn at, and a box of a tenth
+        # around that point missed them - 14 of 52 cameras in an 18 km
+        # circle, measured on 2026-10-25. A quarter found every one.
+        return await self.getArea(lat, lng, radius / 4, types)
 
     async def _iterateAreas(self, areas, radius: float, types):
         """parse areas for pois request"""
         areaList = []
         for area in areas:
             if isCluster(area):
-                areaList = areaList + await self._resolveCluster(area, radius, types)
+                # Two clusters' boxes overlap, and a camera can stand in the
+                # answer itself and in a cluster's box: each one once.
+                for found in await self._resolveCluster(area, radius, types):
+                    if not areaExists(areaList, found):
+                        areaList.append(found)
                 continue
-            area['lat'] = float(area['lat'])
-            area['lng'] = float(area['lng'])
+            try:
+                area['lat'] = float(area['lat'])
+                area['lng'] = float(area['lng'])
+            except (KeyError, TypeError, ValueError):
+                # A marker without a position cannot be put anywhere.
+                continue
             if not areaExists(areaList, area):
                 areaList.append(area)
         return areaList

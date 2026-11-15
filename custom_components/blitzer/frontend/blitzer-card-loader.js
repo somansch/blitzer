@@ -144,6 +144,12 @@
   let updating = false;
   let askTimer = null;
   let asked = 0;
+  // How often the import of each newer version has failed. A failed import
+  // is remembered per URL here exactly as it is above, so the next try for
+  // the same version needs a URL of its own - under the same one the browser
+  // fails again without asking the server, and the page stays on the old
+  // card until it is reloaded.
+  const updateTries = new Map();
   // The websocket is back long before the integrations are: measured, the
   // page reconnected while Home Assistant was still NOT_RUNNING, and the
   // command was not registered yet - "unknown_command", and no second
@@ -178,7 +184,14 @@
       const url = new URL(`./${TAG}.js`, HERE);
       url.search = "";
       url.searchParams.set("v", String(served));
-      await import(url.href);
+      const failed = updateTries.get(served) || 0;
+      if (failed > 0) url.searchParams.set("retry", String(failed));
+      try {
+        await import(url.href);
+      } catch (err) {
+        updateTries.set(served, failed + 1);
+        throw err;
+      }
       running = served;
       console.info(`${TAG}: updated to the card served now (${served})`);
     } catch (err) {

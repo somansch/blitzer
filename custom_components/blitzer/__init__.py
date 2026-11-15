@@ -10,7 +10,11 @@ from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
-from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import (
+    ConfigEntryNotReady,
+    HomeAssistantError,
+    ServiceValidationError,
+)
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
@@ -116,6 +120,22 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket_api.async_register_command(hass, websocket_route)
     websocket_api.async_register_command(hass, websocket_traffic)
     websocket_api.async_register_command(hass, websocket_card_version)
+    # The actions belong to the domain, not to an entry that happens to be
+    # up: registered with the first entry's setup, they did not exist while
+    # the only entry was still retrying, and an automation got "action not
+    # found" instead of "is not running right now".
+    for service, handler in (
+        (SERVICE_REFRESH_CONTROLS, _async_handle_refresh_controls),
+        (SERVICE_REFRESH_HAZARDS, _async_handle_refresh_hazards),
+        (SERVICE_REFRESH, _async_handle_refresh),
+    ):
+        hass.services.async_register(
+            DOMAIN,
+            service,
+            handler,
+            schema=_REFRESH_SCHEMA,
+            supports_response=SupportsResponse.OPTIONAL,
+        )
     return True
 
 
@@ -339,22 +359,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     # it; another one carries it from here.
     _async_carry_tomtom_total(hass)
 
-    # Registered once for the domain, not per entry - guarded since
-    # async_setup_entry runs again for every additional area/route.
-    for service, handler in (
-        (SERVICE_REFRESH_CONTROLS, _async_handle_refresh_controls),
-        (SERVICE_REFRESH_HAZARDS, _async_handle_refresh_hazards),
-        (SERVICE_REFRESH, _async_handle_refresh),
-    ):
-        if not hass.services.has_service(DOMAIN, service):
-            hass.services.async_register(
-                DOMAIN,
-                service,
-                handler,
-                schema=_REFRESH_SCHEMA,
-                supports_response=SupportsResponse.OPTIONAL,
-            )
-
     # Return true to denote a successful setup.
     return True
 
@@ -373,8 +377,8 @@ def _coordinator_for(call: ServiceCall) -> BlitzerdeCoordinator:
     # a position yet sits in "retrying setup" until it does, and an
     # automation refreshing on a schedule would otherwise fill the log while
     # it waits.
-    runtime_data: RuntimeData | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    if runtime_data is None:
+    runtime_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if not isinstance(runtime_data, RuntimeData):
         raise ServiceValidationError(
             f"'{entry.title}' is not running right now"
             + (f" ({entry.reason})" if entry.reason else "")
@@ -387,10 +391,10 @@ def _controls_response(coordinator: BlitzerdeCoordinator) -> list[dict]:
     controls = coordinator.data.controls if coordinator.data else []
     return [
         {
-            "id": item["backend"].split("-")[-1],
+            "id": str(item.get("backend") or "").split("-")[-1],
             "vmax": item.get("vmax"),
-            "city": item["address"]["city"],
-            "street": item["address"]["street"],
+            "city": (item.get("address") or {}).get("city", ""),
+            "street": (item.get("address") or {}).get("street", ""),
             "latitude": item.get("lat"),
             "longitude": item.get("lng"),
         }
@@ -415,6 +419,16 @@ def _hazards_response(coordinator: BlitzerdeCoordinator) -> list[dict]:
     ]
 
 
+def _raise_if_failed(coordinator: BlitzerdeCoordinator) -> None:
+    """A refresh that failed says so. The coordinator keeps its last lists
+    through a failed fetch, and the action used to hand those back as if
+    they were the answer - an automation could not tell."""
+    if not coordinator.last_update_success:
+        raise HomeAssistantError(
+            f"'{coordinator.displayname}' could not be refreshed: {coordinator.last_exception}"
+        )
+
+
 async def _async_handle_refresh(call: ServiceCall) -> ServiceResponse:
     """Both halves of one area/route at once, in a single pass - for a
     route, one request per point instead of one per point per half (see
@@ -423,6 +437,7 @@ async def _async_handle_refresh(call: ServiceCall) -> ServiceResponse:
     """
     coordinator = _coordinator_for(call)
     await coordinator.async_refresh_all()
+    _raise_if_failed(coordinator)
     return {
         "controls": _controls_response(coordinator),
         "hazards": _hazards_response(coordinator),
@@ -443,6 +458,7 @@ async def _async_handle_refresh_controls(call: ServiceCall) -> ServiceResponse:
     """
     coordinator = _coordinator_for(call)
     await coordinator.async_refresh_kind("controls")
+    _raise_if_failed(coordinator)
     return {"controls": _controls_response(coordinator)}
 
 
@@ -455,7 +471,12 @@ async def _async_handle_refresh_hazards(call: ServiceCall) -> ServiceResponse:
     """
     coordinator = _coordinator_for(call)
     await coordinator.async_refresh_kind("hazards")
+    _raise_if_failed(coordinator)
     return {"hazards": _hazards_response(coordinator)}
+
+
+# Entries whose reload is under way - see _async_update_listener.
+_RELOADING = f"{DOMAIN}_reloading"
 
 
 async def _async_update_listener(hass: HomeAssistant, config_entry):
@@ -468,7 +489,19 @@ async def _async_update_listener(hass: HomeAssistant, config_entry):
     runtime = hass.data.get(DOMAIN, {}).get(config_entry.entry_id)
     if runtime and runtime.coordinator.absorb_windows(config_entry):
         return
-    await hass.config_entries.async_reload(config_entry.entry_id)
+    # One reload per change. Saving the options form writes the entry twice
+    # - its data, then its options - and each write calls this; the second
+    # call found the first one's reload still under way, the old coordinator
+    # still in place, and asked for another: every request to Blitzer.de
+    # twice.
+    reloading = hass.data.setdefault(_RELOADING, set())
+    if config_entry.entry_id in reloading:
+        return
+    reloading.add(config_entry.entry_id)
+    try:
+        await hass.config_entries.async_reload(config_entry.entry_id)
+    finally:
+        reloading.discard(config_entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -482,6 +515,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     # An entry going away takes its repair with it - it cannot be failing
     # any more, and a reload starts its count afresh.
     ir.async_delete_issue(hass, DOMAIN, runtime.coordinator.repair_issue_id)
+    ir.async_delete_issue(hass, DOMAIN, runtime.coordinator.live_issue_id)
 
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(
@@ -495,6 +529,11 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         hass.data[DOMAIN].pop(config_entry.entry_id)
         if hass.data[DOMAIN].get(TOMTOM_TOTAL_OWNER) == config_entry.entry_id:
             hass.data[DOMAIN].pop(TOMTOM_TOTAL_OWNER)
+            # An entry that is switched off, not removed, takes the total
+            # with it just the same: another one carries it from here. Not
+            # while Home Assistant itself is stopping.
+            if not hass.is_stopping:
+                _async_carry_tomtom_total(hass, but=config_entry.entry_id)
 
     # Return that unloading was successful.
     return unload_ok
@@ -520,7 +559,7 @@ async def async_remove_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
 
 @callback
-def _async_carry_tomtom_total(hass: HomeAssistant) -> None:
+def _async_carry_tomtom_total(hass: HomeAssistant, but: str | None = None) -> None:
     """Give the month's TomTom total a carrier again once the entry that
     carried it is gone - removed, or no longer a TomTom route: the first
     TomTom entry that is up is reloaded and takes it on. One still setting
@@ -530,7 +569,8 @@ def _async_carry_tomtom_total(hass: HomeAssistant) -> None:
         return
     for entry in hass.config_entries.async_entries(DOMAIN):
         if (
-            entry.data.get(CONF_ROUTE_SERVICE) == ROUTE_SERVICE_TOMTOM
+            entry.entry_id != but
+            and entry.data.get(CONF_ROUTE_SERVICE) == ROUTE_SERVICE_TOMTOM
             and entry.state is ConfigEntryState.LOADED
         ):
             hass.async_create_task(hass.config_entries.async_reload(entry.entry_id))

@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
+from math import gcd
 from time import monotonic
 
 from homeassistant.config_entries import ConfigEntry
@@ -391,7 +392,13 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             )
             if wanted and minutes != UPDATE_INTERVAL_MANUAL
         ]
-        update_interval = timedelta(minutes=min(tick_minutes)) if tick_minutes else None
+        # The tick is what both intervals are whole multiples of, not the
+        # shorter one: a half is only fetched on a tick, so controls every 60
+        # beside hazards every 45 came round every 90. A tick on which
+        # neither half is due asks nothing.
+        update_interval = timedelta(minutes=gcd(*tick_minutes)) if tick_minutes else None
+        # Failed TomTom answers in a row, for the repair - see _refresh_live_route.
+        self._live_failures = 0
 
         # One device per entry, which every one of its entities belongs to.
         # Two things come out of that: Home Assistant renders the display
@@ -568,6 +575,10 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
     def repair_issue_id(self) -> str:
         return f"entry_failing_{self.entry_id}"
 
+    @property
+    def live_issue_id(self) -> str:
+        return f"live_route_failing_{self.entry_id}"
+
     async def _update(self):
         try:
             previous = self.data
@@ -622,19 +633,26 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
             # Whichever half isn't due keeps the list it last returned, so
             # its entities hold their state instead of blinking out between
             # the other half's polls.
+            # Both fetched before either is stamped: when the second one
+            # fails the whole pass fails and the first one's list is dropped
+            # with it - stamped, it would have counted as fresh for a whole
+            # interval while the old list stayed.
             if fetch_controls:
                 controls = await self._fetch_controls()
-                self._last_fetch["controls"] = monotonic()
-                self.last_update["controls"] = dt_util.now()
             else:
                 controls = previous.controls if previous else []
 
             if fetch_hazards:
                 hazards = await self._fetch_hazards()
-                self._last_fetch["hazards"] = monotonic()
-                self.last_update["hazards"] = dt_util.now()
             else:
                 hazards = previous.hazards if previous else []
+
+            if fetch_controls:
+                self._last_fetch["controls"] = monotonic()
+                self.last_update["controls"] = dt_util.now()
+            if fetch_hazards:
+                self._last_fetch["hazards"] = monotonic()
+                self.last_update["hazards"] = dt_util.now()
 
             _LOGGER.debug(
                 "%s: %d controls (fetched: %s), %d hazards (fetched: %s)",
@@ -645,6 +663,12 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         except APIConnectionError as err:
             # This will show entities as unavailable by raising UpdateFailed exception
             raise UpdateFailed(f"Error communicating with API: {err}") from err
+        except (KeyError, TypeError, ValueError, AttributeError, IndexError) as err:
+            # An answer in a shape this does not know. Counted like any other
+            # failed poll, so that it reaches the repair instead of a
+            # traceback with every poll and nothing else.
+            _LOGGER.exception("%s: unexpected data from Blitzer.de", self.displayname)
+            raise UpdateFailed(f"Unexpected data from Blitzer.de: {err!r}") from err
 
     def _in_live_window(self, now: datetime) -> bool:
         """Whether a live route is kept up to date right now - see
@@ -652,19 +676,23 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         always; a span past midnight wraps."""
         data = self.entry.data
         days = data.get(CONF_LIVE_DAYS) or []
-        if days and LIVE_DAYS[now.weekday()] not in days:
-            return False
+        on_day = lambda when: not days or LIVE_DAYS[when.weekday()] in days  # noqa: E731
         start, end = data.get(CONF_LIVE_FROM) or "", data.get(CONF_LIVE_UNTIL) or ""
         if not start or not end or start == end:
-            return True
+            return on_day(now)
         try:
             minutes = lambda text: int(text[:2]) * 60 + int(text[3:5])  # noqa: E731
             begin, finish, current = minutes(start), minutes(end), now.hour * 60 + now.minute
         except (TypeError, ValueError):
-            return True
+            return on_day(now)
         if begin < finish:
-            return begin <= current < finish
-        return current >= begin or current < finish
+            return on_day(now) and begin <= current < finish
+        # Over midnight. The hours after it belong to the day the window
+        # began on: Monday to Friday from 22:00 to 06:00 runs into Saturday
+        # morning, and does not start on Monday at midnight.
+        if current >= begin:
+            return on_day(now)
+        return current < finish and on_day(now - timedelta(days=1))
 
     def _live_points(self) -> list[tuple[float, float]]:
         """Start, vias and destination of a start/destination route."""
@@ -695,7 +723,28 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         except ORSError as err:
             _LOGGER.warning("%s: TomTom gave no route this time: %s", self.displayname, err)
             self.live = {**(self.live or {}), "error": str(err)}
+            # The search goes on along the route it has, so nothing of the
+            # entry fails - and nothing said so. After as many failed answers
+            # as fail an entry, a repair does.
+            self._live_failures += 1
+            if self._live_failures == FAILURES_FOR_REPAIR:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    self.live_issue_id,
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="live_route_failing",
+                    translation_placeholders={
+                        "name": self.displayname,
+                        "count": str(self._live_failures),
+                        "reason": str(err),
+                    },
+                )
             return
+        if self._live_failures >= FAILURES_FOR_REPAIR:
+            ir.async_delete_issue(self.hass, DOMAIN, self.live_issue_id)
+        self._live_failures = 0
         now = dt_util.now()
         self.live = {
             "duration": route.get("duration"),
@@ -823,14 +872,14 @@ class BlitzerdeCoordinator(DataUpdateCoordinator):
         if self.whitelist:
             controls = list(
                 filter(
-                    lambda item: item['address']['city'].strip().lower() in self.whitelist,
+                    lambda item: str((item.get('address') or {}).get('city') or "").strip().lower() in self.whitelist,
                     controls
                 )
             )
         if self.blacklist:
             controls = list(
                 filter(
-                    lambda item: item['backend'].split("-")[-1] not in self.blacklist,
+                    lambda item: str(item.get('backend') or "").split("-")[-1] not in self.blacklist,
                     controls
                 )
             )

@@ -71,7 +71,6 @@
         n <= 0 ? "0 min" : n < 60 ? `+${n} min` : n % 60 ? `+${Math.floor(n / 60)} h ${n % 60} min` : `+${Math.floor(n / 60)} h`,
       noNew: "Nothing new right now",
       noDelay: "Nothing is costing time right now",
-      newReports: "new reports",
       popClose: "Close",
       foldOpen: (n) => `Show ${n} more`,
       foldClose: "Show fewer",
@@ -108,7 +107,7 @@
       edPopNewBg: "Background color",
       edPopNewBgHelp: "Background color behind that NEW tag.",
       edMiniTap: "Tap action",
-      edMiniTapHelp: "What a tap on either of the two numbers does. On \"Default\" it opens the pop-up on the reports that number counts, which is what the format is for.",
+      edMiniTapHelp: "What a tap on any part of the line does. On \"Default\" it opens the pop-up on the reports that part counts - the travel time on all of them - which is what the format is for.",
       edMiniGroupButtons: "Buttons",
       edMiniGroupButtonsHelp: "The parts of the minimal line, left to right. Each is a button that opens the pop-up on what it shows.",
       edMiniGroupPop: "Pop-up",
@@ -118,7 +117,7 @@
       edMiniDelay: "Delay",
       edMiniDelayHelp: "What the jams among the reports cost, in minutes.",
       edMiniTravel: "Travel time",
-      edMiniTravelHelp: "How long a route TomTom keeps live takes right now, coloured by its delay. Nothing on other entries.",
+      edMiniTravelHelp: "How long a route TomTom keeps live takes right now, coloured by its delay - or in the secondary colour, with the time it is from, once the figure is older than 30 minutes or TomTom could not renew it. Nothing on other entries.",
       edElMiniTravel: "Travel time on the line",
       edElMiniTravelHelp: "The part of the minimal line saying how long the route takes right now. Its symbol, its background and its text each take a colour by how much of the time is traffic: one below the yellow threshold, one from it, one from the red threshold on.",
       edMiniTravelLevelOk: "Below yellow",
@@ -149,21 +148,22 @@
       edTitle: "Card title",
       edTitleHelp: "Empty keeps the default heading.",
       edNothing: "Text when nothing is reported",
-      edNothingHelp: "What the card says when the area has nothing to show. Empty keeps its own wording.",
+      edNothingHelp: "What the card says when the area has nothing to show - in the minimal format, what its pop-up says beside an empty map. Empty keeps its own wording.",
       edShowDelay: "Show what the jams cost",
       edShowDelayHelp: "The badge beside the NEW one, adding up the delay of every report on this card that carries one - and narrowing the card to those reports when it is clicked. Off, the delay stays in each report's own summary and nothing is added up.",
       edShowNew: "Show and mark new reports",
       edShowNewHelp: "The NEW badge beside the title, counting fresh reports, and the NEW tag on each of them in the list. How long something counts as new is set on the area in Home Assistant - one window for controls, one for hazards.",
       edSubIcon: "Icon",
       edSubIconHelp: "Any Material Design icon, drawn in front of the line. Empty draws none. Not drawn under a live route's travel time, where the traffic line leads instead.",
+      edRowIconHelp: "Any Material Design icon, drawn in front of the line. Empty draws none.",
       edSubIconColor: "Icon color",
       edSubIconColorHelp: "Empty takes the colour of the line itself.",
       edSubIconSize: "Icon size",
       edSubIconSizeHelp: "A font size, like the one above: the icon is drawn as tall as a capital letter of it. Empty follows the line itself.",
       edShowSub: "Show the subtitle line",
-      edShowSubHelp: "The line under the title - on a route TomTom keeps live, the line under its travel time. Off drops it and everything it says.",
+      edShowSubHelp: "The line under the title - on a route TomTom keeps live, the line under its travel time. Off drops it and everything it says; under a travel time, how much of it is traffic stays.",
       edShowTravelTimePop: "Show the travel time",
-      edShowTravelTimePopHelp: "On a route TomTom keeps live: how long it takes right now, large in the pop-up - right of its map, above its list - with the refresh button beside it and under it how much of that is traffic. The line itself does not show it.",
+      edShowTravelTimePopHelp: "On a route TomTom keeps live: how long it takes right now, large in the pop-up - right of its map, above its list - with the refresh button beside it and under it how much of that is traffic. The line has a switch of its own for the travel time, under its parts above.",
       edTrafficSwitch: "Offer the Traffic flow switch",
       edTrafficSwitchHelp: "The switch under the two above that shows or hides the traffic flow on the map for the moment, with the button beside it that says when the flow was last fetched and fetches it again. Off, the flow is drawn without either. Only while the traffic flow is on under General.",
       edShowTravelTime: "Show the travel time",
@@ -239,14 +239,14 @@
       edAreaPickerBg: "Background color",
       edAreaPickerBgHelp: "Background color of the area dropdown.",
       edElSwitch: "Switches",
-      edElSwitchHelp: "The switches under the area dropdown: controls, hazards and the traffic flow.",
+      edElSwitchHelp: "The switches under the area dropdown: controls, hazards and the traffic flow. In the minimal format, the traffic flow's switch in the pop-up.",
       edSwitchColorHelp: "Text color of the switches' labels.",
       edSwitchFontHelp: "Font size of the switches' labels.",
       edSwitchTrack: "Switch color",
       edSwitchTrackHelp: "The color of a switch that is on. Empty takes the theme's.",
       edElTravelTime: "Travel time",
       edElTravelTimeHelp: "The large travel time of a route TomTom keeps live.",
-      edTravelTimeColorHelp: "Text color of the travel time.",
+      edTravelTimeColorHelp: "Text color of the travel time. A travel time older than 30 minutes, or one TomTom could not renew, is drawn in the secondary colour instead, with the time it is from beside it.",
       edTravelTimeFontHelp: "Font size of the travel time.",
       edElDelayLine: "Traffic delay",
       edElDelayLineHelp: "The line under the travel time that says how much of it is traffic - colored by how much: below the first threshold in the first color, from it in the second, from the second threshold in the third.",
@@ -284,12 +284,13 @@
       edRefreshBg: "Background color",
       edRefreshBgHelp: "Replaces that grey. Empty keeps the theme's.",
       edShowRefresh: "Show a refresh button",
-      edShowRefreshHelp: "A button that fetches the area again straight away, with how long ago it last did - at the end of this line, or beside a live route's travel time. Worth having above all where the area polls on demand only - an update interval of 0.",
+      edShowRefreshHelp: "A button that fetches the area again straight away, with how long ago it last did - at the end of the subtitle line, or beside a live route's travel time. Worth having above all where the area polls on demand only - an update interval of 0.",
+      edShowRefreshPopHelp: "A button beside the pop-up's travel time that fetches the area again straight away, with how long ago it last did. Worth having above all where the area polls on demand only - an update interval of 0.",
       refreshNow: "Fetch this area again",
       edShowCount: "Show the number of reports",
       edShowCountHelp: "The badge next to the title, saying how many reports are on screen. The NEW badge beside it is untouched.",
       edElSub: "Subtitle line",
-      edElSubHelp: "The line under the title, and which of its three parts it says. On a route TomTom keeps live it is the line under the travel time, starting with how much of that is traffic - coloured on its own, see Traffic delay - and those parts after it.",
+      edElSubHelp: "The line under the title, and which of its three parts it says. On a route TomTom keeps live it is the line under the travel time, starting with how much of that is traffic - coloured on its own, see Traffic delay - and those parts after it. In the minimal format it is that line under the pop-up's travel time.",
       edSubColorHelp: "Text color for the subtitle line.",
       edSubFontHelp: "Font size for the subtitle line.",
       edSubArea: "Name of the area",
@@ -297,7 +298,8 @@
       edSubMode: "How it searches, or the route's length",
       edSubModeHelp: "The word for how the area searches - radius, route or tracker. On a route TomTom keeps live, with its travel time shown large, the route's length right now stands here instead - the way it goes changes with the traffic, and its length with it.",
       edSubUpdated: "Last update",
-      edSubUpdatedHelp: "How long ago the integration last fetched - written in the refresh button while that is shown.",
+      edSubUpdatedHelp: "How long ago the integration last fetched - written in the refresh button while that is shown, otherwise in the subtitle line.",
+      edSubUpdatedPopHelp: "How long ago the integration last fetched, written in the refresh button.",
       edElNew: "New marker",
       edElNewHelp: "How the NEW badge and the NEW tag in the list are drawn.",
       edNewColorHelp: "Text color for the NEW marker.",
@@ -379,7 +381,7 @@
       presetBlueGrey: "Blue grey",
       edAreas: "Areas and routes",
       edAreasHelp: "Leave empty to offer every configured area.",
-      edFilterHelp: "What the card shows when it is first opened. Anyone can switch it afterwards.",
+      edFilterHelp: "What the card shows when it is first opened. Anyone can switch it afterwards, and their browser remembers what they picked until this setting is changed.",
       edGroupContentReports: "Reports",
       edGroupContentReportsHelp: "Which of the area's reports the card shows.",
       edMax: "Maximum number of reports",
@@ -387,7 +389,7 @@
       edOnlyNew: "Only new reports",
       edOnlyNewHelp: "Shows only what is still marked as new. The badge in the head switches it too.",
       edReference: "Measure distance from",
-      edReferenceHelp: "The point every distance is measured from. On a route - waypoints or start/destination - every distance is the way along the route from its start, whatever is picked here.",
+      edReferenceHelp: "The point every distance is measured from. On a route - waypoints or start/destination - every distance is the way along the route from its start, whatever is picked here. The centre of the map view needs a map on the card itself, so the minimal format does not offer it.",
       refModeArea: "Centre of the area",
       refModeMap: "Centre of the map view",
       refModeEntity: "A person, a tracker or a zone",
@@ -452,6 +454,9 @@
       travelTimeShort: (n) =>
         n < 60 ? `${n} min` : `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")} h`,
       travelTimeTip: "Travel time right now, with the traffic of the moment",
+      travelTimeAsOf: (time) => `as of ${time}`,
+      travelTimeStaleTip: "This travel time is no longer the traffic of the moment: TomTom last answered at the time shown.",
+      travelTimeErrorTip: (error) => `TomTom gave no route the last time it was asked, so this travel time is not current: ${error}`,
       liveDelay: (sum) => `incl. ${sum} traffic`,
       liveFree: "free flow, no delay",
       liveDelayTip: "Already part of the travel time: what the traffic adds to the way on a free road.",
@@ -526,7 +531,6 @@
         n <= 0 ? "0 Min" : n < 60 ? `+${n} Min` : n % 60 ? `+${Math.floor(n / 60)} Std ${n % 60} Min` : `+${Math.floor(n / 60)} Std`,
       noNew: "Aktuell nichts Neues",
       noDelay: "Aktuell kostet nichts Zeit",
-      newReports: "neue Meldungen",
       popClose: "Schließen",
       foldOpen: (n) => `${n} weitere anzeigen`,
       foldClose: "Weniger anzeigen",
@@ -563,7 +567,7 @@
       edPopNewBg: "Hintergrundfarbe",
       edPopNewBgHelp: "Hintergrundfarbe hinter diesem NEU-Zeichen.",
       edMiniTap: "Klick-Aktion",
-      edMiniTapHelp: "Was ein Klick auf eine der beiden Zahlen tut. Bei \"Standard\" öffnet er das Pop-up mit den Meldungen, die diese Zahl zählt - wofür das Format gedacht ist.",
+      edMiniTapHelp: "Was ein Klick auf einen der Teile der Zeile tut. Bei \"Standard\" öffnet er das Pop-up mit den Meldungen, die dieser Teil zählt - die Fahrzeit mit allen -, wofür das Format gedacht ist.",
       edMiniGroupButtons: "Buttons",
       edMiniGroupButtonsHelp: "Die Teile der Minimalzeile, von links nach rechts. Jeder ist eine Schaltfläche, die das Pop-up auf das öffnet, was er zeigt.",
       edMiniGroupPop: "Pop-up",
@@ -573,7 +577,7 @@
       edMiniDelay: "Verzögerung",
       edMiniDelayHelp: "Was die Staus unter den Meldungen kosten, in Minuten.",
       edMiniTravel: "Fahrzeit",
-      edMiniTravelHelp: "Wie lange eine Route, die TomTom live hält, gerade dauert, gefärbt nach der Verzögerung. Bei anderen Einträgen nichts.",
+      edMiniTravelHelp: "Wie lange eine Route, die TomTom live hält, gerade dauert, gefärbt nach der Verzögerung - oder in der Sekundärfarbe, mit der Uhrzeit, von der sie stammt, sobald die Angabe älter als 30 Minuten ist oder TomTom sie nicht erneuern konnte. Bei anderen Einträgen nichts.",
       edElMiniTravel: "Fahrzeit in der Zeile",
       edElMiniTravelHelp: "Der Teil der Minimalzeile, der nennt, wie lange die Route gerade dauert. Symbol, Hintergrund und Schrift bekommen je eine Farbe danach, wie viel der Zeit Verkehr ist: eine unter der Gelb-Schwelle, eine ab ihr, eine ab der Rot-Schwelle.",
       edMiniTravelLevelOk: "Unter Gelb",
@@ -604,21 +608,22 @@
       edTitle: "Kartentitel",
       edTitleHelp: "Leer behält die Standardüberschrift.",
       edNothing: "Text ohne Meldungen",
-      edNothingHelp: "Was die Karte sagt, wenn der Bereich nichts zu zeigen hat. Leer behält ihren eigenen Wortlaut.",
+      edNothingHelp: "Was die Karte sagt, wenn der Bereich nichts zu zeigen hat - im Minimalformat, was dessen Pop-up neben einer leeren Karte sagt. Leer behält ihren eigenen Wortlaut.",
       edShowDelay: "Zeigen, was die Staus kosten",
       edShowDelayHelp: "Das Abzeichen neben dem NEU-Abzeichen, das die Verzögerung aller Meldungen dieser Karte zusammenzählt - und die Karte beim Klick darauf auf diese Meldungen filtert. Aus bleibt die Verzögerung in der Zusammenfassung jeder einzelnen Meldung, und nichts wird zusammengezählt.",
       edShowNew: "Neue Meldungen anzeigen und markieren",
       edShowNewHelp: "Das NEU-Abzeichen neben dem Titel, das frische Meldungen zählt, und das NEU-Zeichen an jeder davon in der Liste. Wie lange etwas als neu gilt, steht am Bereich in Home Assistant - je ein Zeitraum für Kontrollen und für Gefahren.",
       edSubIcon: "Symbol",
       edSubIconHelp: "Ein beliebiges Material-Design-Symbol, gezeichnet vor der Zeile. Leer zeichnet keines. Unter der Fahrzeit einer Live-Route entfällt es, dort beginnt die Zeile mit der Verkehrsangabe.",
+      edRowIconHelp: "Ein beliebiges Material-Design-Symbol, gezeichnet vor der Zeile. Leer zeichnet keines.",
       edSubIconColor: "Symbolfarbe",
       edSubIconColorHelp: "Leer übernimmt die Farbe der Zeile selbst.",
       edSubIconSize: "Symbolgröße",
       edSubIconSizeHelp: "Eine Schriftgröße wie oben: das Symbol wird so hoch wie ein Großbuchstabe davon. Leer folgt der Zeile selbst.",
       edShowSub: "Unterzeile anzeigen",
-      edShowSubHelp: "Die Zeile unter dem Titel - bei einer Route, die TomTom live hält, die Zeile unter der Fahrzeit. Aus entfällt sie mitsamt allem, was sie nennt.",
+      edShowSubHelp: "Die Zeile unter dem Titel - bei einer Route, die TomTom live hält, die Zeile unter der Fahrzeit. Aus entfällt sie mitsamt allem, was sie nennt; unter einer Fahrzeit bleibt, wie viel davon Verkehr ist.",
       edShowTravelTimePop: "Fahrzeit anzeigen",
-      edShowTravelTimePopHelp: "Bei einer Route, die TomTom live hält: wie lange sie gerade dauert, groß im Pop-up - rechts der Karte, über der Liste - mit dem Aktualisieren-Knopf daneben und darunter, wie viel davon Verkehr ist. Die Zeile selbst zeigt sie nicht.",
+      edShowTravelTimePopHelp: "Bei einer Route, die TomTom live hält: wie lange sie gerade dauert, groß im Pop-up - rechts der Karte, über der Liste - mit dem Aktualisieren-Knopf daneben und darunter, wie viel davon Verkehr ist. Die Zeile hat für die Fahrzeit einen eigenen Schalter, oben bei ihren Teilen.",
       edTrafficSwitch: "Schalter für Verkehrsfluss anbieten",
       edTrafficSwitchHelp: "Der Schalter unter den beiden oberen, der den Verkehrsfluss auf der Karte vorübergehend ein- und ausblendet, mit dem Knopf daneben, der die Zeit des letzten Abrufs nennt und ihn neu abruft. Aus wird der Fluss ohne beides gezeichnet. Nur, solange unter Allgemein der Verkehrsfluss an ist.",
       edShowTravelTime: "Fahrzeit anzeigen",
@@ -694,14 +699,14 @@
       edAreaPickerBg: "Hintergrundfarbe",
       edAreaPickerBgHelp: "Hintergrundfarbe der Bereichsauswahl.",
       edElSwitch: "Schalter",
-      edElSwitchHelp: "Die Schalter unter der Bereichsauswahl: Kontrollen, Gefahren und Verkehrsfluss.",
+      edElSwitchHelp: "Die Schalter unter der Bereichsauswahl: Kontrollen, Gefahren und Verkehrsfluss. Im Minimalformat der Schalter des Verkehrsflusses im Pop-up.",
       edSwitchColorHelp: "Textfarbe der Beschriftungen der Schalter.",
       edSwitchFontHelp: "Schriftgröße der Beschriftungen der Schalter.",
       edSwitchTrack: "Schalterfarbe",
       edSwitchTrackHelp: "Die Farbe eines eingeschalteten Schalters. Leer übernimmt die des Themes.",
       edElTravelTime: "Fahrzeit",
       edElTravelTimeHelp: "Die große Fahrzeit einer Route, die TomTom live hält.",
-      edTravelTimeColorHelp: "Textfarbe der Fahrzeit.",
+      edTravelTimeColorHelp: "Textfarbe der Fahrzeit. Eine Fahrzeit, die älter als 30 Minuten ist oder die TomTom nicht erneuern konnte, wird stattdessen in der Sekundärfarbe gezeichnet, mit der Uhrzeit daneben, von der sie stammt.",
       edTravelTimeFontHelp: "Schriftgröße der Fahrzeit.",
       edElDelayLine: "Verzögerung",
       edElDelayLineHelp: "Die Zeile unter der Fahrzeit, die sagt, wie viel davon Verkehr ist - gefärbt danach, wie viel: unter der ersten Schwelle in der ersten Farbe, ab ihr in der zweiten, ab der zweiten Schwelle in der dritten.",
@@ -739,12 +744,13 @@
       edRefreshBg: "Hintergrundfarbe",
       edRefreshBgHelp: "Ersetzt dieses Grau. Leer behält das des Themes.",
       edShowRefresh: "Aktualisieren-Knopf anzeigen",
-      edShowRefreshHelp: "Ein Knopf, der den Bereich sofort neu abruft, mit der Zeit seit dem letzten Abruf - am Ende dieser Zeile oder neben der Fahrzeit einer Live-Route. Vor allem dort nützlich, wo der Bereich nur auf Zuruf abfragt - Aktualisierungsintervall 0.",
+      edShowRefreshHelp: "Ein Knopf, der den Bereich sofort neu abruft, mit der Zeit seit dem letzten Abruf - am Ende der Unterzeile oder neben der Fahrzeit einer Live-Route. Vor allem dort nützlich, wo der Bereich nur auf Zuruf abfragt - Aktualisierungsintervall 0.",
+      edShowRefreshPopHelp: "Ein Knopf neben der Fahrzeit im Pop-up, der den Bereich sofort neu abruft, mit der Zeit seit dem letzten Abruf. Vor allem dort nützlich, wo der Bereich nur auf Zuruf abfragt - Aktualisierungsintervall 0.",
       refreshNow: "Diesen Bereich neu abrufen",
       edShowCount: "Anzahl der Meldungen anzeigen",
       edShowCountHelp: "Das Abzeichen neben dem Titel, das nennt, wie viele Meldungen gerade zu sehen sind. Das NEU-Abzeichen daneben bleibt davon unberührt.",
       edElSub: "Unterzeile",
-      edElSubHelp: "Die Zeile unter dem Titel und welche ihrer drei Angaben sie nennt. Bei einer Route, die TomTom live hält, ist es die Zeile unter der Fahrzeit: vorn, wie viel davon Verkehr ist - eigens gefärbt, siehe Verzögerung - und dahinter diese Angaben.",
+      edElSubHelp: "Die Zeile unter dem Titel und welche ihrer drei Angaben sie nennt. Bei einer Route, die TomTom live hält, ist es die Zeile unter der Fahrzeit: vorn, wie viel davon Verkehr ist - eigens gefärbt, siehe Verzögerung - und dahinter diese Angaben. Im Minimalformat ist es diese Zeile unter der Fahrzeit im Pop-up.",
       edSubColorHelp: "Textfarbe für die Unterzeile.",
       edSubFontHelp: "Schriftgröße für die Unterzeile.",
       edSubArea: "Name des Bereichs",
@@ -752,7 +758,8 @@
       edSubMode: "Art der Suche oder Routenlänge",
       edSubModeHelp: "Das Wort dafür, wie der Bereich sucht - Radius, Route oder Tracker. Bei einer Route, die TomTom live hält und deren Fahrzeit groß steht, steht hier stattdessen ihre aktuelle Länge - der Weg wechselt mit dem Verkehr und seine Länge mit ihm.",
       edSubUpdated: "Letzte Aktualisierung",
-      edSubUpdatedHelp: "Wie lange die letzte Abfrage der Integration her ist - im Aktualisieren-Knopf, solange er gezeigt wird.",
+      edSubUpdatedHelp: "Wie lange die letzte Abfrage der Integration her ist - im Aktualisieren-Knopf, solange er gezeigt wird, sonst in der Unterzeile.",
+      edSubUpdatedPopHelp: "Wie lange die letzte Abfrage der Integration her ist, im Aktualisieren-Knopf.",
       edElNew: "Neu-Markierung",
       edElNewHelp: "Wie das NEU-Abzeichen und das NEU-Zeichen in der Liste gezeichnet werden.",
       edNewColorHelp: "Textfarbe für die Neu-Markierung.",
@@ -834,7 +841,7 @@
       presetBlueGrey: "Blaugrau",
       edAreas: "Bereiche und Routen",
       edAreasHelp: "Leer lassen, um jeden eingerichteten Bereich anzubieten.",
-      edFilterHelp: "Was die Karte beim Öffnen zeigt. Umschalten kann danach jeder.",
+      edFilterHelp: "Was die Karte beim Öffnen zeigt. Umschalten kann danach jeder, und sein Browser merkt sich die Wahl, bis diese Einstellung geändert wird.",
       edGroupContentReports: "Meldungen",
       edGroupContentReportsHelp: "Welche Meldungen des Bereichs die Karte zeigt.",
       edMax: "Maximale Anzahl Meldungen",
@@ -842,7 +849,7 @@
       edOnlyNew: "Nur neue Meldungen",
       edOnlyNewHelp: "Zeigt nur, was noch als neu markiert ist. Das Abzeichen im Kopf schaltet es ebenfalls um.",
       edReference: "Entfernung messen ab",
-      edReferenceHelp: "Der Punkt, von dem aus alle Entfernungen gerechnet werden. Bei einer Route - Wegpunkte oder Start/Ziel - ist jede Entfernung die Wegstrecke vom Start aus, egal was hier gewählt ist.",
+      edReferenceHelp: "Der Punkt, von dem aus alle Entfernungen gerechnet werden. Bei einer Route - Wegpunkte oder Start/Ziel - ist jede Entfernung die Wegstrecke vom Start aus, egal was hier gewählt ist. Der Mittelpunkt der Kartenansicht braucht eine Karte in der Karte selbst, das Minimalformat bietet ihn deshalb nicht an.",
       refModeArea: "Mittelpunkt des Bereichs",
       refModeMap: "Mittelpunkt der Kartenansicht",
       refModeEntity: "Person, Tracker oder Zone",
@@ -904,6 +911,9 @@
       travelTimeShort: (n) =>
         n < 60 ? `${n} Min` : `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")} h`,
       travelTimeTip: "Fahrzeit jetzt gerade, mit dem Verkehr des Moments",
+      travelTimeAsOf: (time) => `Stand ${time}`,
+      travelTimeStaleTip: "Diese Fahrzeit ist nicht mehr der Verkehr des Moments: TomTom hat zuletzt zur angezeigten Zeit geantwortet.",
+      travelTimeErrorTip: (error) => `TomTom hat bei der letzten Anfrage keine Route geliefert, diese Fahrzeit ist daher nicht aktuell: ${error}`,
       liveDelay: (sum) => `inkl. ${sum} Verkehr`,
       liveFree: "freie Fahrt, keine Verzögerung",
       liveDelayTip: "Schon in der Fahrzeit enthalten: was der Verkehr zur Fahrt auf freier Straße hinzufügt.",
@@ -1549,16 +1559,16 @@
           const feet = most * 3.28084;
           if (feet > 5280) {
             const miles = round(feet / 5280);
-            text = `${miles} mi`;
+            text = `${fmtNumber(miles, 0)} mi`;
             px = (miles * 5280) / 3.28084 / perPixel;
           } else {
             const f = round(feet);
-            text = `${f} ft`;
+            text = `${fmtNumber(f, 0)} ft`;
             px = f / 3.28084 / perPixel;
           }
         } else {
           const m = round(most);
-          text = m >= 1000 ? `${m / 1000} km` : `${m} m`;
+          text = m >= 1000 ? `${fmtNumber(m / 1000, 0)} km` : `${fmtNumber(m, 0)} m`;
           px = m / perPixel;
         }
         line.style.width = `${Math.round(px)}px`;
@@ -2537,14 +2547,13 @@
       return x - y;
     };
     if (sort !== "newest" && sort !== "oldest") return rows.sort(byDistance);
-    // Age rather than a timestamp: Blitzer.de dates a report as a time of
-    // day or as a date, never as one comparable thing - minutesSince is what
-    // makes the two the same kind of number. One reading of the clock for
-    // the whole sort, so no two comparisons disagree.
+    // Age rather than a timestamp: a report from an older integration is
+    // dated as a time of day or as a date, never as one comparable thing -
+    // reportAge is what makes every report the same kind of number. One
+    // reading of the clock for the whole sort, so no two comparisons
+    // disagree.
     const now = new Date();
-    const ages = new Map(
-      rows.map((row) => [row, minutesSince(row.state.attributes.created, now)])
-    );
+    const ages = new Map(rows.map((row) => [row, reportAge(row.state.attributes, now)]));
     return rows.sort((a, b) => {
       const x = ages.get(a);
       const y = ages.get(b);
@@ -2669,12 +2678,139 @@
   function isNewReport(row, windows, now) {
     const minutes = row.isHazard ? windows.hazards : windows.controls;
     if (!(minutes > 0)) return false;
-    const age = minutesSince(row.state.attributes.created, now);
+    const age = reportAge(row.state.attributes, now);
     return age !== null && age < minutes;
   }
 
+  // A report's moment, where the integration says it exactly: the ISO
+  // stamp with its offset - "2026-10-10T09:25:30+02:00" - under
+  // `${key}_at`. Null without one, and for a stamp without an offset, as
+  // an integration from before the offset sent it: that is a wall-clock
+  // reading and no moment, and is read the way it always was - see
+  // minutesSince and shortStamp.
+  const ISO_OFFSET = /(?:Z|[+-]\d{2}:?\d{2})$/;
+
+  function stampDate(attrs, key) {
+    const iso = attrs && attrs[`${key}_at`];
+    if (typeof iso !== "string" || !ISO_OFFSET.test(iso)) return null;
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  // A report's age in minutes. By its stamp with the offset where there is
+  // one: `created` is Home Assistant's wall clock, and read as the
+  // browser's it is off by the hours between the two - in London a report
+  // from Berlin was an hour younger than it is, and stayed NEW for it.
+  function reportAge(attrs, now) {
+    const date = stampDate(attrs, "created");
+    if (date) return Math.max(0, Math.round((now - date) / 60000));
+    return minutesSince(attrs && attrs.created, now);
+  }
+
+  // Numbers, times and dates the way the reader's profile says - Home
+  // Assistant's own number, time and date format settings - read off the
+  // hass every card and editor was last handed. Where the profile says
+  // "language", the reader's language decides; "system", the browser.
+  let LOCALE_HASS = null;
+
+  function localeLang() {
+    const locale = LOCALE_HASS && LOCALE_HASS.locale;
+    return (locale && locale.language) || (LOCALE_HASS && LOCALE_HASS.language) || "en";
+  }
+
+  function fmtNumber(value, maxDigits) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "";
+    const locale = (LOCALE_HASS && LOCALE_HASS.locale) || {};
+    let lang = localeLang();
+    if (locale.number_format === "comma_decimal") lang = "en-US";
+    else if (locale.number_format === "decimal_comma") lang = "de";
+    else if (locale.number_format === "space_comma") lang = "fr";
+    else if (locale.number_format === "quote_decimal") lang = "de-CH";
+    else if (locale.number_format === "system") lang = navigator.language || lang;
+    else if (locale.number_format === "none") return String(Math.round(n * 10 ** maxDigits) / 10 ** maxDigits);
+    try {
+      return new Intl.NumberFormat(lang, { maximumFractionDigits: maxDigits }).format(n);
+    } catch (err) {
+      return String(n);
+    }
+  }
+
+  // The zone times and dates are written in: Home Assistant's own where the
+  // profile says "use the server's time zone", else the browser's.
+  function displayZone() {
+    const hass = LOCALE_HASS;
+    const zone = hass && hass.config && hass.config.time_zone;
+    return hass && hass.locale && hass.locale.time_zone === "server" && zone ? zone : undefined;
+  }
+
+  function fmtTime(date) {
+    const locale = (LOCALE_HASS && LOCALE_HASS.locale) || {};
+    let lang = localeLang();
+    const options = { hour: "2-digit", minute: "2-digit" };
+    const zone = displayZone();
+    if (zone) options.timeZone = zone;
+    if (locale.time_format === "am_pm") options.hour12 = true;
+    else if (locale.time_format === "24_hour") options.hour12 = false;
+    else if (locale.time_format === "system") lang = navigator.language || lang;
+    try {
+      return new Intl.DateTimeFormat(lang, options).format(date);
+    } catch (err) {
+      return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    }
+  }
+
+  // `zone` is the display zone unless said otherwise - a closure's bare
+  // day says "UTC" for the noon it was built at, so no zone moves it.
+  function fmtDate(date, zone = displayZone()) {
+    const locale = (LOCALE_HASS && LOCALE_HASS.locale) || {};
+    let lang = localeLang();
+    // The same locales Home Assistant itself writes its numeric dates with.
+    if (locale.date_format === "DMY") lang = "en-GB";
+    else if (locale.date_format === "MDY") lang = "en-US";
+    else if (locale.date_format === "YMD") lang = "en-CA";
+    else if (locale.date_format === "system") lang = navigator.language || lang;
+    try {
+      return new Intl.DateTimeFormat(lang, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        ...(zone ? { timeZone: zone } : {}),
+      }).format(date);
+    } catch (err) {
+      return date.toLocaleDateString();
+    }
+  }
+
+  // The calendar day a moment falls on in the display zone, as one
+  // comparable string.
+  function dayKey(date) {
+    const zone = displayZone();
+    if (zone) {
+      try {
+        return new Intl.DateTimeFormat("en-CA", {
+          timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(date);
+      } catch (err) {
+        // A zone this browser does not know: its own day, below.
+      }
+    }
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  }
+
+  function isToday(date) {
+    return dayKey(date) === dayKey(new Date());
+  }
+
+  // A moment as the chips say it: the time for today, the date for any
+  // other day.
+  function momentText(date) {
+    return isToday(date) ? fmtTime(date) : `${fmtDate(date)} ${fmtTime(date)}`;
+  }
+
   // A full stamp shown the short way: the time for today, the date for
-  // any other day - what the chips have always read.
+  // any other day - what the chips have always read. For a card running
+  // against an integration that sends no stamp with an offset.
   function shortStamp(value) {
     const full = typeof value === "string" && value.match(FULL_STAMP);
     if (!full) return value;
@@ -2689,10 +2825,34 @@
     return `${full[3]}.${full[2]}.${full[1]}`;
   }
 
-  function reportedText(str, created) {
-    created = shortStamp(created);
+  // When a report was reported, as a chip: the time for today, the date
+  // for any other day - of the moment itself, in the zone and the format
+  // the profile asks for. Without an exact moment, the integration's own
+  // short form as it stands.
+  function reportedText(str, attrs) {
+    const date = stampDate(attrs, "created");
+    if (date) return isToday(date) ? str.reportedAt(fmtTime(date)) : str.reportedOn(fmtDate(date));
+    const created = shortStamp(attrs && attrs.created);
     if (!created) return "";
     return created.includes(".") ? str.reportedOn(created) : str.reportedAt(created);
+  }
+
+  // Whether the travel time of a live route is still the traffic of the
+  // moment. The total sensor says when TomTom last answered
+  // (travel_time_at) and what went wrong the last time it was asked
+  // (travel_time_error); figures older than this many minutes, or with an
+  // error standing, are shown as what they are - from then, not from now.
+  // A sensor that says neither is one from before it could, and its
+  // figures are taken as current, as they always were.
+  const LIVE_STALE_MINUTES = 30;
+
+  function liveStale(attrs, now = new Date()) {
+    const error = attrs && typeof attrs.travel_time_error === "string" ? attrs.travel_time_error : "";
+    const iso = attrs && attrs.travel_time_at;
+    const parsed = typeof iso === "string" && iso ? new Date(iso) : null;
+    const at = parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+    const old = !!at && now - at > LIVE_STALE_MINUTES * 60000;
+    return { stale: !!error || old, at, error };
   }
 
   // An official closure's period, as chips: since when, and until when or
@@ -2702,12 +2862,13 @@
     if (!attrs || (!attrs.closure_since && !attrs.closure_until && !attrs.closure_open_end)) {
       return [];
     }
-    // Written the way the reported and confirmed chips are - "21.09.2026",
-    // Blitzer.de's own form - rather than after the browser's language, so
-    // the chips of one entry do not read two ways.
+    // Written the way the reported and confirmed chips are - in the date
+    // format the profile asks for - so the chips of one entry do not read
+    // two ways. A bare day has no zone: built at noon UTC and written in
+    // UTC, it is the same day everywhere.
     const day = (iso) => {
       const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
-      return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
+      return m ? fmtDate(new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12)), "UTC") : "";
     };
     const chips = [];
     const since = day(attrs.closure_since);
@@ -2754,8 +2915,11 @@
   // time while it is from today, a date once it is not. "01.01.1970" is what
   // it puts on something that was never community-confirmed at all - a fixed
   // installation, say - and means "no confirmation" rather than a date.
-  function confirmedText(str, confirmed) {
-    confirmed = shortStamp(confirmed);
+  function confirmedText(str, attrs) {
+    if (attrs && attrs.confirmed === NEVER_CONFIRMED) return "";
+    const date = stampDate(attrs, "confirmed");
+    if (date) return isToday(date) ? str.confirmedAt(fmtTime(date)) : str.confirmedOn(fmtDate(date));
+    const confirmed = shortStamp(attrs && attrs.confirmed);
     if (!confirmed || confirmed === NEVER_CONFIRMED) return "";
     return confirmed.includes(".") ? str.confirmedOn(confirmed) : str.confirmedAt(confirmed);
   }
@@ -3064,19 +3228,26 @@
   // card free to do its own thing instead - opening the pop-up.
   function runAction(node, hass, action, fallbackEntity) {
     if (!action || !action.action || action.action === "default") return false;
+    if (action.action === "none") return true;
+    // "Ask before": as Home Assistant's cards do, unless this user is among
+    // those it is not to ask.
+    const ask = action.confirmation;
+    if (ask) {
+      const exempt = ((ask !== true && ask.exemptions) || []).some(
+        (e) => e && hass.user && e.user === hass.user.id
+      );
+      const text =
+        (ask !== true && ask.text) ||
+        hass.localize("ui.panel.lovelace.cards.actions.action_confirmation", { action: action.action }) ||
+        "?";
+      if (!exempt && !window.confirm(text)) return true;
+    }
     switch (action.action) {
-      case "none":
-        return true;
-      case "more-info":
-      case "toggle": {
-        // Neither says which entity when it is the card as a whole being
-        // tapped, so the area's own total is what they fall back to.
+      case "more-info": {
+        // It does not say which entity when it is the card as a whole being
+        // tapped, so the area's own total is what it falls back to.
         const entityId = action.entity || fallbackEntity;
         if (!entityId) return true;
-        if (action.action === "toggle") {
-          hass.callService("homeassistant", "toggle", { entity_id: entityId });
-          return true;
-        }
         node.dispatchEvent(
           new CustomEvent("hass-more-info", {
             detail: { entityId },
@@ -3086,15 +3257,22 @@
         );
         return true;
       }
+      case "toggle": {
+        // Only what the action itself names - a card saved with it, since
+        // the picker no longer offers it: the card's own entities are
+        // sensors and reports, and there is nothing in them to switch.
+        if (action.entity) hass.callService("homeassistant", "toggle", { entity_id: action.entity });
+        return true;
+      }
       case "navigate": {
         if (!action.navigation_path) return true;
         // The same two steps Home Assistant's own navigate() takes: change
         // the address, then tell the frontend it changed. Without the second
         // the address bar moves and the page does not.
-        window.history.pushState(null, "", action.navigation_path);
-        window.dispatchEvent(
-          new CustomEvent("location-changed", { detail: { replace: false } })
-        );
+        const replace = action.navigation_replace === true;
+        if (replace) window.history.replaceState(null, "", action.navigation_path);
+        else window.history.pushState(null, "", action.navigation_path);
+        window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace } }));
         return true;
       }
       case "url": {
@@ -3121,11 +3299,35 @@
     }
   }
 
+  // What of the profile decides how the card writes a number, a time or a
+  // date - as one string, so a change to any of it is one comparison.
+  function localeSig(hass) {
+    const locale = (hass && hass.locale) || {};
+    return [
+      locale.language, locale.number_format, locale.time_format, locale.date_format, locale.time_zone,
+      hass && hass.config && hass.config.time_zone,
+    ].join("|");
+  }
+
   // ------------------------------------------------------------------ card
   class BlitzerCard extends HTMLElement {
     setConfig(config) {
+      // As it was given, for the live update: a new version of this file
+      // fills in its own defaults.
+      this._given = config;
       this._config = defaultConfig(config);
+      // What the dashboard starts from - or, where the card draws the two
+      // switches, what this browser last set them to: remembered per
+      // browser the way the area pick is, and for the same reason. The
+      // pick is stored with the dashboard's own setting it was made over,
+      // so changing that setting starts everyone from it again.
       this._filter = this._config.filter;
+      if (this._config.show_filter_picker && this._config.layout !== "minimal") {
+        const [over, pick] = String(this._storage("filter") || "").split(":");
+        if (over === this._config.filter && ["all", "controls", "hazards", "none"].includes(pick)) {
+          this._filter = pick;
+        }
+      }
       this._onlyNew = this._config.only_new === true;
       this._onlyDelay = false;
       this._highlight = null;
@@ -3147,11 +3349,15 @@
     set hass(hass) {
       const previous = this._hass;
       this._hass = hass;
+      LOCALE_HASS = hass;
       if (!this._config) return;
       // The embedded map keeps its own view state (pan, zoom, open popups),
       // so it is handed every hass even when nothing else needs redrawing.
       if (this._map) this._map.hass = hass;
-      const langChanged = !previous || previous.language !== hass.language;
+      // The language, and how the profile wants numbers, times and dates
+      // written: a change to either rewrites what the card says.
+      const langChanged =
+        !previous || previous.language !== hass.language || localeSig(previous) !== localeSig(hass);
       const sig = signature(hass, this._areaId(), this._referenceEntity());
       if (this._built && !langChanged && sig === this._signature) return;
       this._signature = sig;
@@ -3231,8 +3437,9 @@
     // away its pan and zoom and refetch every tile each time a report moves.
     _skeleton() {
       if (this._root) return;
-      this.attachShadow({ mode: "open" });
-      this.shadowRoot.innerHTML = `
+      if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+      const made = document.createElement("template");
+      made.innerHTML = `
         <style>@layer blitzer-card { ${STYLE} }
                @layer blitzer-vars { ${variableCss()} }</style>
         <ha-card>
@@ -3257,6 +3464,18 @@
             </div>
           </dialog>
         </ha-card>`;
+      // Put in beside whatever else lives in this shadow root, and in place
+      // of what an earlier build of this card left there (see the live
+      // update at the end of the file). Not by writing the root's innerHTML:
+      // card-mod keeps its stylesheet in here, as a child of the root, and
+      // would lose it with every update taken over.
+      for (const old of [...this.shadowRoot.children]) {
+        const own =
+          old.localName === "ha-card" ||
+          (old.localName === "style" && old.textContent.trimStart().startsWith("@layer blitzer-card"));
+        if (own) old.remove();
+      }
+      this.shadowRoot.prepend(made.content);
       this._root = this.shadowRoot.querySelector("ha-card");
       this._headEl = this._root.querySelector(".head");
       this._splitEl = this._root.querySelector(".split");
@@ -3599,10 +3818,15 @@
       const sensor = this._config.mini_show_travel !== false ? totalSensor(this._hass, this._areaId()) : null;
       const attrs = (sensor && sensor.attributes) || {};
       if (Number.isFinite(attrs.travel_time_minutes)) {
-        const level = this._delayLevel(Number(attrs.traffic_delay_minutes) || 0);
+        // A figure that is no longer the traffic of the moment wears no
+        // level's colour - what it was coloured by is as old as it is -
+        // and says from when it is where the other parts have their word.
+        const old = liveStale(attrs);
+        const level = old.stale ? "" : this._delayLevel(Number(attrs.traffic_delay_minutes) || 0);
         halves.push(
-          half(`travel level-${level}`, "all", "mini_travel",
-               str.travelTime(attrs.travel_time_minutes), "", 1, level,
+          half(old.stale ? "travel stale" : `travel level-${level}`, "all", "mini_travel",
+               str.travelTime(attrs.travel_time_minutes),
+               old.stale && old.at ? str.travelTimeAsOf(momentText(old.at)) : "", 1, level,
                str.travelTimeShort(attrs.travel_time_minutes))
         );
       }
@@ -3611,6 +3835,15 @@
       this._miniEl.classList.toggle("three", halves.length > 2);
       this._miniEl.classList.toggle("four", halves.length > 3);
       this._miniEl.innerHTML = halves.join("");
+      // Why the travel time is grey, for whoever rests on it - the words
+      // beside it are the first thing a narrow line drops.
+      const staleHalf = this._miniEl.querySelector(".mini-half.travel.stale");
+      if (staleHalf) {
+        const old = liveStale(attrs);
+        staleHalf.title = old.error
+          ? str.travelTimeErrorTip(old.error)
+          : `${str.travelTimeStaleTip}${old.at ? ` (${momentText(old.at)})` : ""}`;
+      }
       for (const button of this._miniEl.querySelectorAll(".mini-half")) {
         button.addEventListener("click", () => {
           const sensor = totalSensor(this._hass, this._areaId());
@@ -3823,9 +4056,13 @@
       const ids = wanted ? rows.map((r) => r.entityId).sort() : [];
       const key = ids.join(",") + "|" + (this._config.map_cluster !== false) + "|" + (this._config.map_always !== false);
       if (!wanted || (!ids.length && this._config.map_always === false)) {
-        wrap.innerHTML = "";
-        this._popMap = undefined;
+        // Taken down with everything that hangs on it - its handles, its
+        // listeners, the traffic flow's timer - not just out of the page.
+        const followed = !!this._popBounds;
+        this._closePopMap();
         this._popMapKey = key;
+        // The list was narrowed to what that map showed.
+        if (followed && this._hass) this._fillPopList(t(this._hass));
         return;
       }
       if (key === this._popMapKey && this._popMap) {
@@ -3845,9 +4082,18 @@
       });
       if (this._popMapKey !== key) return;
       card.hass = this._hass;
-      wrap.innerHTML = "";
+      // A new set of reports makes a new map, and the old one is closed
+      // first, with everything that was made for it: its marker observer -
+      // or the new map never gets one of its own - its scale bar and
+      // traffic layer, which were remembered as drawn and so were not
+      // drawn again, its listeners, and the viewport the list followed.
+      const followed = !!this._popBounds;
+      this._closePopMap();
+      this._popMapKey = key;
       wrap.appendChild(card);
       this._popMap = card;
+      // Until the new map says what it shows, the list shows everything.
+      if (followed && this._hass) this._fillPopList(t(this._hass));
       this._watchMarkers(card, "_popObserver");
       this._attachPopMap(card);
     }
@@ -3868,7 +4114,6 @@
         this._popHaMap = haMap;
         this._syncScale("pop");
         this._paintPopRoute();
-        this._paintArea(h, this._popRowsCache, "_popAreaDrawn", "_popAreaSettle");
         this._paintClosures(h, this._popRowsCache, "_popClosuresDrawn");
         this._onPopMove = () => {
           this._scheduleTraffic("pop");
@@ -4077,7 +4322,11 @@
         // the line goes too, rather than leaving an empty row under the
         // title. A live route whose travel time is not shown large says it
         // here, beside the mode, where the route is named.
-        const live = hasLive ? str.liveTime(liveMinutes, liveDelay) : "";
+        const old = hasLive ? liveStale(attrs) : null;
+        const live = hasLive
+          ? str.liveTime(liveMinutes, liveDelay) +
+            (old.stale && old.at ? ` (${str.travelTimeAsOf(momentText(old.at))})` : "")
+          : "";
         const subText = showSub
           ? [
               this._config.sub_show_area === false ? "" : area.name,
@@ -4191,7 +4440,8 @@
           const c = controlsSwitch.checked;
           const h = hazardsSwitch.checked;
           this._filter = c && h ? "all" : c ? "controls" : h ? "hazards" : "none";
-          this._storage("filter", this._filter);
+          // Read back in setConfig, which says why it is stored this way.
+          this._storage("filter", `${this._config.filter}:${this._filter}`);
           this._render();
         };
         controlsSwitch.addEventListener("change", pick);
@@ -4220,18 +4470,40 @@
     _liveHtml(str, attrs, refreshHtml, parts) {
       const minutes = attrs.travel_time_minutes;
       const delay = Number(attrs.traffic_delay_minutes) || 0;
+      // Figures TomTom has not renewed for half an hour, or could not the
+      // last time it was asked, are not the traffic of the moment: the
+      // time and the delay under it go to the secondary colour - over any
+      // colour set for them, which would say "current" - and the moment
+      // they are from stands beside the time.
+      const old = liveStale(attrs);
       const level = this._delayLevel(delay);
-      const levelColor = this._config[`delay_${level}_color`];
+      const levelColor = old.stale ? "" : this._config[`delay_${level}_color`];
       const delayStyle = [levelColor ? `color: ${levelColor}` : "", elementStyle(this._config, "delay_line")]
+        .concat(old.stale ? ["color: var(--secondary-text-color)"] : [])
         .filter(Boolean)
         .join("; ");
+      const timeStyle = [elementStyle(this._config, "travel_time")]
+        .concat(old.stale ? ["color: var(--secondary-text-color)"] : [])
+        .filter(Boolean)
+        .join("; ");
+      const tip = old.error
+        ? str.travelTimeErrorTip(old.error)
+        : old.stale
+          ? str.travelTimeStaleTip
+          : str.travelTimeTip;
       return `
         <div class="live">
-          <span class="travel-time" title="${escapeHtml(str.travelTimeTip)}"
-                style="${escapeHtml(elementStyle(this._config, "travel_time"))}">${escapeHtml(str.travelTime(minutes))}</span>${refreshHtml}
+          <span class="travel-time${old.stale ? " stale" : ""}" title="${escapeHtml(tip)}"
+                style="${escapeHtml(timeStyle)}">${escapeHtml(str.travelTime(minutes))}</span>${
+            old.stale && old.at
+              ? `<span class="travel-at" title="${escapeHtml(tip)}">${escapeHtml(
+                  str.travelTimeAsOf(momentText(old.at))
+                )}</span>`
+              : ""
+          }${refreshHtml}
         </div>
         <div class="sub live-sub" style="${escapeHtml(elementStyle(this._config, "sub"))}"><span
-            class="delay-line level-${level}" title="${escapeHtml(str.liveDelayTip)}"
+            class="delay-line ${old.stale ? "stale" : `level-${level}`}" title="${escapeHtml(str.liveDelayTip)}"
             style="${escapeHtml(delayStyle)}">${escapeHtml(
               delay > 0 ? str.liveDelay(str.delaySum(delay)) : str.liveFree
             )}</span>${(parts || []).filter(Boolean).map((p) => ` · ${escapeHtml(p)}`).join("")}</div>`;
@@ -4285,14 +4557,7 @@
       const imperial =
         this._hass.config && this._hass.config.unit_system && this._hass.config.unit_system.length === "mi";
       const amount = imperial ? value * 0.621371 : value;
-      const lang = (this._hass.locale && this._hass.locale.language) || this._hass.language || "en";
-      let text;
-      try {
-        text = new Intl.NumberFormat(lang, { maximumFractionDigits: amount >= 100 ? 0 : 1 }).format(amount);
-      } catch (err) {
-        text = String(Math.round(amount));
-      }
-      return `${text} ${imperial ? "mi" : "km"}`;
+      return `${fmtNumber(amount, amount >= 100 ? 0 : 1)} ${imperial ? "mi" : "km"}`;
     }
 
     // Sizes the subtitle line's icon so that its drawing - not its box - is
@@ -4390,7 +4655,11 @@
       // Asked first, because it decides how the map is built: a route is
       // fitted to by this card, so Home Assistant's own fit to the markers
       // must not undo it on the next update.
-      const route = this._config.map_route === false ? null : await this._routeFor(areaId);
+      // Asked whatever "Show the route on the map" says: the answer also
+      // carries what an area entry searches - its circle - and that switch
+      // is about a route only.
+      const asked = await this._routeFor(areaId);
+      const route = this._config.map_route === false ? null : asked;
       this._route = route;
       // A new colour or width is repainted in place; only the route itself
       // rebuilds the map, since it decides how the map is fitted.
@@ -4439,11 +4708,6 @@
         this._mapKey = key;
         return;
       }
-
-      // A new map starts from Home Assistant's own fit of its markers, with
-      // no room for their pins - so the route is fitted again on it, whatever
-      // was fitted on the map before.
-      this._routeFitted = undefined;
 
       const mapConfig = {
         type: "map",
@@ -4497,6 +4761,11 @@
       this._mapEl.appendChild(card);
       this._map = card;
       this._mapFitted = true;
+      // A new map starts from Home Assistant's own fit of its markers, with
+      // no room for their pins - so the route is fitted again on it, whatever
+      // was fitted on the map before. Only here: a map that merely got new
+      // reports keeps the view it has, which may be one somebody panned to.
+      this._routeFitted = undefined;
       // A fresh map is fitted by Home Assistant, or to its route; a badge
       // already narrowing the card is picked up once the map is attached.
       this._fittedScope = "";
@@ -5348,10 +5617,19 @@
       this[slot] = undefined;
     }
 
+    // The pop-up map's route - or, for an entry without one, its area's
+    // circle. Both come out of the same answer, which in the minimal format
+    // nothing has asked for before the pop-up opens: so the circle is drawn
+    // from here, once the answer is in, rather than beside this call.
     async _paintPopRoute() {
       const h = this._popHandles;
-      const route = this._config.map_route === false ? null : await this._routeFor(this._areaId());
-      if (!route || !h || this._popHandles !== h) return;
+      const asked = await this._routeFor(this._areaId());
+      const route = this._config.map_route === false ? null : asked;
+      if (!h || this._popHandles !== h) return;
+      if (!route) {
+        this._paintArea(h, this._popRowsCache, "_popAreaDrawn", "_popAreaSettle");
+        return;
+      }
       removeRoute(this._popRouteDrawn);
       this._popRouteDrawn = drawRouteWith(
         h, route.points, routeColor(this, this._config.route_color), route.vias, this._config.route_width
@@ -5450,12 +5728,18 @@
     }
 
     disconnectedCallback() {
+      if (this._clock) {
+        window.clearInterval(this._clock);
+        this._clock = undefined;
+      }
       this._detachMap();
       this._unwatchMarkers();
       if (this._onVisibility) {
         document.removeEventListener("visibilitychange", this._onVisibility);
         this._onVisibility = undefined;
       }
+      // An element taken over from a build that kept the traffic line's
+      // own timer - see the live update at the end of the file.
       if (this._trafficTick) {
         window.clearInterval(this._trafficTick);
         this._trafficTick = undefined;
@@ -5480,18 +5764,70 @@
       if (!this._onVisibility) {
         this._onVisibility = () => {
           if (document.visibilityState !== "visible") return;
+          // What aged while nobody was looking is brought up to date first.
+          this._tick();
           this._scheduleTraffic("main");
           if (this._popHandles) this._scheduleTraffic("pop");
         };
         document.addEventListener("visibilitychange", this._onVisibility);
       }
-      if (!this._trafficTick) {
-        this._trafficTick = window.setInterval(() => this._renderTrafficLine(), 60000);
+      // What the card says about time is worked out when it is drawn, and it
+      // is drawn when an entity changes - which on an area polled once an
+      // hour, or on demand only, is rarely. Until then "just now" stayed
+      // just now, and a report stayed NEW past its window. Looked at twice
+      // a minute while the card is on the page.
+      if (this._trafficTick) {
+        window.clearInterval(this._trafficTick);
+        this._trafficTick = undefined;
       }
+      if (!this._clock) this._clock = window.setInterval(() => this._tick(), 30000);
       // The very first insertion happens before there is a map to hook into.
       if (!this._map) return;
       this._attachMap();
       this._watchMarkers();
+    }
+
+    // The words that age, brought up to date without drawing the card anew:
+    // the refresh buttons' "N min ago" in place - the area's and the traffic
+    // flow's - and a whole draw only when something else on the card has
+    // aged into saying something different: the set of NEW reports, a
+    // subtitle line that says the last update in words, a travel time gone
+    // stale, or the day, which turns a chip's time into a date.
+    _tick() {
+      if (!this._built || !this._root || !this._hass || !this._config) return;
+      if (document.visibilityState !== "visible") return;
+      const areaId = this._areaId();
+      const sensor = totalSensor(this._hass, areaId);
+      const attrs = (sensor && sensor.attributes) || {};
+      const str = t(this._hass);
+      const now = new Date();
+      const windows =
+        this._config.show_new === false ? { controls: 0, hazards: 0 } : newWindows(this._hass, areaId);
+      const fresh = (this._allRows || [])
+        .filter((row) => isNewReport(row, windows, now))
+        .map((row) => row.entityId)
+        .join(",");
+      // Only where the line is drawn and has no button to say it.
+      const inWords =
+        this._layout !== "minimal" &&
+        this._config.show_sub !== false &&
+        this._config.sub_show_updated !== false &&
+        this._config.show_refresh === false
+          ? updatedText(str, attrs.last_update)
+          : "";
+      const stale = Number.isFinite(attrs.travel_time_minutes) && liveStale(attrs, now).stale;
+      const sig = `${fresh}|${inWords}|${stale}|${dayKey(now)}`;
+      const before = this._clockSig;
+      this._clockSig = sig;
+      if (before !== undefined && before !== sig) {
+        this._render();
+        return;
+      }
+      const ago = agoText(str, attrs.last_update);
+      for (const el of this._root.querySelectorAll(".ago:not(.traffic-text)")) {
+        if (el.textContent !== ago) el.textContent = ago;
+      }
+      this._renderTrafficLine();
     }
 
     _renderList(str) {
@@ -5635,7 +5971,8 @@
       colorHelp: "edNothingColorHelp",
       fontHelp: "edNothingFontHelp",
       fallback: "var(--secondary-text-color)",
-      hidden: (config) => config.layout === "minimal",
+      // Kept in the minimal format: its pop-up can open on nothing - with
+      // its map set to stay - and says so in these words.
     },
     // The minimal format's own four, and the only ones it offers besides
     // the title: everything below answers for a head, a subtitle or a picker
@@ -5888,9 +6225,19 @@
           fallback: "var(--secondary-text-color)",
         },
         size: { key: "sub_icon_size", label: "edSubIconSize", help: "edSubIconSizeHelp" },
+        // No symbol under a travel time - and under one is the only place
+        // the line is drawn in the minimal format, or with its own switch
+        // off.
+        hidden: (config) => config.layout === "minimal" || config.show_sub === false,
       },
-      // Gone with the line it describes - and the minimal format draws none.
-      hidden: (config) => config.show_sub === false || config.layout === "minimal",
+      // Gone with the line it describes. Under a live route's travel time
+      // the line is drawn whatever its own switch says - it is where the
+      // traffic's share stands - and in the minimal format that, in the
+      // pop-up, is the only place it is drawn. So it takes both switches
+      // off to leave nothing to style, and there the travel time's alone.
+      hidden: (config) =>
+        config.show_travel_time === false &&
+        (config.layout === "minimal" || config.show_sub === false),
     },
     // Straight after the line it stands at the end of: the area's refresh,
     // and the traffic flow's with it - both are the same rounded button with
@@ -5941,10 +6288,12 @@
         help: "edSwitchTrackHelp",
         fallback: "var(--switch-checked-track-color, var(--primary-color))",
       },
+      // The minimal format has no head, so no controls and hazards
+      // switches - but its pop-up draws the traffic flow's above its map,
+      // with these settings.
       hidden: (config) =>
-        config.layout === "minimal" ||
-        (config.show_filter_picker === false &&
-          (config.map_traffic !== true || config.show_traffic_switch === false)),
+        (config.layout === "minimal" || config.show_filter_picker === false) &&
+        (config.map_traffic !== true || config.show_traffic_switch === false),
     },
     // Everything a list entry is made of, in the order it is drawn.
     highlight: {
@@ -6014,7 +6363,7 @@
       icon: {
         key: "line2_icon",
         label: "edSubIcon",
-        help: "edSubIconHelp",
+        help: "edRowIconHelp",
         color: { key: "line2_icon_color", label: "edSubIconColor", help: "edSubIconColorHelp", fallback: "var(--secondary-text-color)" },
         size: { key: "line2_icon_size", label: "edSubIconSize", help: "edSubIconSizeHelp" },
       },
@@ -6030,7 +6379,7 @@
       icon: {
         key: "extra_icon",
         label: "edSubIcon",
-        help: "edSubIconHelp",
+        help: "edRowIconHelp",
         color: { key: "extra_icon_color", label: "edSubIconColor", help: "edSubIconColorHelp", fallback: "var(--secondary-text-color)" },
         size: { key: "extra_icon_size", label: "edSubIconSize", help: "edSubIconSizeHelp" },
       },
@@ -6051,8 +6400,11 @@
         fallback: "var(--blitzer-row-chip-background, rgba(128, 128, 128, 0.12))",
       },
       tab: "list",
+      // A closure's period is drawn as chips too.
       hidden: (config) =>
-        config.show_row_reported === false && config.show_row_confirmed === false,
+        config.show_row_reported === false &&
+        config.show_row_confirmed === false &&
+        config.show_row_closure === false,
     },
     stars: {
       label: "edElStars",
@@ -6069,19 +6421,24 @@
 
   class BlitzerCardEditor extends HTMLElement {
     setConfig(config) {
+      // As it was given, for the live update - see the card's setConfig.
+      this._given = config;
       this._config = defaultConfig(config);
       this._render();
     }
 
     set hass(hass) {
       this._hass = hass;
+      LOCALE_HASS = hass;
       this._render();
     }
 
     _emit() {
+      const config = pruneDefaults(this._config);
+      this._given = config;
       this.dispatchEvent(
         new CustomEvent("config-changed", {
-          detail: { config: pruneDefaults(this._config) },
+          detail: { config },
           bubbles: true,
           composed: true,
         })
@@ -6278,7 +6635,11 @@
       if (step) input.step = step;
       input.addEventListener("input", () => {
         const value = step ? Number.parseFloat(input.value) : Number.parseInt(input.value, 10);
-        this._set(key, Number.isFinite(value) ? value : min);
+        // Emptied, the field means "as it comes" - the default, which is not
+        // written to the YAML. It used to store the field's minimum: a
+        // cleared opacity made the card's background invisible, a cleared
+        // "yellow from" made every delay yellow.
+        this._set(key, Number.isFinite(value) ? value : key in DEFAULTS ? DEFAULTS[key] : min);
       });
       return input;
     }
@@ -6713,7 +7074,7 @@
           // of the dialog the menu simply ran off the other end instead, with
           // its first entries out of reach.
           const rect = select.getBoundingClientRect();
-          const box = this._clipRect(select);
+          const box = this._clipRect(select, false);
           const below = box.bottom - rect.bottom - 8;
           const above = rect.top - box.top - 8;
           const up = above > below;
@@ -6843,16 +7204,18 @@
         );
       }
       if (el.icon) {
-        block.appendChild(
-          this._fieldRow(str[el.icon.label], str[el.icon.help], this._picker(el.icon.key, { icon: {} }), true)
-        );
+        // Named for their element, so that an icon one format does not draw
+        // can go without the rest of the block going with it.
+        const iconRows = [
+          this._fieldRow(str[el.icon.label], str[el.icon.help], this._picker(el.icon.key, { icon: {} }), true),
+        ];
         if (el.icon.color) {
-          block.appendChild(
+          iconRows.push(
             this._colorRow(el.icon.color.key, str[el.icon.color.label], str[el.icon.color.help], str)
           );
         }
         if (el.icon.size) {
-          block.appendChild(
+          iconRows.push(
             this._fieldRow(
               str[el.icon.size.label],
               str[el.icon.size.help],
@@ -6860,6 +7223,10 @@
               true
             )
           );
+        }
+        for (const row of iconRows) {
+          row.dataset.iconOf = prefix;
+          block.appendChild(row);
         }
       }
       for (const part of el.parts || []) {
@@ -6971,23 +7338,23 @@
         // are the whole of what the card is: a line one taps, and the words
         // its pop-up wears. Home Assistant's own action picker rather than
         // one of ours, so that what this card offers is what every other card
-        // offers, down to the wording.
+        // offers, down to the wording. No "toggle": it would want an entity
+        // to switch, and the card has only sensors and reports of its own.
         const tap = this._fieldRow(str.edMiniTap, str.edMiniTapHelp,
           this._picker("mini_tap_action", {
             ui_action: {
-              actions: ["more-info", "navigate", "url", "perform-action", "toggle", "none"],
+              actions: ["more-info", "navigate", "url", "perform-action", "none"],
             },
           }));
         tap.dataset.withMinimal = "";
         body.appendChild(tap);
         // Straight after the title pair, since it is the card's other piece of
         // fixed wording - the one it falls back to when the area turns out
-        // empty. Never in the minimal format: a number of nothing opens no
-        // pop-up, so there is nowhere left for this wording to appear.
+        // empty. In the minimal format too: its pop-up opens on nothing
+        // while its map is set to stay, and says this beside the map.
         const nothing = this._fieldRow(
           str.edNothing, str.edNothingHelp, this._textInput("no_reports_text", str.nothing)
         );
-        nothing.dataset.withoutMinimal = "";
         body.appendChild(nothing);
         // Then which of the numbers are shown at all - how much there is,
         // and how much of it is new - in the order the head reads them.
@@ -7033,16 +7400,26 @@
         const travel = this._toggleRow("show_travel_time", str.edShowTravelTime, str.edShowTravelTimeHelp);
         travel.dataset.withoutMinimal = "";
         body.appendChild(travel);
+        // The refresh button has two places - beside a live route's travel
+        // time, at the end of the subtitle line otherwise - and the time of
+        // the last fetch goes wherever the button is, or into the line's
+        // words without one. So the two stand on their own rather than
+        // under the subtitle's switch: with that one off, a live route
+        // still draws both. Gone only when neither place is drawn.
+        for (const part of [
+          { key: "show_refresh", label: "edShowRefresh", help: "edShowRefreshHelp" },
+          { key: "sub_show_updated", label: "edSubUpdated", help: "edSubUpdatedHelp" },
+        ]) {
+          const row = this._toggleRow(part.key, str[part.label], str[part.help]);
+          row.dataset.withHeadRefresh = "";
+          body.appendChild(row);
+        }
         const sub = this._toggleRow("show_sub", str.edShowSub, str.edShowSubHelp);
         sub.dataset.withoutMinimal = "";
         body.appendChild(sub);
         for (const part of [
           { key: "sub_show_area", label: "edSubArea", help: "edSubAreaHelp" },
           { key: "sub_show_mode", label: "edSubMode", help: "edSubModeHelp" },
-          { key: "sub_show_updated", label: "edSubUpdated", help: "edSubUpdatedHelp" },
-          // Last of them, where it is drawn: after the moment the card last
-          // looked comes the way to make it look again.
-          { key: "show_refresh", label: "edShowRefresh", help: "edShowRefreshHelp" },
         ]) {
           const row = this._toggleRow(part.key, str[part.label], str[part.help]);
           row.classList.add("sub-field-row", "sub-toggle-row");
@@ -7098,6 +7475,18 @@
         );
         travelPop.dataset.withMinimal = "";
         body.appendChild(travelPop);
+        // Under it, the button beside that time, and under the button the
+        // time of the last fetch written in it. The keys are the ones the
+        // head answers to in the other formats - the pop-up has always
+        // obeyed them, and now says so.
+        const refreshPop = this._toggleRow("show_refresh", str.edShowRefresh, str.edShowRefreshPopHelp);
+        refreshPop.classList.add("sub-field-row", "sub-toggle-row");
+        refreshPop.dataset.withPopTravel = "";
+        body.appendChild(refreshPop);
+        const updatedPop = this._toggleRow("sub_show_updated", str.edSubUpdated, str.edSubUpdatedPopHelp);
+        updatedPop.classList.add("sub-field-row", "sub-toggle-row");
+        updatedPop.dataset.withPopRefresh = "";
+        body.appendChild(updatedPop);
       }
 
       if (groupKey === "content") {
@@ -7417,69 +7806,103 @@
     // Overlapping the rows behind it is not a fault - it is what a floating
     // tooltip does, in Annuals as here. Being cut off is.
     _placeTooltip(anchor) {
-      const tip = anchor.querySelector(".tip");
-      if (!tip) return;
-      tip.style.cssText = "";
-      tip.classList.remove("tip-right", "tip-down");
+      let tip = anchor.querySelector(".tip");
+      if (!tip) {
+        tip = document.createElement("span");
+        tip.className = "tip";
+        anchor.appendChild(tip);
+      }
+      tip.textContent = anchor.dataset.tooltip || "";
+      // Put at 0,0 first: where that lands on screen is the corner of the
+      // box a fixed element is placed in - the window, or a transformed
+      // ancestor - and the offsets below are measured from it.
+      tip.style.left = "0px";
+      tip.style.top = "0px";
+      const origin = tip.getBoundingClientRect();
+      const width = origin.width;
+      const height = origin.height;
+      const icon = anchor.getBoundingClientRect();
       const pane = this.getBoundingClientRect();
       const box = this._clipRect(anchor);
-      let rect = tip.getBoundingClientRect();
-      const left = Math.max(pane.left, box.left) + 4;
-      const right = Math.min(pane.right, box.right) - 4;
-
-      // Right-aligned to the icon when opening rightward would run past the
-      // column - the same flip Annuals makes in CSS, decided by measurement so
-      // that a row it has no rule for is covered too.
-      if (rect.right > right) {
-        tip.classList.add("tip-right");
-        rect = tip.getBoundingClientRect();
+      // Inside the editor's own column - the dialog is twice as wide, with
+      // the preview beside the form - and inside whatever clips a fixed box.
+      const minX = Math.max(pane.left, box.left) + 4;
+      const maxX = Math.min(pane.right, box.right) - 4 - width;
+      let x = icon.left;
+      if (x > maxX) x = icon.right - width;
+      x = Math.max(minX, Math.min(x, maxX));
+      // Above the icon; below it when there is no room above; and when
+      // neither side has the room, the side that cuts less.
+      const minY = box.top + 4;
+      const maxY = box.bottom - 4 - height;
+      let y = icon.top - 6 - height;
+      if (y < minY) {
+        y = icon.bottom + 6;
+        if (y > maxY) y = Math.max(minY, Math.min(icon.top - 6 - height, maxY));
       }
-      // Still outside the column on either side - a wide tooltip on a narrow
-      // column, or an "i" that itself sits at or past the column's edge, the
-      // way a long switch label pushes it at 290px - so move it in by hand, as
-      // far as the column's width allows.
-      const maxLeft = right - rect.width;
-      if (rect.left < left || rect.left > maxLeft) {
-        const target = Math.max(left, Math.min(rect.left, maxLeft));
-        tip.style.left = `${target - anchor.getBoundingClientRect().left}px`;
-        tip.style.right = "auto";
-        rect = tip.getBoundingClientRect();
-      }
-      // Below the icon when there is no room above it. A tooltip too tall for
-      // either side takes the side that cuts less - a short window, or, on a
-      // narrow screen, a panel's last rows scrolled up to the top of the
-      // dialog, with that panel's own bottom edge just below them.
-      if (rect.top < box.top + 4) {
-        tip.classList.add("tip-down");
-        const below = tip.getBoundingClientRect();
-        const cutAbove = box.top + 4 - rect.top;
-        const cutBelow = below.bottom - (box.bottom - 4);
-        if (cutBelow > 0 && cutBelow > cutAbove) tip.classList.remove("tip-down");
-      }
+      tip.style.left = `${x - origin.left}px`;
+      tip.style.top = `${y - origin.top}px`;
+      // Not shown while the icon itself is scrolled out of sight: a fixed
+      // box would otherwise go on floating where its row used to be.
+      const seen = this._clipRect(anchor, false);
+      const iconSeen = icon.bottom > seen.top && icon.top < seen.bottom && icon.right > seen.left && icon.left < seen.right;
+      tip.style.visibility = iconSeen ? "" : "hidden";
+      this._followTooltip(anchor, icon);
     }
 
-    // The area a tooltip can be seen in: the window, narrowed by every
-    // ancestor that clips its content - whether or not it scrolls right now.
-    // The dialog's form column clips a tooltip above its top edge just the
-    // same when the open tab is short enough to fit, and taking only a
-    // container that overflowed let a tooltip be measured against the
-    // window and cut off anyway. The colour menus measure against it too.
+    // A fixed box does not move with the row it belongs to, so while the
+    // pointer rests on the icon - or, on a touch screen, until the next tap
+    // elsewhere, which is how long a tap keeps it hovered - it is placed
+    // again on every frame the icon has moved in: scrolling the form takes
+    // the tooltip along, and out of sight with the icon. One follower at a
+    // time; hovering the next icon hands over to it. It ends once the icon
+    // is no longer hovered - but only after it has been: iOS reports the
+    // touch before the finger lifts and applies :hover only afterwards, so
+    // a second is allowed for that to happen.
+    _followTooltip(anchor, rect) {
+      if (this._tipFollowing === anchor) return;
+      this._tipFollowing = anchor;
+      let last = rect;
+      let hovered = false;
+      const started = performance.now();
+      const step = () => {
+        if (this._tipFollowing !== anchor) return;
+        const onIcon = anchor.isConnected && anchor.matches(":hover");
+        if (onIcon) hovered = true;
+        if (!anchor.isConnected || (!onIcon && (hovered || performance.now() - started > 1000))) {
+          this._tipFollowing = null;
+          return;
+        }
+        if (!onIcon) {
+          requestAnimationFrame(step);
+          return;
+        }
+        const now = anchor.getBoundingClientRect();
+        if (now.top !== last.top || now.left !== last.left) {
+          last = now;
+          this._placeTooltip(anchor);
+        }
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+
+    // The area a fixed tooltip can be seen in: the window, narrowed by the
+    // ancestor it is fixed to and every ancestor of that one which clips
+    // its content. The scrolling areas below that ancestor - the form
+    // column, the dialog body - do not clip a fixed box, which is the point
+    // of it (see _placeTooltip). An ancestor becomes the box a fixed
+    // element is placed in when it has a transform, a filter or paint
+    // containment - the edit dialog has one - and without any such
+    // ancestor the window alone is the bound. The walk follows the rendered
+    // tree, through the slot an element is shown in before its parent: the
+    // dialog slots the form column into its own shadow DOM.
     //
-    // Walked from the anchor, not from this editor: the panel the "i" sits in
-    // has overflow hidden for its rounded corners, and it lies inside this
-    // shadow root, where a walk that starts at the host never looks. And
-    // through the slot an element is shown in, not to its light-DOM parent:
-    // the form column is slotted into ha-dialog, whose own scrolling body -
-    // the one that scrolls when the preview is stacked below the form on a
-    // narrow screen - only exists in ha-dialog's shadow root.
-    _clipRect(anchor) {
+    // With fixed set to false, the area the icon itself can be seen in
+    // instead: every clipping ancestor counts, the scrolling ones included.
+    _clipRect(from, fixed = true) {
       const nextUp = (node) =>
-        node.assignedSlot ||
-        node.parentElement ||
-        (node.getRootNode() && node.getRootNode().host) ||
-        null;
-      // An ancestor becomes the box a fixed element is placed in when it
-      // has a transform, a filter or paint containment.
+        node.assignedSlot || node.parentElement || (node.getRootNode() && node.getRootNode().host) || null;
       const holdsFixed = (style) =>
         style.transform !== "none" ||
         style.perspective !== "none" ||
@@ -7491,16 +7914,21 @@
         /transform|perspective|filter/.test(style.willChange || "") ||
         /paint|layout|strict|content/.test(style.contain || "") ||
         (style.containerType && style.containerType !== "normal");
-      const box = { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth };
-      // Nothing above a fixed ancestor - the edit dialog - clips what is
-      // inside it, until an ancestor holds fixed boxes again. The page under
-      // the dialog can be scrolled away (Bubble Card's pop-up editor does
-      // that) while the dialog stays in view; <body> is then an
-      // overflow-hidden box far above the window, and counting it would put
-      // the whole dialog outside the box - a tooltip in a top row then stays
-      // above its icon, cut off, instead of opening below it.
-      let loose = false;
-      for (let node = nextUp(anchor); node && node !== document.documentElement; node = nextUp(node)) {
+      // The layout viewport, the space getBoundingClientRect and a fixed
+      // box are measured in - not innerWidth/innerHeight, which on iOS
+      // shrink to the visible part of a pinch-zoomed page.
+      const root = document.documentElement;
+      const box = { top: 0, bottom: root.clientHeight, left: 0, right: root.clientWidth };
+      // A box that sits in the viewport rather than in its parents is not
+      // clipped by them, whatever their overflow: a fixed box, until an
+      // ancestor holds it - and everything above a fixed ancestor, which is
+      // the edit dialog. The page under the dialog can be scrolled away
+      // (Bubble Card's pop-up editor does that) while the dialog stays in
+      // view; <body> is then an overflow-hidden box far above the window,
+      // and it must not count, or every tooltip in the dialog is hidden
+      // for lying outside it.
+      let loose = fixed;
+      for (let node = nextUp(from || this); node && node !== root; node = nextUp(node)) {
         const style = getComputedStyle(node);
         if (loose && !holdsFixed(style)) continue;
         loose = false;
@@ -7573,9 +8001,25 @@
         const value = this._config[el.dataset.key];
         if (value !== el.value) el.value = value;
       });
+      // "Centre of the map view" needs a map on the card itself, and the
+      // minimal format has none: the choice is taken out there. A card saved
+      // with it shows what it then measures from - the entry's own figure -
+      // and keeps what is saved, so the other formats find it chosen again.
+      const noCardMap = this._config.layout === "minimal";
+      const refSelect = this.shadowRoot.querySelector('select[data-field="reference_mode"]');
+      if (refSelect) {
+        const mapOption = [...refSelect.options].find((o) => o.value === "map");
+        if (noCardMap && mapOption) {
+          this._refMapOption = mapOption;
+          mapOption.remove();
+        } else if (!noCardMap && !mapOption && this._refMapOption) {
+          refSelect.insertBefore(this._refMapOption, refSelect.options[1] || null);
+        }
+      }
       this.shadowRoot.querySelectorAll("input[data-field], select[data-field]").forEach((el) => {
         const value = this._config[el.dataset.field];
-        const next = value === undefined || value === null ? "" : String(value);
+        let next = value === undefined || value === null ? "" : String(value);
+        if (el === refSelect && noCardMap && next === "map") next = "area";
         // A value the dropdown has no entry for - one written by hand in the
         // YAML - is given one, rather than the field falling blank and the
         // next change quietly overwriting what somebody chose.
@@ -7630,6 +8074,23 @@
       // format draws none.
       this.shadowRoot.querySelectorAll("[data-with-sub]").forEach((row) => {
         row.hidden = minimal || this._config.show_sub === false || inOffTab(row);
+      });
+      // The area's refresh and the time of the last fetch: drawn at the end
+      // of the subtitle line or beside a live route's travel time, so gone
+      // only with both of those switched off. The minimal format has the
+      // same two under its pop-up's travel time, below.
+      this.shadowRoot.querySelectorAll("[data-with-head-refresh]").forEach((row) => {
+        row.hidden =
+          minimal || (this._config.show_sub === false && this._config.show_travel_time === false);
+      });
+      // What stands with the pop-up's travel time goes with it - and the
+      // time written in its button, with the button.
+      this.shadowRoot.querySelectorAll("[data-with-pop-travel]").forEach((row) => {
+        row.hidden = !minimal || this._config.show_travel_time === false;
+      });
+      this.shadowRoot.querySelectorAll("[data-with-pop-refresh]").forEach((row) => {
+        row.hidden =
+          !minimal || this._config.show_travel_time === false || this._config.show_refresh === false;
       });
       // The delay line's thresholds and colours, with the travel time it
       // stands under.
@@ -7779,6 +8240,14 @@
           const input = this.shadowRoot.querySelector(`input[data-color="${el.extra.key}"]`);
           const row = input && input.closest(".field-row");
           if (row) row.style.display = this._config[el.bgToggle.key] === false ? "none" : "";
+        }
+        // An icon one format does not draw goes without the rest of its
+        // block going with it.
+        if (el.icon && el.icon.hidden) {
+          const off = el.icon.hidden(this._config);
+          this.shadowRoot.querySelectorAll(`[data-icon-of="${prefix}"]`).forEach((row) => {
+            row.hidden = off;
+          });
         }
         // A block whose element the card does not draw at all has nothing to
         // offer, so it goes rather than sitting there doing nothing - and the
@@ -8001,9 +8470,9 @@
     .tooltip-anchor { position: relative; display: flex; cursor: help; }
     .tooltip-anchor ha-icon { --mdc-icon-size: 16px; opacity: 0.6; }
     .tip {
-      position: absolute;
-      bottom: calc(100% + 6px);
+      position: fixed;
       left: 0;
+      top: 0;
       z-index: 20;
       width: max-content;
       max-width: 220px;
@@ -8018,18 +8487,11 @@
       text-transform: none;
       letter-spacing: normal;
       white-space: normal;
-      text-align: left;
+      text-align: start;
       visibility: hidden;
       pointer-events: none;
     }
     .tooltip-anchor:hover .tip { visibility: visible; }
-    /* Annuals' own two rules, for the places its layout - and ours - puts an
-       "i" close to the right edge: open right-aligned, expanding leftward,
-       instead of the usual left-aligned opening. */
-    .toggle-group .tip { left: auto; right: 0; }
-    .row-shape-body .tip { left: auto; right: 0; }
-    .tip.tip-right { left: auto; right: 0; }
-    .tip.tip-down { bottom: auto; top: calc(100% + 6px); }
     /* Marks a row as a dependent sub-option of the block above it -
        indented, smaller, with a left border, so it reads as belonging to
        that block rather than as a peer field. */
@@ -8326,29 +8788,47 @@
   // own list uses the head's NEW marker, so that a card marks one thing one
   // way; the minimal format's pop-up has no head to match and answers to an
   // element of its own.
+  // A figure as the integration writes one into a summary: a length
+  // ("2.5 km"), a speed ("50 km/h") or a delay ("+4 min").
+  const SUMMARY_FIGURE = /^(?:\d+(?:[.,]\d+)?(?:e[+-]?\d+)?\s*km|\d+\s*km\/h|\+\d+\s*min)$/;
+
   function rowHtml(row, str, isNew, config, highlighted, newPrefix = "new") {
     const a = row.state.attributes;
     const summary = a.summary || a.friendly_name || "";
     const head = summary.split(" — ")[0];
     const extra = summary.split(" — ").slice(1).join(" — ");
     const parts = head.split(" · ");
-    const place = parts.length > 1 ? parts[parts.length - 1] : "";
-    let whatParts = parts.length > 1 ? parts.slice(0, -1) : [head];
-    // The speed a control enforces is the last "·" segment of the summary,
+    // The place is the last segment - where the report has one. A report
+    // with neither street nor town ends on one of its figures instead, and
+    // "50 km/h" or "+4 min" under a pin is no place: the three shapes the
+    // integration writes a figure in are told apart here. An integration
+    // that says the place in an attribute of its own is simply believed.
+    const last = parts.length > 1 ? parts[parts.length - 1] : "";
+    const hasPlace = typeof a.place === "string" ? a.place !== "" && a.place === last : !!last && !SUMMARY_FIGURE.test(last.trim());
+    const place = typeof a.place === "string" ? a.place : hasPlace ? last : "";
+    let whatParts = hasPlace ? parts.slice(0, -1) : parts;
+    // The speed a control enforces is the last "·" segment before the place,
     // where there is one - "Ampel- & Geschwindigkeitsblitzer · 50 km/h". Only
-    // that shape is dropped, so a summary without one loses nothing.
-    if (config.show_row_speed === false && whatParts.length > 1 && /^\d+\s*km\/h$/.test(whatParts[whatParts.length - 1].trim())) {
+    // that shape is dropped, so a summary without one loses nothing - and
+    // only on a control: a tailback's km/h is how fast it is moving, which
+    // is no limit and not this switch's to hide.
+    if (
+      config.show_row_speed === false &&
+      !row.isHazard &&
+      whatParts.length > 1 &&
+      /^\d+\s*km\/h$/.test(whatParts[whatParts.length - 1].trim())
+    ) {
       whatParts = whatParts.slice(0, -1);
     }
     const what = whatParts.join(" · ");
     const distance =
       config.show_row_distance !== false && Number.isFinite(row.distance)
-        ? `${row.distance} ${row.unit}`
+        ? `${fmtNumber(row.distance, 1)} ${row.unit}`
         : "";
 
     const chips = [
-      config.show_row_reported === false ? "" : reportedText(str, a.created),
-      config.show_row_confirmed === false ? "" : confirmedText(str, a.confirmed),
+      config.show_row_reported === false ? "" : reportedText(str, a),
+      config.show_row_confirmed === false ? "" : confirmedText(str, a),
       ...(config.show_row_closure === false ? [] : closureChips(str, a)),
     ].filter(Boolean);
     const stars = config.show_row_stars === false ? "" : starsHtml(row, config);
@@ -8637,6 +9117,13 @@
     .mini-half.travel.level-alert ha-icon,
     .mini-half.travel.level-alert .mini-value { color: var(--error-color, #db4437); }
     .mini-half.travel .mini-value { white-space: nowrap; }
+    /* A travel time that is no longer the traffic of the moment: no level's
+       colour, the secondary one - over a colour set under Layout, which
+       would say "current". */
+    .mini-half.travel.stale ha-icon,
+    .mini-half.travel.stale .mini-value,
+    .mini-half.travel.stale .mini-label { color: var(--secondary-text-color) !important; }
+    .mini-half.travel.stale:hover { background: rgba(127, 127, 127, 0.1); }
     .mini-half.delay.quiet::before { background: none; }
     .mini-half.new.quiet ha-icon,
     .mini-half.new.quiet .mini-value,
@@ -8869,6 +9356,10 @@
     .live { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
     .travel-time { font-size: 2rem; font-weight: 500; line-height: 1.15; white-space: nowrap;
                    color: var(--primary-text-color); }
+    /* From when a travel time is that is no longer the traffic of the
+       moment - small, beside the time, in the colour the time then takes. */
+    .travel-at { font-size: 0.875rem; color: var(--secondary-text-color); white-space: nowrap; }
+    .delay-line.stale { color: var(--secondary-text-color); }
     .delay-line.level-ok { color: var(--success-color, #43a047); }
     .delay-line.level-warn { color: var(--warning-color, #ffa600); }
     .delay-line.level-alert { color: var(--error-color, #db4437); }
@@ -9051,8 +9542,37 @@
           }
           el.shadowRoot.innerHTML = "";
         }
-        el.setConfig(el._config);
+        // A card is built anew as well. Its methods are the new version's
+        // from here on, and they must not meet the old version's markup and
+        // stylesheet: an element they look for may not be there.
+        if (el.localName === LIVE_CARD && el.shadowRoot && el._root) {
+          for (const step of ["_closePopMap", "_detachMap", "_unwatchMarkers"]) {
+            try {
+              if (typeof el[step] === "function") el[step]();
+            } catch (err) {
+              // Whatever it held on to goes with the markup below.
+            }
+          }
+          try {
+            if (el._popEl && el._popEl.open) el._popEl.close();
+          } catch (err) {
+            // Not a dialog any more.
+          }
+          el._root = undefined;
+          el._map = undefined;
+          el._popMap = undefined;
+          el._popMapKey = undefined;
+          // The markup itself is replaced by _skeleton, which leaves what
+          // is not the card's own where it is.
+        }
+        // With the configuration as it was given, so that this version's
+        // defaults are the ones filled in; an element from before that was
+        // kept has only the filled-in one.
+        el.setConfig(el._given || el._config);
         if (el._hass) el.hass = el._hass;
+        // What a card sets up when it joins the page - its clock - is the
+        // new version's as well; nothing here is set up twice.
+        if (el.localName === LIVE_CARD && el.isConnected) el.connectedCallback();
       } catch (err) {
         console.warn(`${LIVE_CARD}: could not redraw with the new version`, err);
       }

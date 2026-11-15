@@ -87,6 +87,7 @@ from .ors import (
     ORSError,
     ORSLimitExceeded,
     ORSNoRoute,
+    ORSParameterError,
     ORSPointNotRoutable,
     ORSQuotaError,
 )
@@ -171,7 +172,7 @@ def _hazard_optional_section(defaults: dict | None = None):
                 vol.Required(
                     CONF_HAZARD_COUNT,
                     default=defaults.get(CONF_HAZARD_COUNT, DEFAULT_HAZARD_COUNT),
-                ): int,
+                ): vol.All(int, vol.Range(min=0)),
                 # 0 = no automatic polling of hazards at all - rely on the
                 # "refresh_hazards" service instead. Any other value is
                 # minutes between polls, independent of the cameras'.
@@ -212,7 +213,9 @@ def _optional_section(defaults: dict | None = None):
         vol.Schema(
             {
                 vol.Required(CONF_CONDITION, default=defaults.get(CONF_CONDITION, True)): bool,
-                vol.Required(CONF_COUNT, default=defaults.get(CONF_COUNT, DEFAULT_COUNT)): int,
+                vol.Required(CONF_COUNT, default=defaults.get(CONF_COUNT, DEFAULT_COUNT)): vol.All(
+                    int, vol.Range(min=0)
+                ),
                 # 0 = no automatic polling at all - rely on the "refresh"
                 # service instead (e.g. from an automation). Any other value
                 # is minutes between polls.
@@ -545,6 +548,8 @@ _ORS_ERRORS = (
     (ORSPointNotRoutable, "point_not_routable"),
     (ORSNoRoute, "no_route"),
     (ORSLimitExceeded, "route_too_long"),
+    # Reached and understood, and turned down: not "could not be reached".
+    (ORSParameterError, "invalid_request"),
     (ORSError, "cannot_connect"),
 )
 
@@ -1104,13 +1109,22 @@ class _OrsRouteSteps:
             try:
                 routes = await self._route_client(key).async_routes(self._ors_points())
             except ORSError as err:
-                self._ors_failure = _ors_error_key(err)
-                return await self.async_step_ors_route_failed()
-            self._ors_route_saved = False
-            if len(routes) > 1:
-                self._ors_alternatives = routes
-                return await self.async_step_ors_alternatives()
-            self._ors_route = routes[0]
+                if not (self._ors_route and self._ors_route_saved):
+                    self._ors_failure = _ors_error_key(err)
+                    return await self.async_step_ors_route_failed()
+                # A saved live route is only asked for again to show the
+                # traffic of the moment. Without an answer - no requests
+                # left, no connection - the settings open on the route as
+                # saved: the interval and the hours are what somebody out of
+                # requests comes here to change.
+                _LOGGER.debug("Route not refreshed for the settings form: %s", err)
+                routes = None
+            if routes is not None:
+                self._ors_route_saved = False
+                if len(routes) > 1:
+                    self._ors_alternatives = routes
+                    return await self.async_step_ors_alternatives()
+                self._ors_route = routes[0]
 
         route = self._ors_route
         distance = route.get("distance")
@@ -1379,10 +1393,17 @@ class BlitzerdeConfigFlow(_OrsRouteSteps, ConfigFlow, domain=DOMAIN):
     async def async_step_waypoint(self, user_input=None):
         errors = {}
         if user_input is not None:
-            self._waypoints.append({
+            point = {
                 "latitude": user_input[CONF_LOCATION]["latitude"],
                 "longitude": user_input[CONF_LOCATION]["longitude"],
-            })
+            }
+            last = self._waypoints[-1] if self._waypoints else None
+            if not (
+                last
+                and abs(last["latitude"] - point["latitude"]) < 1e-6
+                and abs(last["longitude"] - point["longitude"]) < 1e-6
+            ):
+                self._waypoints.append(point)
             if not user_input["add_another"]:
                 if len(self._waypoints) < 2:
                     errors["base"] = "route_needs_two_waypoints"
@@ -1552,7 +1573,7 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
     async def _ors_finish(self, data):
         data = {CONF_NAME: self.config_entry.data.get(CONF_NAME), **data}
         self.hass.config_entries.async_update_entry(self._config_entry, data=data)
-        return self.async_create_entry(title=self._config_entry.title, data=data)
+        return self.async_create_entry(title=self._config_entry.title, data={})
 
     async def async_step_waypoint_review(self, user_input=None):
         """Step through the route's already-saved waypoints one at a time,
@@ -1605,9 +1626,8 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
             self.hass.config_entries.async_update_entry(
                 self._config_entry, data=data
             )
-            return self.async_create_entry(
-                title=self._config_entry.title, data=data
-            )
+            # Nothing under "options": the data above is where it lives.
+            return self.async_create_entry(title=self._config_entry.title, data={})
 
         data_schema = vol.Schema(
             {
@@ -1659,9 +1679,8 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
             self.hass.config_entries.async_update_entry(
                 self._config_entry, data=data
             )
-            return self.async_create_entry(
-                title=self._config_entry.title, data=data
-            )
+            # Nothing under "options": the data above is where it lives.
+            return self.async_create_entry(title=self._config_entry.title, data={})
 
         return self.async_show_form(
             step_id="tracker",
@@ -1690,10 +1709,17 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
     async def async_step_waypoint(self, user_input=None):
         errors = {}
         if user_input is not None:
-            self._waypoints.append({
+            point = {
                 "latitude": user_input[CONF_LOCATION]["latitude"],
                 "longitude": user_input[CONF_LOCATION]["longitude"],
-            })
+            }
+            last = self._waypoints[-1] if self._waypoints else None
+            if not (
+                last
+                and abs(last["latitude"] - point["latitude"]) < 1e-6
+                and abs(last["longitude"] - point["longitude"]) < 1e-6
+            ):
+                self._waypoints.append(point)
             if not user_input["add_another"]:
                 if len(self._waypoints) < 2:
                     errors["base"] = "route_needs_two_waypoints"
@@ -1734,9 +1760,8 @@ class BlitzerdeOptionsFlow(_OrsRouteSteps, OptionsFlowWithConfigEntry):
             self.hass.config_entries.async_update_entry(
                 self._config_entry, data=data
             )
-            return self.async_create_entry(
-                title=self._config_entry.title, data=data
-            )
+            # Nothing under "options": the data above is where it lives.
+            return self.async_create_entry(title=self._config_entry.title, data={})
 
         return self.async_show_form(
             step_id="route_options",

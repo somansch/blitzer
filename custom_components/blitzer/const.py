@@ -1,6 +1,11 @@
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.util import dt as dt_util
 
 DOMAIN = "blitzer"
+
+# Blitzer.de stamps its reports in German local time, without saying so;
+# read in this zone they mean the same moment on an instance anywhere.
+BLITZER_TZ = dt_util.get_time_zone("Europe/Berlin")
 
 # The two halves this integration reports, used wherever something needs to
 # be told apart by half: the coordinator's per-half bookkeeping, the entity

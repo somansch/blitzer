@@ -334,7 +334,7 @@
             },
             "ors_vias": {
                 "title": "Via points",
-                "description": "From {start} to {destination}, {count} via points so far. openrouteservice takes the fastest road between them - add a via point wherever your usual way differs.",
+                "description": "From {start} to {destination}, {count} via points so far. The routing service takes the fastest road between them - add a via point wherever your usual way differs.",
                 "menu_options": {
                     "ors_via": "Add a via point",
                     "ors_vias_clear": "Remove all via points",
@@ -383,8 +383,8 @@
                     }
                 },
                 "data_description": {
-                    "ors_return_route": "A second entry, destination to start, worked out by the same service - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added.",
-                    "ors_return_name": "Only used when the way back is created. Filled with this entry's name and \"return\" added; type another to call it something else - \"Home\" and \"Work\", say."
+                    "ors_return_route": "A second entry, destination to start, worked out by the same service - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added - \"Rückweg\" on a German instance.",
+                    "ors_return_name": "Only used when the way back is created. Filled with this entry's name and \"return\" (or \"Rückweg\") added; type another to call it something else - \"Home\" and \"Work\", say."
                 }
             },
             "tomtom_route": {
@@ -427,8 +427,8 @@
                     }
                 },
                 "data_description": {
-                    "ors_return_route": "A second entry, destination to start, worked out by the same service - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added.",
-                    "ors_return_name": "Only used when the way back is created. Filled with this entry's name and \"return\" added; type another to call it something else - \"Home\" and \"Work\", say."
+                    "ors_return_route": "A second entry, destination to start, worked out by the same service - on a motorway the way back is the other carriageway, and a tailback on one is not one on the other. Named after this entry, with \"return\" added - \"Rückweg\" on a German instance.",
+                    "ors_return_name": "Only used when the way back is created. Filled with this entry's name and \"return\" (or \"Rückweg\") added; type another to call it something else - \"Home\" and \"Work\", say."
                 }
             },
             "ors_alternatives": {
@@ -442,7 +442,7 @@
             },
             "ors_route_failed": {
                 "title": "No route",
-                "description": "Continue to change the points."
+                "description": "Continue to go back to where it can be put right: the key, or the points."
             }
         },
         "abort": {
@@ -459,6 +459,7 @@
             "no_route": "The routing service found no road connecting these points.",
             "route_too_long": "The route is too long for the routing service, or has too many points.",
             "return_name_taken": "An entry of that name exists already - this one included.",
+            "invalid_request": "The routing service turned the request down. Check the points and the addresses.",
             "cannot_connect": "The routing service could not be reached.",
             "zone_without_position": "This zone has no position.",
             "api_key_required": "Enter an API key."
@@ -722,7 +723,7 @@
             },
             "ors_vias": {
                 "title": "Via points",
-                "description": "From {start} to {destination}, {count} via points so far. openrouteservice takes the fastest road between them - add a via point wherever your usual way differs.",
+                "description": "From {start} to {destination}, {count} via points so far. The routing service takes the fastest road between them - add a via point wherever your usual way differs.",
                 "menu_options": {
                     "ors_via": "Add a via point",
                     "ors_vias_clear": "Remove all via points",
@@ -818,7 +819,7 @@
             },
             "ors_route_failed": {
                 "title": "No route",
-                "description": "Continue to change the points."
+                "description": "Continue to go back to where it can be put right: the key, or the points."
             }
         },
         "error": {
@@ -829,6 +830,7 @@
             "point_not_routable": "One of the points is too far from a road. Move it closer to one.",
             "no_route": "The routing service found no road connecting these points.",
             "route_too_long": "The route is too long for the routing service, or has too many points.",
+            "invalid_request": "The routing service turned the request down. Check the points and the addresses.",
             "cannot_connect": "The routing service could not be reached.",
             "zone_without_position": "This zone has no position.",
             "api_key_required": "Enter an API key."
@@ -841,6 +843,10 @@
         "entry_failing": {
             "title": "{name} is not delivering",
             "description": "The Blitzer.de entry **{name}** has failed {count} polls in a row, so its entities are unavailable. The last reason:\n\n`{reason}`\n\nA tracker without a position, or a tracker entity that no longer exists, is fixed under the entry's **Configure**; if Blitzer.de itself cannot be reached, this clears on its own once it can. This repair goes away with the next poll that succeeds."
+        },
+        "live_route_failing": {
+            "title": "{name}: TomTom gives no route",
+            "description": "The live route **{name}** has had no answer from TomTom {count} times in a row. The last reason:\n\n`{reason}`\n\nThe search goes on along the route as it last was, and the travel time stays at its last figure. A key that has no free requests left this month gets them back with the new month; fewer are spent with a longer interval or tighter hours, under the entry's **Configure**. This repair goes away with TomTom's next answer."
         }
     }
 }

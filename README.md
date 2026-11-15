@@ -1,7 +1,7 @@
 # <img src="https://raw.githubusercontent.com/somansch/blitzer/main/custom_components/blitzer/brand/icon.png" width="40" height="40" align="top"> Blitzer.de Integration for Home Assistant - speed controls and traffic hazards on your map
 
 [![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-Default-41BDF5?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=white)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=somansch&repository=blitzer&category=Integration)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.7%2B-41BDF5?style=for-the-badge&logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.10%2B-41BDF5?style=for-the-badge&logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
 [![License](https://img.shields.io/github/license/somansch/blitzer?style=for-the-badge)](https://github.com/somansch/blitzer/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/somansch/blitzer/total?style=for-the-badge&label=Downloads)](https://github.com/somansch/blitzer/releases)
 [![Downloads latest](https://img.shields.io/github/downloads/somansch/blitzer/latest/total?style=for-the-badge&label=Downloads%20latest)](https://github.com/somansch/blitzer/releases/latest)
@@ -49,7 +49,7 @@ A third thing lives on the card alone, not in an entity: the [traffic flow](#tra
 
 1. **Install** via [Marketplace (HACS)](#marketplace-hacs) or [manually](#manual), then restart Home Assistant.
 2. Go to **Settings → Devices & Services → Add Integration** / **Einstellungen → Geräte & Dienste → Integration hinzufügen** and search for "Blitzer.de". Name your first entry and pick a search mode ([Adding an area, tracker or route](#adding-an-area-tracker-or-route)).
-3. Choose what to report: the four installation forms, the seventeen [control types](#control-types--kontrollarten), and the ten [hazard types](#hazard-types--gefahren). Hazards stay off until you switch them on.
+3. Choose what to report: the three installation forms, the seventeen [control types](#control-types--kontrollarten), and the ten [hazard types](#hazard-types--gefahren). Hazards stay off until you switch them on.
 4. Put it on a dashboard. **Add card → Blitzer.de** gives you the [card that comes with the integration](#blitzer-card). Or drop the area's `blitzer_<area>_controls` and `blitzer_<area>_hazards` sources into the [map card](#map-card), or use the ready-made [Markdown card](#markdown-card).
 5. Want to be told rather than to look it up? Create an automation from the [Report Alerts blueprint](#blueprint-report-alerts), which is installed along with the integration. No YAML required.
 
@@ -176,7 +176,7 @@ Anything Blitzer.de starts reporting after this release belongs to no switch yet
 
 Unticking a kind also stops it being *requested*. Leaving the ones you don't care about unticked therefore costs nothing.
 
-All three groups are single multi-select lists rather than one switch per option. Seventeen separate switches came to about 1300 px of form; as a list the same seventeen take 700 px, and the four installation forms 180 px instead of 300 px.
+All three groups are single multi-select lists rather than one switch per option. Seventeen separate switches came to about 1300 px of form; as a list the same seventeen take 700 px, and the three installation forms a fraction of what three switches took.
 
 ### Hazard types / Gefahren
 
@@ -220,18 +220,18 @@ Two fields, and below them the area form unchanged:
 | **Device tracker** / **Gerätetracker** | The tracker to follow. The list is a short one: only `device_tracker` entities **reporting coordinates at that moment** are offered - the Home Assistant companion app, a GPS logger, a car integration. One that knows nothing but home and away has no position to put a circle around, so offering it would only buy an entry that fails at its first fetch, long after the form was filled in. If nothing on your instance qualifies, the dialog ends with a message saying so instead of showing an empty dropdown. `person` entities are deliberately not offered: a person is a layer over whichever tracker is reporting for them, and this entry wants the tracker itself. |
 | **Radius (meters)** / **Radius (Meter)** | How far around it to search. 50 to 20 000 m, default 1 000. |
 
-Everything under those two is the area form field for field - the four installation forms, the seventeen [control types](#control-types--kontrollarten), the ten [hazard types](#hazard-types--gefahren), both optional sections and both update intervals. They mean exactly what they mean [there](#area-radius--bereich-radius).
+Everything under those two is the area form field for field - the three installation forms, the seventeen [control types](#control-types--kontrollarten), the ten [hazard types](#hazard-types--gefahren), both optional sections and both update intervals. They mean exactly what they mean [there](#area-radius--bereich-radius).
 
 What is different is only where the circle sits:
 
 - **The position is read once per poll**, not once per request, so the controls and the hazards of one poll are always searched around the same point.
 - **Distance is measured from the tracker**, not from the home zone. Each marker's state is how far it was from the tracker when that search was made - which is the point those reports were actually found around.
-- **The entry's device model is `Tracker`**, so the card's subtitle line says so, the way it says `Radius` or `Route` for the other two.
+- **The entry's device model is `Tracker`**, so the card's subtitle line says so, the way it says `Radius`, `Wegpunkte` or `Route` for the other three.
 - **Both refresh actions work unchanged.** `blitzer.refresh_controls` and `blitzer.refresh_hazards` re-read the position along with everything else.
 
 **Pick the radius against the update interval, not against what looks like a sensible distance.** The circle is only ever as current as the last poll, and a car covers ground between two of them: at 100 km/h it crosses a 1 km radius in 36 seconds, at 130 km/h in 28. On a motorway polled once a minute, a radius under about 3 km is a circle the car has already left; in town, where 50 km/h needs 72 seconds for that same kilometre, 1-2 km is plenty. And a new entry polls once an hour until you say otherwise - for a circle that follows a car, that interval is the first thing to shorten, or leave it long and let the automation in the tip below do the polling.
 
-**If the tracker has no position**, the entry says so rather than reporting an empty area. Found at startup, it waits in **Retrying setup** with the reason on the integration page - "reports no usable position (home)" - and starts by itself once the tracker reports one. Home Assistant retries a waiting entry on a backoff that doubles from 10 seconds to at most 10 minutes, so a tracker that reports a few seconds late costs seconds; one that was missing all morning can cost up to those ten minutes. **Reload** / **Neu laden** on the entry's own menu skips the wait. Lost while running - a phone in a tunnel, a tracker briefly unavailable - the entry stays up and its three count sensors go `unavailable` until the next poll that finds a position; the markers keep the last position they were found around. Neither case reports zero controls, because "we do not know where to look" is not the same answer as "nothing is reported there".
+**If the tracker has no position**, the entry says so rather than reporting an empty area. Found at startup, it waits in **Retrying setup** with the reason on the integration page - "reports no usable position (home)" - and starts by itself once the tracker reports one. Home Assistant retries a waiting entry by itself, after a few seconds at first and at longer intervals after that, so a tracker that reports a few seconds late costs seconds; one that was missing all morning can cost up to those ten minutes. **Reload** / **Neu laden** on the entry's own menu skips the wait. Lost while running - a phone in a tunnel, a tracker briefly unavailable - the entry stays up and its three count sensors go `unavailable` until the next poll that finds a position; the markers keep the last position they were found around. Neither case reports zero controls, because "we do not know where to look" is not the same answer as "nothing is reported there".
 
 Editing a tracker entry via **Configure** / **Konfigurieren** opens that same form, filled in with what is saved. The tracker you already picked stays on the list even while it is briefly without a fix, so opening the form to change something else cannot quietly drop it.
 
@@ -263,14 +263,15 @@ It needs a free **openrouteservice API key** - an account at [openrouteservice.o
 
 The setup walks these screens:
 
-1. **API key** / **API-Key.** Tried out straight away with one lookup, so a wrong key is caught here rather than at the end. **Save the key for further routes** / **API-Key für weitere Routen speichern**, on by default, keeps it with the integration, and every further route then skips this screen. The field is never filled in - a filled-in field sends its value to the browser along with the form - so to keep a key that is already there, leave it empty. Removing the last Blitzer.de entry removes the saved key with it.
-2. **Start** and **Destination** / **Ziel**, each picked from a menu:
+1. **Routing service** / **Routen-Dienst.** openrouteservice, for a route that is worked out once, or TomTom, for one that is worked out again with every poll - see [the live route](#live-traffic-with-tomtom) below.
+2. **API key** / **API-Key.** Tried out straight away with one lookup, so a wrong key is caught here rather than at the end. **Save the key for further routes** / **API-Key für weitere Routen speichern**, on by default, keeps it with the integration, and every further route then skips this screen. The field is never filled in - a filled-in field sends its value to the browser along with the form - so to keep a key that is already there, leave it empty. Removing the last Blitzer.de entry removes the saved key with it.
+3. **Start** and **Destination** / **Ziel**, each picked from a menu:
    - **Zone** - any zone, `zone.home` or your workplace, say.
    - **Point on the map** / **Punkt auf der Karte** - move the map to the spot.
    - **Address** / **Adresse** - street and town, looked up near your home. The next screen, **Address found** / **Adresse gefunden**, shows the match in an editable field: continue unchanged to take it, or correct it and continue to have it looked up again and shown again.
-3. **Via points** / **Via-Punkte.** openrouteservice takes the fastest road between the points it is given. If yours is a different one, add a via point on it. Up to 20; **Remove all via points** / **Alle Via-Punkte entfernen** starts over. Each via point only snaps to a road heading the way the route runs there, so one dropped on a motorway picks the carriageway in your direction - not the opposite one, which would send the route on to the next junction and back.
-4. **Which way?** / **Welcher Weg?** - only without via points, and only when openrouteservice has more than one way to offer - which it does on a route of up to 100 km between its ends, the limit it sets for alternatives; a longer route is worked out as the one way there is, and this screen is skipped. Up to three routes, fastest first, each named with its length and driving time, and all of them on the map: the first as the route, the others dashed, numbered the way the entries are. Pick one to continue. With via points the way is already pinned down and this screen is skipped.
-5. **Your route** / **Deine Route.** The route on a map - start, destination and via points marked - with its length and driving time, and below it **Distance from the route** / **Abstand zur Route**, then **Also create the way back** / **Auch den Rückweg anlegen**, then the switches and optional sections of the waypoint route.
+4. **Via points** / **Via-Punkte.** openrouteservice takes the fastest road between the points it is given. If yours is a different one, add a via point on it. Up to 20; **Remove all via points** / **Alle Via-Punkte entfernen** starts over. Each via point only snaps to a road heading the way the route runs there, so one dropped on a motorway picks the carriageway in your direction - not the opposite one, which would send the route on to the next junction and back.
+5. **Which way?** / **Welcher Weg?** - only without via points, and only when openrouteservice has more than one way to offer - which it does on a route of up to 100 km between its ends, the limit it sets for alternatives; a longer route is worked out as the one way there is, and this screen is skipped. Up to three routes, fastest first, each named with its length and driving time, and all of them on the map: the first as the route, the others dashed, numbered the way the entries are. Pick one to continue. With via points the way is already pinned down and this screen is skipped.
+6. **Your route** / **Deine Route.** The route on a map - start, destination and via points marked - with its length and driving time, and below it **Distance from the route** / **Abstand zur Route**, then **Also create the way back** / **Auch den Rückweg anlegen**, then the switches and optional sections of the waypoint route.
 
 <img src="https://raw.githubusercontent.com/somansch/blitzer/main/docs/blitzer-wizard-routes.png" alt="The Which way? screen: three routes from openrouteservice, fastest first with their length and driving time, all of them drawn on the map with the first as the route and the others dashed" width="55%">
 
@@ -288,11 +289,12 @@ The map on that last screen is Home Assistant's own, the one its dashboards use.
 
 If openrouteservice cannot produce a route - a point too far from any road, no road between the points, a route beyond its limits, or a key it no longer accepts - a screen says which, and continuing goes back to where it can be fixed.
 
-Editing a route entry via **Configure** / **Konfigurieren** first asks what to edit:
+Editing a route entry via **Configure** / **Konfigurieren** first asks what to edit, one of four:
 
 - **Change the route (start, destination, via points)** / **Route ändern (Start, Ziel, Via-Punkte)** walks the screens again, each filled in with what is saved. The route is only worked out again once an end or a via point has actually changed.
-- **Edit search settings (distance from the route, types, filters)** / **Sucheinstellungen bearbeiten (Abstand zur Route, Typen, Filter)** goes straight to the last screen, with the saved route - no request to openrouteservice at all.
-- **Change the openrouteservice API key** / **openrouteservice-API-Key ändern**. A saved key changed here changes for every route that uses it.
+- **Edit search settings (distance from the route, types, filters)** / **Sucheinstellungen bearbeiten (Abstand zur Route, Typen, Filter)** goes straight to the last screen, with the saved route - no request to openrouteservice at all. A TomTom route is asked for once more there, to show the traffic of the moment; when TomTom does not answer, the screen opens on the route as saved.
+- **Change the routing service (openrouteservice or TomTom)** / **Routen-Dienst wechseln (openrouteservice oder TomTom)** works the route out afresh with the other service, after its key; the ends and via points stay.
+- **Change the routing service's API key** / **API-Key des Routen-Dienstes ändern**. A saved key changed here changes for every route that uses it.
 
 On the [Blitzer card](#blitzer-card), the map of a route entry - this mode or the waypoint one - shows the route itself, fitted into view when the card first draws it, with the reports on top of it - and with nothing reported, the route alone, so a commute that is empty most of the day still has its map. **Show the route on the map** / **Route in der Karte einzeichnen** under the card's map switch turns that off; **Layout → Map** sets the line's colour and width.
 
@@ -313,7 +315,9 @@ What you get on top of the ordinary route entry:
 | **TomTom requests this month, all entries** / **TomTom-Abfragen diesen Monat, alle Einträge** | One more sensor, on no device: every TomTom request of the month across all entries, with the lookups of setting up a new route, which have no entry yet. This is the figure to hold against TomTom's free 20,000. |
 | On the card | The travel time, large under the title, with the refresh button beside it saying when the entry last fetched. Under it how much of that is traffic - *incl. +9 min traffic*; TomTom's travel time already contains the delay - coloured by two thresholds, green below 5 minutes, yellow from 5, red from 15, all three set under **Layout → Traffic delay** / **Verzögerung**, followed by the route's name and its length right now. In the minimal format the same stands in its pop-up, right of the map and above the list. With **Show the travel time** / **Fahrzeit anzeigen** off, the subtitle line reads *Route 38 min (+9)* instead. |
 | `blitzer_route_changed` | An event, fired when the fastest way becomes a different one than at the poll before, with the new `distance`, `duration` and `delay` (metres and seconds) and the entry's `area`. Not for the first route after a restart. |
-| **Hours** / **Zeiten** | On the route's last screen: which days, and from when to when the route is kept up to date. Outside those hours the entry does not poll at all - neither TomTom nor Blitzer.de - until a refresh action asks. No day ticked, or the same time at both ends, means always. A way back created along with the route gets hours of its own on the same screen, since it is driven at another time of day. |
+| `travel_time_at`, `travel_time_error` | On the entry's total sensor: when TomTom last answered, and what it said the last time it did not. The travel time stays at its last figure through a failed request and outside the route's hours; the card marks it "as of ..." once it is older than half an hour or an error stands. |
+| Repair **TomTom gives no route** | After three requests in a row without an answer - a key with no free requests left reads as that, not as a refused key. The search goes on along the route as it last was; the repair goes with TomTom's next answer. |
+| **Days the route is kept up to date**, **From**, **Until** / **Tage, an denen die Route aktuell gehalten wird**, **Von**, **Bis** | On the route's last screen: which days, and from when to when the route is kept up to date. Outside those hours the entry does not poll at all - neither TomTom nor Blitzer.de - until a refresh action asks. No day ticked, or the same time at both ends, means always. A way back created along with the route gets hours of its own on the same screen, since it is driven at another time of day. |
 
 **The key.** TomTom's is free and needs no payment method: sign up at [developer.tomtom.com](https://developer.tomtom.com/), and the dashboard's **API & SDK Keys** page already lists one, *My First API key*, with every API enabled - the Routing API, the Geocoding API and the Reverse Geocoding API among them, the three used here (the two geocoding ones look addresses up and check the key). Copy it from there. 20,000 requests a month are free; a commute polled every 10 minutes within two hours morning and evening on weekdays takes about 530 of them. Saved once, the key serves every further TomTom route, like the openrouteservice key does.
 
@@ -450,7 +454,7 @@ Attributes on each control's `geo_location` entity:
 | `counter` | Number of community confirmations. Always `0` for fixed installations - 128 of 128 in the test data. |
 | `city`, `street`, `zip_code` | Address. `zip_code` is empty since v4.0.0 - Blitzer.de's rebuilt map sends no postcode - and stays so a template reading it keeps working. |
 | `created`, `confirmed` | Blitzer.de's stamps the way its map shows them, and **not** full timestamps: each is either a date (`20.08.2026`) or a time of day (`13:21`, meaning today), never both. Since v4.0.0 Blitzer.de sends a full timestamp and the integration folds it into this form, so templates written against it keep working. A fixed camera's `confirmed` is usually empty: fixed installations are not community-reported (older versions put `01.01.1970` there). |
-| `created_at`, `confirmed_at` | The same two as full timestamps, ISO 8601 in local time (`2026-10-10T09:25:30`), for a template that wants a real datetime. Only present where Blitzer.de sent one. |
+| `created_at`, `confirmed_at` | The same two as full timestamps, ISO 8601 with the offset of German time, which is what Blitzer.de stamps in (`2026-10-10T09:25:30+02:00`) - the same moment on an instance or in a browser anywhere. Only present where Blitzer.de sent one. |
 | `info` | The raw detail object, small enough to carry whole. `desc` holds a fixed camera's written-out note ("Einbahnstr. in Rtg. Velbert, 7-17 Uhr 30 km/h, sonst 50 km/h"). `label`, `quality`, `tags` and `confirmed` hold the community's verdict on a mobile one. `{}` whenever the API sends something other than an object. |
 | `entity_picture` | The symbol blitzer.de's own map draws for this one, chosen the way it chooses. A tunnel camera, a section control and a combined red light plus speed camera each get their own. |
 
@@ -601,7 +605,7 @@ It also covers a mobile control's occasional position updates, which the event d
 
 Each area has two update intervals, one per half. Setting either to **0** switches automatic polling of that half off entirely. It then only refreshes when you ask, via the **`blitzer.refresh_controls`** action - **Refresh controls** / **Kontrollen aktualisieren** in the UI.
 
-Call it targeting the area you want. It fetches the latest controls, and creates, updates and removes that entry's `geo_location` entities exactly like a scheduled poll would. It optionally returns what it found, under a `controls` key.
+Call it targeting the area you want. It fetches the latest controls, and creates, updates and removes that entry's `geo_location` entities exactly like a scheduled poll would. It optionally returns what it found, under a `controls` key. A refresh that fails raises an error naming the reason, rather than answering with the lists from before.
 
 A common use: a commute route set to manual-only, refreshed and sent to your phone the moment you leave home. No polling all day for a route you drive twice.
 
@@ -1105,7 +1109,7 @@ Nothing reported right now 🚗💨
 
 ## Installation
 
-Needs Home Assistant **2024.7** or newer.
+Needs Home Assistant **2024.10** or newer.
 
 ### What you get
 

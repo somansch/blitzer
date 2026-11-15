@@ -46,7 +46,8 @@ blueprint:
     - `{{ reason }}` - a hazard's own written-out text. Empty on a control
     - `{{ street }}`, `{{ city }}`, `{{ zip_code }}` - address
     - `{{ latitude }}`, `{{ longitude }}` - position
-    - `{{ distance }}` - km from the reference point set under Proximity. Without one, the report's own figure: on a route the way along it from its start ("km 23"), otherwise the distance from the area's centre or the tracker
+    - `{{ distance_unit }}` - the unit distances come in: `km`, or `mi` on an instance that measures in miles
+    - `{{ distance }}` - distance from the reference point set under Proximity. Without one, the report's own figure: on a route the way along it from its start ("km 23"), otherwise the distance from the area's centre or the tracker
     - `{{ map_url }}` - the report on blitzer.de's map. Empty for a police report, whose id that map cannot resolve
 
     **A digest** additionally has:
@@ -57,6 +58,8 @@ blueprint:
 
     </details>
   domain: automation
+  homeassistant:
+    min_version: 2024.10.0
   author: somansch
   source_url: https://github.com/somansch/blitzer/blob/main/custom_components/blitzer/blueprints/automation/blitzer/report_alerts.yaml
   input:
@@ -311,8 +314,9 @@ blueprint:
         radius:
           name: Only within / Nur innerhalb von
           description: >-
-            Skip anything further away than this. `0` means no limit, which is
-            useful when you only want the sorting.
+            Skip anything further away than this, in kilometres. `0` means no
+            limit, which is useful when you only want the sorting. Not applied
+            while the entity picked above has no position to measure from.
           default: 0
           selector:
             number:
@@ -348,7 +352,7 @@ blueprint:
             One message for the whole digest. Loop over `reports` yourself and
             lay the lines out however you like.
           default: |-
-            {% for r in reports %}{{ r.distance }} km · {{ r.summary }}
+            {% for r in reports %}{{ r.distance }} {{ distance_unit }} · {{ r.summary }}
             {% endfor %}
           selector:
             template: {}
@@ -430,7 +434,7 @@ blueprint:
             action: {}
 
 mode: queued
-max: 10
+max: 50
 
 triggers:
   - trigger: event
@@ -450,6 +454,9 @@ triggers:
     id: digest
   - trigger: state
     entity_id: !input digest_entities
+    # A change of state, not of an attribute - a tracker's coordinates, a
+    # sensor's unit - which would send a digest every time.
+    to: ~
     id: digest
 
 variables:
@@ -477,10 +484,27 @@ variables:
   area_names: >-
     {{ (in_areas | map('device_attr', 'name_by_user') | list
         + in_areas | map('device_attr', 'name') | list)
-       | select('string') | list }}
+       | reject('none') | map('string') | list }}
+  # Whether areas were picked at all - not whether any of them still has a
+  # name: a picked area that has since been removed must match nothing, not
+  # turn the filter off and let every area through.
+  area_filter: "{{ in_areas | count > 0 }}"
 
   ref_lat: "{{ state_attr(in_reference, 'latitude') if in_reference else none }}"
   ref_lng: "{{ state_attr(in_reference, 'longitude') if in_reference else none }}"
+  # A reference without coordinates - a router-based tracker, a person
+  # without GPS - can be measured from nowhere: the radius is then left out
+  # rather than applied to each report's own figure, which is another thing.
+  can_measure: "{{ not in_reference or ref_lat is not none }}"
+  # The unit distances come in: the instance's own. The radius is asked for
+  # in kilometres and turned into it.
+  distance_unit: >-
+    {{ (states.geo_location | selectattr('attributes.source', 'defined')
+        | selectattr('attributes.source', 'match', 'blitzer_')
+        | map(attribute='attributes.unit_of_measurement') | select('string') | first)
+       | default('km', true) }}
+  radius_local: >-
+    {{ (in_radius | float(0)) / (1.609344 if distance_unit == 'mi' else 1) }}
 
   # --- the live report -----------------------------------------------------
   # All of these stay defined (empty) on a digest run, so that the two content
@@ -489,7 +513,7 @@ variables:
   report_kind: >-
     {{ 'hazard' if is_live and trigger.event.event_type == 'blitzer_new_hazard'
        else ('control' if is_live else '') }}
-  area: "{{ trigger.event.data.area if is_live else '' }}"
+  area: "{{ (trigger.event.data.area | string) if is_live else '' }}"
   report_id: "{{ trigger.event.data.id if is_live else '' }}"
   type: "{{ trigger.event.data.type if is_live else '' }}"
   type_name: "{{ trigger.event.data.type_name | default('', true) if is_live else '' }}"
@@ -506,13 +530,11 @@ variables:
     {{ ''
        if not is_live or type == 'police_report'
        else 'https://www.blitzer.de/karte/?poi=' ~ report_id }}
-  distance: >-
-    {%- if is_live and ref_lat is not none -%}
-    {{ (distance(ref_lat | float, ref_lng | float,
-                 latitude | float, longitude | float) or 0) | round(1) }}
-    {%- elif is_live -%}{{ trigger.event.data.distance | default('unknown', true) }}{%- else -%}{%- endif -%}
-
   # --- the digest ----------------------------------------------------------
+  # Before the variable "distance" below, and it has to stay there: a
+  # variable of that name hides the function distance() from every template
+  # after it, and these rows call the function. Behind it, a digest with a
+  # reference point could not be rendered at all.
   all_reports: >-
     {%- set ns = namespace(rows=[]) -%}
     {%- if not is_live -%}
@@ -520,14 +542,14 @@ variables:
     {%- set src = s.attributes.source | default('', true) -%}
     {%- if src.startswith('blitzer_') -%}
     {%- set is_hazard = src.endswith('_hazards') -%}
-    {%- set a = s.attributes.area | default('', true) -%}
+    {%- set a = s.attributes.area | default('', true) | string -%}
     {%- set t = s.attributes.type | default('', true) -%}
     {%- set k = s.attributes.kind | default('', true) -%}
     {%- set d = ((distance(ref_lat | float, ref_lng | float,
                            s.attributes.latitude | float,
                            s.attributes.longitude | float) or 0) | round(1))
                 if ref_lat is not none else (s.state | float(9999)) -%}
-    {%- if (not area_names or a in area_names)
+    {%- if (not area_filter or a in area_names)
            and ((not is_hazard and 'controls' in in_halves)
                 or (is_hazard and 'hazards' in in_halves))
            and (is_hazard or not in_kinds or k in in_kinds)
@@ -535,7 +557,7 @@ variables:
            and (is_hazard or in_min_vmax | int(0) == 0
                 or (s.attributes.vmax | int(0)) >= in_min_vmax | int(0))
            and (not is_hazard or not in_hazard_types or t in in_hazard_types)
-           and (in_radius | float(0) == 0 or d <= in_radius | float(0)) -%}
+           and (in_radius | float(0) == 0 or not can_measure or d <= radius_local | float(0)) -%}
     {%- set ns.rows = ns.rows + [{
           'report_kind': 'hazard' if is_hazard else 'control',
           'area': a,
@@ -566,6 +588,14 @@ variables:
   count: "{{ reports | count }}"
   areas_found: "{{ reports | map(attribute='area') | unique | join(', ') }}"
 
+  # After the digest's rows on purpose - see there.
+  distance: >-
+    {%- if is_live and ref_lat is not none -%}
+    {{ (distance(ref_lat | float, ref_lng | float,
+                 latitude | float, longitude | float) or 0) | round(1) }}
+    {%- elif is_live -%}{{ trigger.event.data.distance | default('unknown', true) }}{%- else -%}{%- endif -%}
+
+
   # --- whether this run has anything to say --------------------------------
   in_window: >-
     {%- set f = in_live_from -%}
@@ -577,7 +607,7 @@ variables:
     {%- endif -%}
   live_passes: >-
     {{ is_live and in_live_enabled and in_window == 'true'
-       and (not area_names or area in area_names)
+       and (not area_filter or area in area_names)
        and (('controls' in in_halves) if report_kind == 'control'
             else ('hazards' in in_halves))
        and (report_kind != 'control' or not in_kinds or kind in in_kinds)
@@ -586,8 +616,8 @@ variables:
             or (vmax | int(0)) >= in_min_vmax | int(0))
        and (report_kind != 'hazard' or not in_hazard_types
             or type in in_hazard_types)
-       and (in_radius | float(0) == 0 or distance == 'unknown'
-            or distance | float(9999) <= in_radius | float(0)) }}
+       and (in_radius | float(0) == 0 or not can_measure or distance == 'unknown'
+            or distance | float(9999) <= radius_local | float(0)) }}
 
   # --- the finished text ---------------------------------------------------
   digest_empty_text: !input digest_empty
@@ -600,25 +630,43 @@ variables:
     {{ live_message if is_live
        else (digest_body if count | int(0) > 0 else digest_empty_text) }}
 
+  # A digest set off by an entity is one for a real change of state: not
+  # for that entity dropping out or coming back.
+  digest_wanted: >-
+    {{ trigger.platform | default('', true) != 'state'
+       or (trigger.to_state is not none and trigger.from_state is not none
+           and trigger.to_state.state not in ['unavailable', 'unknown']
+           and trigger.from_state.state not in ['unavailable', 'unknown']) }}
+  has_something: >-
+    {{ live_passes if is_live
+       else (digest_wanted and (count | int(0) > 0 or digest_empty_text | trim != '')) }}
+
 conditions:
   - condition: template
-    value_template: >-
-      {{ live_passes if is_live
-         else (count | int(0) > 0 or digest_empty_text | trim != '') }}
+    value_template: "{{ has_something }}"
 
 actions:
+  - condition: template
+    value_template: "{{ has_something }}"
   # Push, with a live alert tappable straight through to the map. A digest has
   # no single report to open, so it carries no URL.
   - repeat:
       for_each: !input notify_devices
       sequence:
-        - action: >-
-            notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
-          data:
-            title: "{{ notify_title }}"
-            message: "{{ notify_message }}"
-            data: >-
-              {{ {'url': map_url, 'clickAction': map_url} if map_url else {} }}
+        # A phone that has been removed must not keep the others, the bell
+        # and the speaker from being told: its device has no name any more,
+        # and an action that does not exist stops the run -
+        # "continue_on_error" covers a push that fails, not that.
+        - if: "{{ device_attr(repeat.item, 'name') is not none }}"
+          then:
+            - action: >-
+                notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
+              data:
+                title: "{{ notify_title }}"
+                message: "{{ notify_message }}"
+                data: >-
+                  {{ {'url': map_url, 'clickAction': map_url} if map_url else {} }}
+              continue_on_error: true
   - choose:
       - conditions: "{{ in_show_notifications }}"
         sequence:

@@ -2,6 +2,51 @@
 
 All notable changes to this integration are documented here.
 
+## v4.2.1
+
+A release of fixes only, from a review of the whole integration - the last of its kind: Blitzer.de gets no new features, its successor is [TomTom](https://github.com/somansch/tomtom).
+
+### After updating
+- **Home Assistant 2024.10 is the minimum now.** The blueprint and the README's examples have been written in the syntax of 2024.10 for a while; the stated minimum was still 2024.7.
+- **`created_at` and `confirmed_at` carry an offset.** `2026-10-10T09:25:30+02:00` instead of `2026-10-10T09:25:30`. A template that reads them with `as_datetime` keeps working; one that compares the text does not.
+- **On an instance that measures in miles, a marker's distance says `mi`.** The figure was miles already, the unit beside it said km.
+- **A refresh action that fails says so.** `blitzer.refresh`, `blitzer.refresh_controls` and `blitzer.refresh_hazards` raise an error when the fetch failed, rather than answering with the lists from before - a script that goes on after them needs `continue_on_error` to keep doing so.
+
+### Fixed
+- **No more "new" reports after every restart.** An entry that fetches on demand, a half on demand and a live route outside its hours fired `blitzer_new_control` and `blitzer_new_hazard` for everything they found at the first refresh after a restart or reload. A half now counts as known only once it was really fetched, and an old report that moves up into the list because another one left is not new either.
+- **All cameras of a wide area.** Where Blitzer.de answers with a group of cameras instead of the cameras, the group was asked again with a tenth of the radius, which misses some of them in an area more than about 10 km wide. It is a quarter now, and what comes back twice is kept once.
+- **One half failing no longer costs the other.** With controls fetched and hazards failing, or the other way round, the fetched half was dropped and yet marked as fetched.
+- **A route's hours past midnight.** *Monday, 22:00 to 02:00* ended at midnight, and went on early on Monday morning instead of Tuesday's. The day that counts is the one the hours began on.
+- **Two intervals that do not divide.** Controls every 60 and hazards every 45 minutes polled the hazards every 90.
+- **The registry no longer grows.** Every marker that went left a record behind for as long as the entry existed, and every reload removed and registered all markers anew.
+- **Saving the settings reloads the entry once**, not twice, and no longer keeps a second copy of them - an entry's own API key included.
+- **TomTom out of requests is not "refused the API key".** A key with no free requests left this month is told apart from a wrong one. A live route that got no answer three times in a row raises a repair, which goes with TomTom's next answer; the total sensor says when TomTom last answered (`travel_time_at`) and what went wrong (`travel_time_error`), and the card marks a travel time older than half an hour as *as of ...*.
+- **A live route's settings open while TomTom does not answer**, on the route as saved - the interval and the hours are what somebody out of requests comes to change.
+- **The "new" counts go down by themselves.** They were only worked out on a poll, so with an hourly poll a report stayed new for up to an hour too long.
+- **The actions exist from the start**, not only once an entry has set up, and Blitzer.de's timestamps are read as German time on an instance anywhere.
+- **Setup:** a count of reports can no longer be negative; a request the routing service turns down says so instead of "could not be reached"; editing the waypoints no longer adds the last one again; the texts say *routing service* where the route is TomTom's.
+
+#### Report Alerts blueprint
+- **The digest works with a proximity reference.** With a person or tracker to measure from, the digest could not be rendered at all.
+- **A phone that was removed no longer stops the others**, the notification and the speaker from being told.
+- **A burst of reports gets through**: 50 runs can wait instead of 10.
+- **The filters' edges:** an area that was picked and has since been removed matches nothing instead of everything; a reference without coordinates leaves the radius out; an entity's attribute changing does not send a digest, nor does it becoming unavailable; **Run actions** sends no empty digest; the radius is turned into miles where the instance measures in them.
+
+#### Card
+- **The card keeps time.** *Updated 5 min ago*, the NEW badges and the minimal format's counts stood still between two polls; they are drawn again every 30 seconds.
+- **The map stays where you put it.** The route was fitted again whenever the reports changed, undoing a pan or a zoom.
+- **A report's age is the report's.** It is worked out from Blitzer.de's timestamp rather than from the browser's clock and time zone, so badge and sensor agree.
+- **An emptied number field goes back to its default**, not to the smallest value - an opacity of 0, delay thresholds of 0 with everything red.
+- **The editor shows a row for everything the card draws** in the chosen format, and none for what it does not: the refresh button with the subtitle off, the closure chips, the minimal pop-up's parts.
+- **The area's circle is drawn** with *Show the route on the map* / *Route in der Karte einzeichnen* off, which is about routes.
+- **The editor's tooltips are never cut off**: they are placed against the window, as in the TomTom card.
+- **The pop-up's map** no longer keeps the scale bar and the traffic flow of the map it replaced.
+- **Tap action:** a confirmation is asked for, `navigation_replace` is followed, numbers follow the user's number format, and a tailback's speed is no longer dropped from its line.
+- **An update that failed to load is tried again**, and brings its stylesheet and defaults with it.
+
+### Changed
+- README: the walk through the setup begins with the routing service, as the setup does; three installation forms, four entries under **Configure** / **Konfigurieren**; the fields for a route's hours by the names they have.
+
 ## v4.2.0
 
 ### Added

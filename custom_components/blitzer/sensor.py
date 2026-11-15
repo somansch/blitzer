@@ -13,9 +13,10 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, ROUTE_SERVICE_TOMTOM, SEARCH_MODE_ROUTE_ORS, TOMTOM_TOTAL_OWNER
+from .const import BLITZER_TZ, DOMAIN, ROUTE_SERVICE_TOMTOM, SEARCH_MODE_ROUTE_ORS, TOMTOM_TOTAL_OWNER
 from .coordinator import BlitzerdeCoordinator
 from .tomtom import SIGNAL_TOMTOM_USAGE, TomTomUsage, async_get_usage
 
@@ -38,7 +39,10 @@ def _minutes_since(stamp, now):
         # www.blitzer.de's full stamp, "2026-10-10 09:25:30", local time -
         # read first, since it carries a colon too.
         if len(text) >= 16 and text[4] == "-":
-            then = datetime.strptime(text[:16], "%Y-%m-%d %H:%M").replace(tzinfo=now.tzinfo)
+            # German local time, wherever this instance is - and a real
+            # zone, so that the two nights the clocks change do not put an
+            # hour on a report's age.
+            then = datetime.strptime(text[:16], "%Y-%m-%d %H:%M").replace(tzinfo=BLITZER_TZ)
         elif ":" in text:
             hour, minute = (int(part) for part in text.split(":", 1))
             then = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -372,6 +376,22 @@ class SensorTotalBase(CoordinatorEntity):
     def _handle_coordinator_update(self) -> None:
         self.async_write_ha_state()
 
+    async def async_added_to_hass(self) -> None:
+        """A report stops being new by the clock, not by the next poll: with
+        a window of 30 minutes and a poll every 60, "new" stood for up to an
+        hour too long - and for ever on an entry fetched on demand. Looked
+        at once a minute; nothing is written unless the count moved."""
+        await super().async_added_to_hass()
+
+        @callback
+        def _minute(_now) -> None:
+            if self.coordinator.data is not None:
+                self.async_write_ha_state()
+
+        self.async_on_remove(
+            async_track_time_interval(self.hass, _minute, timedelta(minutes=1))
+        )
+
     def _timestamps(self) -> dict:
         """The "last update" attributes this sensor reports."""
         raise NotImplementedError
@@ -604,6 +624,11 @@ class SensorGrandTotal(SensorTotalBase):
                 round(live["distance"] / 1000, 1) if live.get("distance") is not None else None
             )
             attrs["route_changed"] = _iso(self.coordinator.route_changed_at)
+            # When TomTom last answered, and what it said the last time it
+            # did not: the figures above stay as they were through a failed
+            # request, and outside the route's hours nothing asks.
+            attrs["travel_time_at"] = _iso(live.get("at"))
+            attrs["travel_time_error"] = live.get("error")
         if controls or hazards:
             now = dt_util.now()
             data = self.coordinator.data
